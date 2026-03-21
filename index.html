@@ -2,11 +2,18 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <!-- Important pentru a minimiza barele albe pe iOS -->
+  <meta name="theme-color" content="#0f0f1a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#0f0f1a">
+  <!-- Ajută Safari să înțeleagă dark context -->
+  <meta name="color-scheme" content="dark">
+
   <title>Radio Player • markyz</title>
 
   <style>
     :root {
+      color-scheme: dark;
       --bg-start: #0f0f1a;
       --bg-end:   #1a1b2e;
       --glass:    rgba(40, 40, 80, 0.18);
@@ -23,14 +30,20 @@
       box-sizing: border-box;
     }
 
-    body {
+    html, body {
       min-height: 100dvh;
+      height: 100%;
       background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
       display: grid;
       place-items: center;
       padding: 1.5rem;
+      /* Asigură fundal uniform până la margini */
+      background-attachment: fixed;
     }
 
     .container {
@@ -136,37 +149,27 @@
   <div class="station-list">
     <div class="card">
       <div class="name">📀 Mix 10s</div>
-      <button onclick="window.location='http://155.133.23.121/hls/pop_actual/live.m3u8'">
-        Play
-      </button>
+      <button onclick="window.location='http://155.133.23.121/hls/pop_actual/live.m3u8'">Play</button>
     </div>
 
     <div class="card">
       <div class="name">⏳ Muzică veche</div>
-      <button onclick="window.location='http://155.133.23.121/hls/muzicaveche/live.m3u8'">
-        Play
-      </button>
+      <button onclick="window.location='http://155.133.23.121/hls/muzicaveche/live.m3u8'">Play</button>
     </div>
 
     <div class="card">
       <div class="name">📟 Emisiuni vechi</div>
-      <button onclick="window.location='http://155.133.23.121/hls/emisiunivechi/live.m3u8'">
-        Play
-      </button>
+      <button onclick="window.location='http://155.133.23.121/hls/emisiunivechi/live.m3u8'">Play</button>
     </div>
 
     <div class="card">
       <div class="name">🎷 Manele</div>
-      <button onclick="window.location='http://155.133.23.121/hls/manele/live.m3u8'">
-        Play
-      </button>
+      <button onclick="window.location='http://155.133.23.121/hls/manele/live.m3u8'">Play</button>
     </div>
 
     <div class="card">
       <div class="name">🌉 Pop actual</div>
-      <button onclick="window.location='http://155.133.23.121/hls/pop_actual/live.m3u8'">
-        Play
-      </button>
+      <button onclick="window.location='http://155.133.23.121/hls/pop_actual/live.m3u8'">Play</button>
     </div>
   </div>
 </div>
