@@ -2,7 +2,9 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0a0a15">
   <meta name="color-scheme" content="dark">
 
@@ -13,8 +15,6 @@
 
   <!-- iPhone Home Screen Icon -->
   <link rel="apple-touch-icon" href="icon-180.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Sergiu R">
 
   <style>
     :root {
@@ -31,12 +31,19 @@
       --font-size-button:       0.9rem;
     }
 
-    * { margin:0; padding:0; box-sizing:border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     html, body {
       height: 100%;
-      min-height: 100dvh;
+      margin: 0;
+      padding: 0;
       overflow: hidden;
+      touch-action: manipulation;     /* blochează double-tap zoom */
+      overscroll-behavior: none;      /* fără pull-to-refresh sau bounce elastic */
     }
 
     body {
