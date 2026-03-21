@@ -57,16 +57,23 @@ body::after { content:""; position: fixed; inset:0; background: linear-gradient(
   animation: gradientMove 4s linear infinite;
 }
 
-.telegram-cta {
-  display:inline-flex; align-items:center; gap:0.8rem;
-  background:#2481cc; color:white;
-  font-family:impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;
-  font-size:1.0rem; padding:0.0rem 0.9rem; border-radius:0.9rem;
-  text-decoration:none; transition: all 0.2s ease;
-  box-shadow:0 3px 10px rgba(36,129,204,0.3);
+.instagram-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color:white;
+  font-family: impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+  font-size:1.0rem; 
+  padding:0.0rem 0.9rem; 
+  border-radius:0.9rem;
+  text-decoration:none; 
+  transition: all 0.2s ease;
+  box-shadow:0 3px 10px rgba(220,35,67,0.4);
   cursor:pointer;
 }
-.telegram-cta:hover { background:#1a6ab3; transform:translateY(-1px); box-shadow:0 5px 14px rgba(36,129,204,0.4); }
+.instagram-cta:hover { transform:translateY(-1px); box-shadow:0 5px 14px rgba(220,35,67,0.6); }
+.instagram-cta span { position: relative; top: -2px; } /* ridică emoji-ul */
 
 .station-list {
   display:flex; flex-direction:column;
@@ -156,7 +163,9 @@ button:hover {
 <div class="container">
   <div class="header">
     <h1><span>Sergiu R | Stations</span> 🌅</h1>
-    <a href="http://t.me/sergiuro" target="_blank" class="telegram-cta">✈️ Telegram</a>
+    <a href="https://www.instagram.com/redclonex" target="_blank" class="instagram-cta">
+      <span>📸</span> Instagram
+    </a>
   </div>
 
   <div class="station-list">
@@ -209,17 +218,13 @@ function glowSequential() {
   btn.style.setProperty('--glow-color', color);
   btn.classList.add('glow');
 
-  // următorul buton începe când primul e ~75% gata
   const nextTime = durationGlow * 0.75;
   index = (index + 1) % buttons.length;
 
   setTimeout(glowSequential, nextTime);
-
-  // curățăm glow-ul după finalul animației
   setTimeout(()=>btn.classList.remove('glow'), durationGlow);
 }
 
-// pornim secvența glow
 glowSequential();
 </script>
 </body>
