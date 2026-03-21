@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radio Player</title>
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
 <style>
 body {
     margin: 0;
@@ -27,6 +25,7 @@ body {
     font-size: 26px;
     font-weight: 600;
     margin-bottom: 20px;
+    text-align: center;
 }
 
 .card {
@@ -56,31 +55,14 @@ button {
     background: rgba(255,255,255,0.15);
     color: white;
     font-weight: 500;
+    cursor: pointer;
 }
 
 button:hover {
     background: rgba(255,255,255,0.25);
 }
-
-.player {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 420px;
-    backdrop-filter: blur(20px);
-    background: rgba(255,255,255,0.1);
-    border-radius: 20px;
-    padding: 15px;
-}
-
-audio {
-    width: 100%;
-}
 </style>
 </head>
-
 <body>
 
 <div class="container">
@@ -88,57 +70,29 @@ audio {
 
     <div class="card">
         <div class="name">Emisiuni Vechi</div>
-        <button onclick="playStream('http://155.133.23.121/hls/emisiunivechi/live.m3u8')">Play</button>
+        <button onclick="window.location.href='http://155.133.23.121/hls/emisiunivechi/live.m3u8'">Play</button>
     </div>
 
     <div class="card">
         <div class="name">Manele</div>
-        <button onclick="playStream('http://155.133.23.121/hls/manele/live.m3u8')">Play</button>
+        <button onclick="window.location.href='http://155.133.23.121/hls/manele/live.m3u8'">Play</button>
     </div>
 
     <div class="card">
         <div class="name">Pop Actual</div>
-        <button onclick="playStream('http://155.133.23.121/hls/pop_actual/live.m3u8')">Play</button>
+        <button onclick="window.location.href='http://155.133.23.121/hls/pop_actual/live.m3u8'">Play</button>
     </div>
 
     <div class="card">
         <div class="name">Radio General</div>
-        <button onclick="playStream('http://155.133.23.121/hls/radio/live.m3u8')">Play</button>
+        <button onclick="window.location.href='http://155.133.23.121/hls/radio/live.m3u8'">Play</button>
     </div>
 
     <div class="card">
         <div class="name">Muzică Veche</div>
-        <button onclick="playStream('http://155.133.23.121/hls/muzicaveche/live.m3u8')">Play</button>
+        <button onclick="window.location.href='http://155.133.23.121/hls/muzicaveche/live.m3u8'">Play</button>
     </div>
 </div>
-
-<div class="player">
-    <audio id="audio" controls></audio>
-</div>
-
-<script>
-let audio = document.getElementById('audio');
-let hls;
-
-function playStream(url) {
-    if (hls) {
-        hls.destroy();
-    }
-
-    if (Hls.isSupported()) {
-        hls = new Hls();
-        hls.loadSource(url);
-        hls.attachMedia(audio);
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-            audio.play();
-        });
-    } 
-    else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-        audio.src = url;
-        audio.play();
-    }
-}
-</script>
 
 </body>
 </html>
