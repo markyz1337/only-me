@@ -1,168 +1,226 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <meta name="theme-color" content="#0a0a15">
-  <meta name="color-scheme" content="dark">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0a15">
+<meta name="color-scheme" content="dark">
 
-  <title>Sergiu R | Stations 🌅</title>
+<title>Sergiu R | Stations 🌅</title>
 
-  <link rel="icon" href="favicon.png" type="image/png">
-  <link rel="apple-touch-icon" href="icon-180.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Sergiu FM">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sergiu FM">
 
-  <style>
-    :root {
-      --bg: #0a0a15;
-      --glass: rgba(35, 35, 75, 0.16);
-      --glass-border: rgba(160, 160, 255, 0.07);
-      --text: #f1f5f9;
-      --font-size-title-main: 1.7rem;
-      --font-size-title-mobile: 1.55rem;
-      --font-size-station-name: 1.2rem;
-      --font-size-button: 0.85rem;
-      --card-height: 72px;
-    }
+<style>
+:root {
+  --bg: #0a0a15;
+  --glass: rgba(35, 35, 75, 0.16);
+  --glass-border: rgba(160, 160, 255, 0.07);
+  --text: #f1f5f9;
+  --font-size-title-main: 1.7rem;
+  --font-size-title-mobile: 1.60rem;
+  --font-size-station-name: 1.2rem;
+  --font-size-button: 0.85rem;
+  --card-height: 72px;
+}
 
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { height: 100%; min-height: 100dvh; overflow: hidden; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      display: grid; place-items: center; padding: 1.5rem; position: relative;
-    }
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height: 100%; min-height: 100dvh; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  display: grid; place-items: center; padding: 1.5rem; position: relative;
+}
 
-    .stars { position: fixed; inset:0; pointer-events:none; z-index:-1; overflow:hidden; }
-    .star {
-      position: absolute; background: white; border-radius:50%;
-      opacity:0; box-shadow: 0 0 5px rgba(255,255,255,0.8);
-      animation: twinkle infinite ease-in-out; will-change: opacity, transform;
-    }
-    @keyframes twinkle { 0%,100{opacity:0.3;transform:scale(1);} 50%{opacity:1;transform:scale(1.4);} }
+.stars { position: fixed; inset:0; pointer-events:none; z-index:-1; overflow:hidden; }
+.star { position: absolute; background: white; border-radius:50%; opacity:0; box-shadow:0 0 5px rgba(255,255,255,0.8); animation: twinkle infinite ease-in-out; will-change: opacity, transform; }
+@keyframes twinkle { 0%,100%{opacity:0.3;transform:scale(1);} 50%{opacity:1;transform:scale(1.4);} }
 
-    body::after {
-      content:""; position: fixed; inset:0;
-      background: linear-gradient(135deg, rgba(10,10,21,0.82), rgba(26,27,46,0.88));
-      z-index:-1; pointer-events:none;
-    }
+@keyframes gradientMove { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
 
-    .container { width:100%; max-width:350px; position: relative; z-index:1; }
-    .header { text-align:center; margin-bottom:1.6rem; }
-    .header h1 { font-size: var(--font-size-title-main); font-weight:800; margin-bottom:0.4rem; }
-    .header h1 span {
-      background: linear-gradient(90deg, #e0e7ff, #c4b5fd, #a78bfa);
-      -webkit-background-clip: text; background-clip:text; color:transparent;
-    }
-    .telegram-cta {
-      display:inline-flex; align-items:center; gap:0.5rem;
-      background:#2481cc; color:white; font-family:impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;
-      font-size:0.88rem; padding:0.08rem 0.7rem; border-radius:0.8rem;
-      text-decoration:none; transition: all 0.2s ease; box-shadow:0 3px 10px rgba(36,129,204,0.3);
-      cursor:pointer;
-    }
-    .telegram-cta:hover { background:#1a6ab3; transform:translateY(-1px); box-shadow:0 5px 14px rgba(36,129,204,0.4);}
-    .telegram-cta span { font-size:0.9rem; }
+body::after { content:""; position: fixed; inset:0; background: linear-gradient(135deg, rgba(10,10,21,0.82), rgba(26,27,46,0.88)); z-index:-1; pointer-events:none; }
 
-    /* container scrollabil exact 5 carduri + spațiu final vizibil */
-    .station-list {
-      display:flex; flex-direction:column;
-      gap: 12px; /* spațiu între carduri */
-      max-height: calc((var(--card-height) + 12px) * 5 + 12px); /* 5 carduri + spațiu final */
-      overflow-y:auto;
-      background: var(--glass);
-      border-radius: 1.1rem;
-      padding: 12px 1rem 12px 1rem; /* padding sus și jos */
-    }
+.container { width:100%; max-width:350px; position: relative; z-index:1; }
+.header { text-align:center; margin-bottom:1.6rem; }
 
-    /* ascunde bara de scroll */
-    .station-list::-webkit-scrollbar { width:0; background:transparent; }
-    .station-list { -ms-overflow-style: none; scrollbar-width: none; }
+.header h1 { font-size: var(--font-size-title-main); font-weight:800; margin-bottom:0.7rem; }
 
-    .card {
-      background: var(--glass); backdrop-filter: blur(16px) saturate(180%);
-      border: 1px solid var(--glass-border); border-radius: 1rem;
-      padding: 1rem 1.2rem;
-      display:flex; align-items:center; justify-content:space-between;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      height: var(--card-height);
-      transition: all 0.28s ease;
-    }
+.header h1 span {
+  background: linear-gradient(90deg, #e0e7ff, #c4b5fd, #a78bfa, #f0abfc, #e0e7ff);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradientMove 4s linear infinite;
+}
 
-    .card.yellow {
-      background: rgba(255, 223, 130, 0.35);
-      border-color: rgba(255, 223, 130, 0.25);
-    }
-    .card.yellow button {
-      background: linear-gradient(145deg, rgba(255,223,130,0.35), rgba(255,223,130,0.25));
-      border:1px solid rgba(255,223,130,0.35); color:white;
-    }
+.telegram-cta {
+  display:inline-flex; align-items:center; gap:0.8rem;
+  background:#2481cc; color:white;
+  font-family:impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;
+  font-size:1.0rem; padding:0.0rem 0.9rem; border-radius:0.9rem;
+  text-decoration:none; transition: all 0.2s ease;
+  box-shadow:0 3px 10px rgba(36,129,204,0.3);
+  cursor:pointer;
+}
+.telegram-cta:hover { background:#1a6ab3; transform:translateY(-1px); box-shadow:0 5px 14px rgba(36,129,204,0.4); }
 
-    .name { font-size: var(--font-size-station-name); font-weight:500; }
-    button {
-      font-size: var(--font-size-button);
-      padding:0.6rem 1.2rem;
-      border-radius:0.9rem;
-      cursor:pointer;
-      background: linear-gradient(145deg, rgba(167,139,250,0.24), rgba(139,92,246,0.19));
-      border:1px solid rgba(167,139,250,0.32); color:white; font-weight:550;
-      transition: all 0.25s ease;
-    }
-    button:hover { background: linear-gradient(145deg, rgba(167,139,250,0.42), rgba(139,92,246,0.35)); transform:translateY(-1px); box-shadow:0 6px 20px rgba(139,92,246,0.32); }
+.station-list {
+  display:flex; flex-direction:column;
+  gap: 12px;
+  max-height: calc((var(--card-height) + 12px) * 5 + 12px);
+  overflow-y:auto;
+  background: var(--glass);
+  border-radius: 1.1rem;
+  padding: 12px 1rem 12px 1rem;
+}
 
-    .shooting-star { position:absolute; width:3px; height:3px; background:#fffef0; border-radius:50%;
-      box-shadow:0 0 12px 4px rgba(255,240,180,0.9),0 0 25px 8px rgba(255,200,100,0.6);
-      opacity:0; pointer-events:none; z-index:-1; animation:shooting-dot linear forwards;
-    }
-    @keyframes shooting-dot {0%{opacity:0;transform:translate(0,0) scale(0.3);}20%{opacity:1;transform:translate(60px,80px) scale(1.4);}80%{opacity:1;transform:translate(100px,140px) scale(0.9);}100%{opacity:0;transform:translate(140px,200px) scale(0.2);} }
+.station-list::-webkit-scrollbar { width:0; background:transparent; }
+.station-list { -ms-overflow-style: none; scrollbar-width: none; }
 
-    @media (max-width:400px){ .header h1 { font-size: var(--font-size-title-mobile); } }
-  </style>
+.card {
+  background: var(--glass);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  padding: 1rem 1.2rem;
+  display:flex; align-items:center; justify-content:space-between;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  height: var(--card-height);
+  transition: all 0.28s ease;
+}
+
+.card.yellow {
+  background: rgba(255, 223, 130, 0.35);
+  border-color: rgba(255, 223, 130, 0.25);
+}
+
+.card.yellow button { 
+  background: linear-gradient(145deg, rgba(255,223,130,0.35), rgba(255,223,130,0.25)); 
+  border:1px solid rgba(255,223,130,0.35); color:white; 
+}
+
+.name { font-size: var(--font-size-station-name); font-weight:500; }
+
+button {
+  font-size: var(--font-size-button);
+  padding:0.6rem 1rem;
+  border-radius:0.9rem;
+  cursor:pointer;
+  background: linear-gradient(145deg, rgba(167,139,250,0.24), rgba(139,92,246,0.19));
+  border:1px solid rgba(167,139,250,0.32);
+  color:white;
+  font-weight:550;
+  transition: all 0.25s ease;
+}
+
+button:hover { 
+  background: linear-gradient(145deg, rgba(167,139,250,0.42), rgba(139,92,246,0.35)); 
+  transform:translateY(-1px); 
+  box-shadow:0 6px 20px rgba(139,92,246,0.32); 
+}
+
+/* Glow subtil și fluid */
+@keyframes glowPulse {
+  0%,100% { box-shadow: 0 0 4px rgba(0,0,0,0); }
+  50% { box-shadow: 0 0 15px var(--glow-color, #a78bfa); }
+}
+.glow { animation: glowPulse 2.5s ease-in-out forwards; }
+
+/* Hover special galben */
+.card.yellow button:hover {
+  background: linear-gradient(145deg, rgba(255,223,130,0.55), rgba(255,223,130,0.35));
+  box-shadow: 0 6px 20px rgba(255,223,130,0.6);
+  transform:translateY(-1px);
+}
+
+/* Glow special galben */
+.card.yellow button.glow {
+  --glow-color: rgba(255,223,130,0.7);
+  box-shadow: 0 0 15px rgba(255,223,130,0.7);
+}
+
+.shooting-star { position:absolute; width:3px; height:3px; background:#fffef0; border-radius:50%; box-shadow:0 0 12px 4px rgba(255,240,180,0.9),0 0 25px 8px rgba(255,200,100,0.6); opacity:0; pointer-events:none; z-index:-1; animation:shooting-dot linear forwards; }
+
+@keyframes shooting-dot { 0%{opacity:0;transform:translate(0,0) scale(0.3);} 20%{opacity:1;transform:translate(60px,80px) scale(1.4);} 80%{opacity:1;transform:translate(100px,140px) scale(0.9);} 100%{opacity:0;transform:translate(140px,200px) scale(0.2);} }
+
+@media (max-width:400px){ .header h1 { font-size: var(--font-size-title-mobile); } }
+</style>
 </head>
 <body>
-  <div class="stars"></div>
-  <div class="container">
-    <div class="header">
-      <h1><span>Sergiu R | Stations</span> 🌅</h1>
-      <a href="http://t.me/sergiuro" target="_blank" class="telegram-cta"><span>✈️</span> Telegram</a>
-    </div>
+<div class="stars"></div>
 
-    <div class="station-list">
-      <div class="card"><div class="name">📀 Mix 10s</div><button onclick="window.location='http://155.133.23.121/hls/radio/live.m3u8'">Play</button></div>
-      <div class="card"><div class="name">⏳ Muzică veche</div><button onclick="window.location='http://155.133.23.121/hls/muzicaveche/live.m3u8'">Play</button></div>
-      <div class="card"><div class="name">📟 Emisiuni vechi</div><button onclick="window.location='http://155.133.23.121/hls/emisiunivechi/live.m3u8'">Play</button></div>
-      <div class="card"><div class="name">🎷 Manele</div><button onclick="window.location='http://155.133.23.121/hls/manele/live.m3u8'">Play</button></div>
-      <div class="card"><div class="name">🌉 Pop actual</div><button onclick="window.location='http://155.133.23.121/hls/pop_actual/live.m3u8'">Play</button></div>
-      <div class="card yellow"><div class="name">💛 Dacă aș iubi</div><button onclick="window.location='http://155.133.23.121/hls/hope/live.m3u8'">Play</button></div>
-    </div>
+<div class="container">
+  <div class="header">
+    <h1><span>Sergiu R | Stations</span> 🌅</h1>
+    <a href="http://t.me/sergiuro" target="_blank" class="telegram-cta">✈️ Telegram</a>
   </div>
 
-  <script>
-    const starsContainer = document.querySelector('.stars');
-    for (let i=0;i<120;i++){
-      const star=document.createElement('div');
-      star.className='star';
-      star.style.width=star.style.height=(Math.random()*2.4+0.7)+'px';
-      star.style.top=Math.random()*100+'%';
-      star.style.left=Math.random()*100+'%';
-      star.style.animationDuration=(Math.random()*6+3.5)+'s';
-      star.style.animationDelay=Math.random()*10+'s';
-      starsContainer.appendChild(star);
-    }
+  <div class="station-list">
+    <div class="card"><div class="name">📀 Mix 10s</div><button onclick="window.location='http://155.133.23.121/hls/radio/live.m3u8'" data-color="#a78bfa">Play</button></div>
+    <div class="card"><div class="name">⏳ Muzică veche</div><button onclick="window.location='http://155.133.23.121/hls/muzicaveche/live.m3u8'" data-color="#a78bfa">Play</button></div>
+    <div class="card"><div class="name">📟 Emisiuni vechi</div><button onclick="window.location='http://155.133.23.121/hls/emisiunivechi/live.m3u8'" data-color="#a78bfa">Play</button></div>
+    <div class="card"><div class="name">🎷 Manele</div><button onclick="window.location='http://155.133.23.121/hls/manele/live.m3u8'" data-color="#a78bfa">Play</button></div>
+    <div class="card"><div class="name">🌉 Pop actual</div><button onclick="window.location='http://155.133.23.121/hls/pop_actual/live.m3u8'" data-color="#a78bfa">Play</button></div>
+    <div class="card yellow"><div class="name">💛 Dacă aș iubi</div><button onclick="window.location='http://155.133.23.121/hls/hope/live.m3u8'" data-color="rgba(255,223,130,0.7)">Play</button></div>
+  </div>
+</div>
 
-    function createShootingStar(){
-      const meteor=document.createElement('div'); meteor.className='shooting-star';
-      const startX=Math.random()*80-20; const duration=0.6+Math.random()*1.1;
-      meteor.style.left=startX+'%'; meteor.style.top=(Math.random()*30-15)+'%';
-      meteor.style.animationDuration=duration+'s';
-      meteor.style.transform=`rotate(${30+Math.random()*35}deg)`;
-      starsContainer.appendChild(meteor);
-      setTimeout(()=>meteor.remove(),2500);
-      setTimeout(createShootingStar,700+Math.random()*3200);
-    }
-    setTimeout(createShootingStar,800);
-  </script>
+<script>
+/* stele */
+const starsContainer = document.querySelector('.stars');
+for (let i=0;i<120;i++){
+  const star=document.createElement('div');
+  star.className='star';
+  star.style.width=star.style.height=(Math.random()*2.4+0.7)+'px';
+  star.style.top=Math.random()*100+'%';
+  star.style.left=Math.random()*100+'%';
+  star.style.animationDuration=(Math.random()*6+3.5)+'s';
+  star.style.animationDelay=Math.random()*10+'s';
+  starsContainer.appendChild(star);
+}
+
+function createShootingStar(){
+  const meteor=document.createElement('div');
+  meteor.className='shooting-star';
+  const startX=Math.random()*80-20;
+  const duration=0.6+Math.random()*1.1;
+  meteor.style.left=startX+'%';
+  meteor.style.top=(Math.random()*30-15)+'%';
+  meteor.style.animationDuration=duration+'s';
+  meteor.style.transform=`rotate(${30+Math.random()*35}deg)`;
+  starsContainer.appendChild(meteor);
+  setTimeout(()=>meteor.remove(),2500);
+  setTimeout(createShootingStar,700+Math.random()*3200);
+}
+setTimeout(createShootingStar,800);
+
+/* Glow secvențial fluid */
+const buttons = document.querySelectorAll('.station-list button');
+const durationGlow = 2500; // durata animației glowPulse
+let index = 0;
+
+function glowSequential() {
+  const btn = buttons[index];
+  const color = btn.getAttribute('data-color') || '#a78bfa';
+  btn.style.setProperty('--glow-color', color);
+  btn.classList.add('glow');
+
+  // următorul buton începe când primul e ~75% gata
+  const nextTime = durationGlow * 0.75;
+  index = (index + 1) % buttons.length;
+
+  setTimeout(glowSequential, nextTime);
+
+  // curățăm glow-ul după finalul animației
+  setTimeout(()=>btn.classList.remove('glow'), durationGlow);
+}
+
+// pornim secvența glow
+glowSequential();
+</script>
 </body>
 </html>
