@@ -1,97 +1,174 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radio Player</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Radio Player • markyz</title>
 
-<style>
-body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: white;
-    display: flex;
-    justify-content: center;
-}
+  <style>
+    :root {
+      --bg-start: #0f0f1a;
+      --bg-end:   #1a1b2e;
+      --glass:    rgba(40, 40, 80, 0.18);
+      --glass-border: rgba(180, 180, 255, 0.08);
+      --accent:   #a78bfa;
+      --accent-glow: #c4b5fd;
+      --text:     #f1f5f9;
+      --text-dim: #94a3b8;
+    }
 
-.container {
-    width: 100%;
-    max-width: 420px;
-    padding: 20px;
-}
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-.title {
-    font-size: 26px;
-    font-weight: 600;
-    margin-bottom: 20px;
-    text-align: center;
-}
+    body {
+      min-height: 100dvh;
+      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      display: grid;
+      place-items: center;
+      padding: 1.5rem;
+    }
 
-.card {
-    backdrop-filter: blur(20px);
-    background: rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 16px;
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: 0.2s;
-}
+    .container {
+      width: 100%;
+      max-width: 380px;
+    }
 
-.card:active {
-    transform: scale(0.97);
-}
+    .header {
+      text-align: center;
+      margin-bottom: 2.2rem;
+    }
 
-.name {
-    font-size: 16px;
-}
+    .header h1 {
+      font-size: 2.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #e0e7ff, #c4b5fd, #a78bfa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 0.4rem;
+    }
 
-button {
-    border: none;
-    padding: 10px 16px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.15);
-    color: white;
-    font-weight: 500;
-    cursor: pointer;
-}
+    .header p {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+    }
 
-button:hover {
-    background: rgba(255,255,255,0.25);
-}
-</style>
+    .station-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--glass);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      border-radius: 1.1rem;
+      padding: 1.1rem 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+
+    .card:hover {
+      transform: translateY(-4px) scale(1.015);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.35),
+                  0 0 0 1px rgba(167,139,250,0.12);
+    }
+
+    .card:active {
+      transform: scale(0.98);
+      transition: all 0.14s ease;
+    }
+
+    .name {
+      font-size: 1.1rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    button {
+      background: linear-gradient(145deg, rgba(167,139,250,0.22), rgba(139,92,246,0.18));
+      border: 1px solid rgba(167,139,250,0.3);
+      color: white;
+      font-weight: 550;
+      padding: 0.7rem 1.4rem;
+      border-radius: 0.9rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(4px);
+    }
+
+    button:hover {
+      background: linear-gradient(145deg, rgba(167,139,250,0.38), rgba(139,92,246,0.32));
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(139,92,246,0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 400px) {
+      .container { padding: 0 0.8rem; }
+      .header h1 { font-size: 1.9rem; }
+    }
+  </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="title">🎧 Radiourile mele</div>
+  <div class="header">
+    <h1>🎧 Radiourile mele</h1>
+    <p>Alege vibe-ul potrivit</p>
+  </div>
 
+  <div class="station-list">
     <div class="card">
-        <div class="name">Emisiuni Vechi</div>
-        <button onclick="window.location.href='http://155.133.23.121/hls/emisiunivechi/live.m3u8'">Play</button>
+      <div class="name">Emisiuni Vechi</div>
+      <button onclick="window.location='http://155.133.23.121/hls/emisiunivechi/live.m3u8'">
+        Play
+      </button>
     </div>
 
     <div class="card">
-        <div class="name">Manele</div>
-        <button onclick="window.location.href='http://155.133.23.121/hls/manele/live.m3u8'">Play</button>
+      <div class="name">Manele</div>
+      <button onclick="window.location='http://155.133.23.121/hls/manele/live.m3u8'">
+        Play
+      </button>
     </div>
 
     <div class="card">
-        <div class="name">Pop Actual</div>
-        <button onclick="window.location.href='http://155.133.23.121/hls/pop_actual/live.m3u8'">Play</button>
+      <div class="name">Pop Actual</div>
+      <button onclick="window.location='http://155.133.23.121/hls/pop_actual/live.m3u8'">
+        Play
+      </button>
     </div>
 
     <div class="card">
-        <div class="name">Radio General</div>
-        <button onclick="window.location.href='http://155.133.23.121/hls/radio/live.m3u8'">Play</button>
+      <div class="name">Radio General</div>
+      <button onclick="window.location='http://155.133.23.121/hls/radio/live.m3u8'">
+        Play
+      </button>
     </div>
 
     <div class="card">
-        <div class="name">Muzică Veche</div>
-        <button onclick="window.location.href='http://155.133.23.121/hls/muzicaveche/live.m3u8'">Play</button>
+      <div class="name">Muzică Veche</div>
+      <button onclick="window.location='http://155.133.23.121/hls/muzicaveche/live.m3u8'">
+        Play
+      </button>
     </div>
+  </div>
 </div>
 
 </body>
