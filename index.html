@@ -134,4 +134,119 @@ body {
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
 
 const stations = [
-    { name: "ONE FM DANCE", stream: "https://live.onefm.ro/onefm.aacp", img: "https://onefm.es/wp-content/uploads/2023/09/LOGO-2025.jpg", desc: "DANCE,
+    { name: "ONE FM DANCE", stream: "https://live.onefm.ro/onefm.aacp", img: "https://onefm.es/wp-content/uploads/2023/09/LOGO-2025.jpg", desc: "DANCE, HOUSE, TECHNO" },
+    { name: "Millenium Hits", stream: "https://dc.digi.live.kissfm.ro/milleniumhits", img: "https://api.kissfm.ro/resized/streams/homepage/2024/10/07/homepage-logo-kiss-millenium-hits_bd81e49f11f3edfff722aecb28f9ae34.png", desc: "KISS MILLENIUM HITS" },
+    { name: "DFM Pop", stream: "https://dfm-popgold10.hostingradio.ru/popgold1096.aacp", img: "https://radiopotok.com/assets/image/radio/180/dfmpopdance.jpg", desc: "POP GOLD, HITS" },
+    { name: "Kiss 10s", stream: "https://dc.digi.live.kissfm.ro/kiss.hits.from.the.10s/listen.m3u", img: "https://api.kissfm.ro/resized/streams/homepage/2025/01/10/cover-kiss-hits-from-the-10s_6210a8bb4e6b58d8b6d2c0342721cdb9.png", desc: "HITS FROM THE 10S" },
+    { name: "DFM DANCE", stream: "https://dfm-dancegold10.hostingradio.ru/dancegold1096.aacp", img: "https://americadance90.com.br/wp-content/uploads/2024/05/DFM-Dance-Gold-90s.png", desc: "DANCE GOLD, 90S" },
+    { name: "Radio Record", stream: "https://radiorecord.hostingradio.ru/rus96.aacp", img: "https://www.radiorecord.ru/icons/apple-touch-icon.png", desc: "RECORD RUSSIAN MIX" },
+    { name: "PRO DJ RADIO", stream: "http://live.prodjradio.net:8000/;?type=http&nocache=4585", img: "https://myradioonline.ro/public/uploads/radio_img/pro-dj-radio/play_250_250.webp", desc: "DJ MIX, CLUB, DANCE" },
+    { name: "Positively 10s", stream: "https://streaming.positivity.radio/pr/posi10s/icecast.audio", img: "https://cdn.autopo.st/images/coverart/r/Roll_Deep_-_Good_Times.jpg", desc: "10S HITS, POSITIVE" },
+    { name: "HEART 10S", stream: "https://media-ice.musicradio.com/Heart10sMP3", img: "https://images.weserv.nl/?url=www.globalplayer.com/assets/track-placeholders/heart10s.png", desc: "POP, HITS, CHART" },
+    { name: "RADIO ZU", stream: "https://live.radiozu.ro:8000/radiozu.aacp", img: "", desc: "POP, TOP 40, ROMANIA" },
+    { name: "ROCK FM", stream: "https://live.rockfm.ro/rockfm.aacp", img: "", desc: "CLASSIC ROCK, METAL" }
+];
+
+let currentIdx = 0;
+let activeLayer = 1;
+let startX = 0;
+let isDragging = false;
+const audio = document.getElementById('audio-engine');
+const wrapper = document.getElementById('info-wrapper');
+
+function init() {
+    const list = document.getElementById('stations-list');
+    stations.forEach((s, i) => {
+        const finalImg = (s.img && s.img.trim() !== "") ? s.img : FALLBACK_IMG;
+        const item = document.createElement('div');
+        item.className = 'station-item';
+        item.innerHTML = `<img src="${finalImg}" class="station-thumb" onerror="this.src=FALLBACK_IMG"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>`;
+        item.onclick = () => { currentIdx = i; playStation(); };
+        list.appendChild(item);
+    });
+    lucide.createIcons();
+    updateSliderText();
+    loadStationInfo(0, false);
+    setupSwipe();
+}
+
+function updateSliderText() {
+    const prev = (currentIdx - 1 + stations.length) % stations.length;
+    const next = (currentIdx + 1) % stations.length;
+    updateSlide('slide-prev', stations[prev]);
+    updateSlide('slide-current', stations[currentIdx]);
+    updateSlide('slide-next', stations[next]);
+}
+function updateSlide(id, data) {
+    const el = document.getElementById(id);
+    el.querySelector('h2').innerText = data.name;
+    el.querySelector('p').innerText = data.desc;
+}
+
+function loadStationInfo(idx, shouldPlay = true) {
+    const s = stations[idx];
+    const finalImg = (s.img && s.img.trim() !== "") ? s.img : FALLBACK_IMG;
+    document.getElementById('player-img').src = finalImg;
+    audio.src = s.stream;
+    if(shouldPlay) audio.play().catch(()=>{});
+    const l1 = document.getElementById('bg-layer-1');
+    const l2 = document.getElementById('bg-layer-2');
+    const nextL = activeLayer === 1 ? l2 : l1;
+    const prevL = activeLayer === 1 ? l1 : l2;
+    nextL.style.backgroundImage = `url(${finalImg})`;
+    nextL.style.opacity = '1';
+    prevL.style.opacity = '0';
+    activeLayer = activeLayer === 1 ? 2 : 1;
+    updateUI(!audio.paused && shouldPlay);
+}
+
+function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
+function next() { currentIdx = (currentIdx + 1) % stations.length; animateTransition('next'); }
+function prev() { currentIdx = (currentIdx - 1 + stations.length) % stations.length; animateTransition('prev'); }
+
+function animateTransition(dir) {
+    wrapper.style.transition = 'transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)';
+    wrapper.style.transform = dir==='next' ? 'translateX(-66.666%)' : 'translateX(0)';
+    setTimeout(()=>{ 
+        wrapper.style.transition='none';
+        loadStationInfo(currentIdx, true);
+        updateSliderText();
+        wrapper.style.transform = 'translateX(-33.333%)';
+    },400);
+}
+
+function setupSwipe() {
+    const zones = [document.getElementById('swipe-zone-art'), document.getElementById('swipe-zone-text')];
+    zones.forEach(z => {
+        z.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; isDragging=true; wrapper.style.transition='none'; });
+        z.addEventListener('touchmove', e=>{ if(!isDragging) return; const d = e.touches[0].clientX-startX; wrapper.style.transform = `translateX(calc(-33.333% + ${(d/window.innerWidth)*33}%))`; });
+        z.addEventListener('touchend', e=>{ 
+            if(!isDragging) return;
+            const d = e.changedTouches[0].clientX - startX;
+            if(d>50) prev(); else if(d<-50) next(); else wrapper.style.transform='translateX(-33.333%)';
+            isDragging=false;
+        });
+    });
+}
+
+function togglePlay() {
+    const b = document.getElementById('play-trigger');
+    if(audio.paused){ audio.play().catch(()=>{}); b.classList.add('playing'); b.innerHTML='<i data-lucide="pause" fill="currentColor"></i>'; }
+    else{ audio.pause(); b.classList.remove('playing'); b.innerHTML='<i data-lucide="play" fill="currentColor"></i>'; }
+    lucide.createIcons();
+}
+function switchTab(t) {
+    if(t==='list'){ document.getElementById('list-view').style.display='flex'; document.getElementById('player-view').style.display='none';
+        document.getElementById('nav-list').classList.add('active'); document.getElementById('nav-player').classList.remove('active'); }
+    else{ document.getElementById('list-view').style.display='none'; document.getElementById('player-view').style.display='flex';
+        document.getElementById('nav-list').classList.remove('active'); document.getElementById('nav-player').classList.add('active'); }
+}
+function updateUI(p){ const b=document.getElementById('play-trigger'); 
+    if(p){ b.classList.add('playing'); b.innerHTML='<i data-lucide="pause" fill="currentColor"></i>'; }
+    else{ b.classList.remove('playing'); b.innerHTML='<i data-lucide="play" fill="currentColor"></i>'; }
+    lucide.createIcons();
+}
+init();
+</script>
+</body>
+</html>
