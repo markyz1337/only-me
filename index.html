@@ -66,8 +66,23 @@ body {
 }
 
 .header-tabs { position:relative; z-index:10; padding:20px 20px 10px; display:flex; gap:10px; overflow-x:auto; }
-.tab { background:var(--glass); padding:8px 18px; border-radius:20px; font-size:13px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); cursor:pointer; white-space:nowrap; }
-.tab.active { background:var(--accent); border-color:transparent; }
+.tab { 
+    background: var(--glass); 
+    padding: 8px 18px; 
+    border-radius: 20px; 
+    font-size: 13px; 
+    backdrop-filter: blur(10px); 
+    border: 1px solid rgba(255,255,255,0.1); 
+    cursor: pointer; 
+    white-space: nowrap;
+    font-weight: 500; /* Adaugă sau modifică această linie (400 e normal, 500 e mediu, 600 e bold) */
+}
+
+.tab.active { 
+    background: var(--accent); 
+    border-color: transparent; 
+    font-weight: 900; /* Aceasta este linia adăugată */
+}
 .content { position:relative; z-index:10; flex:1; padding:0 20px 140px 20px; overflow-y:auto; }
 .station-item { display:flex; align-items:center; padding:15px 0; border-bottom: 1px solid transparent;
 border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; }
