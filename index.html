@@ -2,6 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
+<!-- Force focus on cover to avoid black bars on return -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Sergiu FM</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
@@ -9,7 +10,6 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Sergiu FM">
-<!-- Black-translucent permite background-ului să urce sub oră -->
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -20,6 +20,7 @@
     --bg-dark: #000000;
 }
 
+/* BLOCARE SELECȚIE ȘI ZOOM */
 * { 
     box-sizing: border-box; 
     margin: 0; padding: 0; 
@@ -36,24 +37,24 @@
 body { 
     background: var(--bg-dark); 
     color: white; 
+    /* Folosim dynamic viewport height pentru a forța redimensionarea */
     height: 100dvh; 
+    width: 100vw;
     overflow: hidden; 
     display: flex; 
     justify-content: center;
-    touch-action: pan-y; 
+    touch-action: none; /* Blochează gesturile de zoom la nivel de browser */
 }
 
 .app-container {
     width: 100%; max-width: 430px; height: 100%; position: relative; overflow: hidden;
     display: flex; flex-direction: column;
-    /* REZOLVARE SUPRAPUNERE ORĂ ȘI BARĂ JOS (IOS SAFE AREAS) */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
 }
 
 .bg-blur {
     position: absolute; 
-    /* Fundalul rămâne sub oră (top: 0 în loc de safe-area) */
     top: -10%; left: -10%; width: 120%; height: 120%;
     background-size: cover; background-position: center;
     filter: blur(40px) brightness(0.4) saturate(1.2);
@@ -70,65 +71,34 @@ body {
     50% { transform: scale(1.1) rotate(5deg); }
 }
 
-/* Tab-urile vor sta acum imediat sub status bar (oră) fără să se atingă */
-.header-tabs { 
-    position: relative; z-index: 10; 
-    padding: 15px 20px 10px; 
-    display: flex; gap: 10px; overflow-x: auto; 
-}
-
+.header-tabs { position: relative; z-index: 10; padding: 15px 20px 10px; display: flex; gap: 10px; overflow-x: auto; }
 .tab { 
-    background: var(--glass); 
-    padding: 8px 18px; 
-    border-radius: 20px; 
-    font-size: 13px; 
-    backdrop-filter: blur(10px); 
-    border: 1px solid rgba(255,255,255,0.1); 
-    cursor: pointer; 
-    white-space: nowrap;
-    font-weight: 500;
-    transition: background-color 0.6s cubic-bezier(0.23, 1, 0.32, 1), transform 0.2s ease;
+    background: var(--glass); padding: 8px 18px; border-radius: 20px; font-size: 13px; 
+    backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; 
+    white-space: nowrap; font-weight: 500;
 }
 .tab.active { background: var(--accent); border-color: transparent; font-weight: 900; }
-.tab:active { transform: scale(0.95); }
 
 .content { position: relative; z-index: 10; flex: 1; padding: 0 20px 140px 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.station-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid transparent;
-border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; }
+.station-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .station-thumb { width: 55px; height: 55px; border-radius: 12px; margin-right: 15px; object-fit: cover; background: #111; }
 .station-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
 .station-desc { font-size: 11px; color: #b3b3b3; text-transform: uppercase; }
 
 #player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
 .art-container { width: 100%; display: flex; justify-content: center; margin-bottom: 30px; }
-.main-art { width: 280px; height: 280px; border-radius: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.7); object-fit: cover; background: #111; transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.main-art { width: 280px; height: 280px; border-radius: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.7); object-fit: cover; }
 
 .track-viewport { width: 100%; overflow: hidden; margin-bottom: 30px; position: relative; }
 .track-slider-wrapper { display: flex; width: 300%; transform: translateX(-33.333%); will-change: transform; }
 .track-info-slide { width: 33.333%; text-align: center; padding: 0 45px; flex-shrink: 0; }
-.track-info-slide h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.track-info-slide p { color: #b3b3b3; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+.track-info-slide h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+.track-info-slide p { color: #b3b3b3; font-size: 13px; text-transform: uppercase; }
 
 .main-controls { display: flex; align-items: center; gap: 35px; margin-bottom: 20px; }
-.btn-round { 
-    background: var(--glass); width: 58px; height: 58px; border-radius: 50%; 
-    display: flex; align-items: center; justify-content: center; cursor: pointer; 
-    backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); color: white;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s ease;
-}
-.btn-round:active { transform: scale(0.8); background: rgba(255, 255, 255, 0.15); }
-
-.btn-prev-anim i { animation: slideLeft 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
-.btn-next-anim i { animation: slideRight 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
-
-@keyframes slideLeft { 0% { transform: translateX(0); opacity: 1; } 40% { transform: translateX(-10px); opacity: 0.6; } 100% { transform: translateX(0); opacity: 1; } }
-@keyframes slideRight { 0% { transform: translateX(0); opacity: 1; } 40% { transform: translateX(10px); opacity: 0.6; } 100% { transform: translateX(0); opacity: 1; } }
-
-.btn-play { background: #fff; color: #000; width: 75px; height: 75px; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-.btn-play.playing { background: var(--accent); color: #fff; transform: scale(1.1); box-shadow: 0 0 30px rgba(255, 94, 58, 0.4); }
-
-.spin { animation: spin 1s linear infinite; }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.btn-round { background: var(--glass); width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); color: white; }
+.btn-play { background: #fff; color: #000; width: 75px; height: 75px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+.btn-play.playing { background: var(--accent); color: #fff; }
 
 .nav-bar { 
     position: absolute; bottom: 20px; left: 25px; right: 25px; z-index: 50; 
@@ -143,12 +113,10 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 .nav-bar.on-radio::before { transform: translateX(100%); }
 .nav-bar.on-player::before { transform: translateX(0%); }
 
-.nav-link { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0; width: 50%; color: #777; cursor: pointer; font-size: 11px; transition: color 0.4s; }
+.nav-link { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0; width: 50%; color: #777; cursor: pointer; font-size: 11px; }
 .nav-link.active { color: #fff; }
-.nav-link.active i { color: var(--accent); }
 
-.fab { position: absolute; bottom: 100px; right: 25px; background: var(--accent); width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(255,94,58,0.4); z-index: 15; transition: transform 0.2s; }
-.fab:active { transform: scale(0.9); }
+.fab { position: absolute; bottom: 100px; right: 25px; background: var(--accent); width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 15; }
 </style>
 </head>
 <body oncontextmenu="return false;">
@@ -158,10 +126,10 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 
     <div id="list-view" style="height:100%; display:flex; flex-direction:column;">
         <div class="header-tabs">
-            <div class="tab" id="tab-all" onclick="renderList('all', this)">All</div>
-            <div class="tab active" id="tab-fav" onclick="renderList('fav', this)">Favorites</div>
-            <div class="tab" id="tab-mine" onclick="renderList('mine', this)">Owned</div>
-            <div class="tab" id="tab-russian" onclick="renderList('russian', this)">Russian</div>
+            <div class="tab" onclick="renderList('all', this)">All</div>
+            <div class="tab active" onclick="renderList('fav', this)">Favorites</div>
+            <div class="tab" onclick="renderList('mine', this)">Owned</div>
+            <div class="tab" onclick="renderList('russian', this)">Russian</div>
         </div>
         <div class="content" id="stations-list"></div>
         <div class="fab" onclick="alert('Adaugă post')"><i data-lucide="plus"></i></div>
@@ -169,7 +137,7 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 
     <div id="player-view">
         <div class="art-container" id="swipe-zone-art">
-            <img src="" class="main-art" id="player-img" onerror="this.src=FALLBACK_IMG">
+            <img src="" class="main-art" id="player-img">
         </div>
         <div class="track-viewport" id="swipe-zone-text">
             <div class="track-slider-wrapper" id="info-wrapper">
@@ -179,9 +147,9 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
             </div>
         </div>
         <div class="main-controls">
-            <div class="btn-round" id="btn-prev" onclick="prev()"><i data-lucide="skip-back" fill="currentColor"></i></div>
+            <div class="btn-round" onclick="prev()"><i data-lucide="skip-back" fill="currentColor"></i></div>
             <div class="btn-round btn-play" id="play-trigger" onclick="togglePlay()"><i data-lucide="play" fill="currentColor"></i></div>
-            <div class="btn-round" id="btn-next" onclick="next()"><i data-lucide="skip-forward" fill="currentColor"></i></div>
+            <div class="btn-round" onclick="next()"><i data-lucide="skip-forward" fill="currentColor"></i></div>
         </div>
     </div>
 
@@ -194,7 +162,22 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 <audio id="audio-engine" preload="auto"></audio>
 
 <script>
-// Blocare zoom gesturi sistem
+// --- FIX PENTRU BARA NEAGRĂ (RESETARE VIEWPORT) ---
+function fixBlackBar() {
+    window.scrollTo(0, 0); // Forțează browserul să se reseteze la top
+    document.body.style.height = '100.1dvh'; // O mică variație forțează recalcularea
+    setTimeout(() => {
+        document.body.style.height = '100dvh';
+    }, 50);
+}
+
+// Se execută când revii pe pagină (Back button sau App Switcher)
+window.addEventListener('pageshow', fixBlackBar);
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') fixBlackBar();
+});
+
+// Blocare Gesturi Sistem (Zoom & Double Tap)
 document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 let lastTouch = 0;
 document.addEventListener('touchend', (e) => {
@@ -203,8 +186,8 @@ document.addEventListener('touchend', (e) => {
     lastTouch = now;
 }, false);
 
+// Logica Radio (Constante & Funcții)
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
-
 const stations = [
     { name: "Heart 10s", stream: "https://media-ice.musicradio.com/Heart10sMP3", img: "https://images.weserv.nl/?url=www.globalplayer.com/assets/track-placeholders/heart10s.png", desc: "POP, HITS, CHART", isFav: true, isAll: true },
     { name: "Kiss 10s", stream: "https://dc.digi.live.kissfm.ro/kiss.hits.from.the.10s/listen.m3u", img: "https://api.kissfm.ro/resized/streams/homepage/2025/01/10/cover-kiss-hits-from-the-10s_6210a8bb4e6b58d8b6d2c0342721cdb9.png", desc: "HITS FROM THE 10S", isFav: true, isAll: true },
@@ -222,31 +205,23 @@ const stations = [
 ];
 
 let currentIdx = 0;
-let currentFilteredList = []; 
+let currentFilteredList = [];
 let activeLayer = 1;
-let startX = 0;
-let isDragging = false;
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 
 function init() {
-    renderList('fav', document.getElementById('tab-fav')); 
+    renderList('fav', document.querySelectorAll('.tab')[1]);
     lucide.createIcons();
-    updateSliderText();
     loadStationInfo(0, false);
     setupSwipe();
-    audio.addEventListener('waiting', () => updateUI('loading'));
-    audio.addEventListener('playing', () => updateUI(true));
-    audio.addEventListener('pause', () => updateUI(false));
 }
 
 function renderList(mode, el) {
     const list = document.getElementById('stations-list');
     list.innerHTML = "";
-    if(el) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-    }
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
     currentFilteredList = stations.filter(s => {
         if (mode === 'all') return s.isAll;
         if (mode === 'fav') return s.isFav;
@@ -257,121 +232,91 @@ function renderList(mode, el) {
     currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
         item.className = 'station-item';
-        item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb" onerror="this.src=FALLBACK_IMG"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>`;
-        item.onclick = () => { 
-            if (s.isMine) { window.location.href = s.stream; } 
-            else { currentIdx = i; playStation(); }
-        };
+        item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>`;
+        item.onclick = () => { if (s.isMine) window.location.href = s.stream; else { currentIdx = i; playStation(); }};
         list.appendChild(item);
     });
-}
-
-function updateSliderText() {
-    if (currentFilteredList.length === 0) return;
-    const prevIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length;
-    const nextIdx = (currentIdx + 1) % currentFilteredList.length;
-    updateSlide('slide-prev', currentFilteredList[prevIdx]);
-    updateSlide('slide-current', currentFilteredList[currentIdx]);
-    updateSlide('slide-next', currentFilteredList[nextIdx]);
-}
-
-function updateSlide(id, data) {
-    const el = document.getElementById(id);
-    el.querySelector('h2').innerText = data.name;
-    el.querySelector('p').innerText = data.desc;
 }
 
 function loadStationInfo(idx, shouldPlay = true) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
-    const finalImg = s.img || FALLBACK_IMG;
-    document.getElementById('player-img').src = finalImg;
+    document.getElementById('player-img').src = s.img || FALLBACK_IMG;
     audio.src = s.stream;
+    
     const l1 = document.getElementById('bg-layer-1');
     const l2 = document.getElementById('bg-layer-2');
     const nextL = activeLayer === 1 ? l2 : l1;
     const prevL = activeLayer === 1 ? l1 : l2;
-    nextL.style.backgroundImage = `url(${finalImg})`;
+    nextL.style.backgroundImage = `url(${s.img || FALLBACK_IMG})`;
     nextL.style.opacity = '1';
     prevL.style.opacity = '0';
     activeLayer = activeLayer === 1 ? 2 : 1;
-    if(shouldPlay) { updateUI('loading'); audio.play().catch(()=>{}); }
+    
+    if(shouldPlay) audio.play();
+    updateSliderText();
 }
 
-function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
-
-function next() { 
-    const btn = document.getElementById('btn-next');
-    btn.classList.add('btn-next-anim');
-    setTimeout(() => btn.classList.remove('btn-next-anim'), 500);
-    currentIdx = (currentIdx + 1) % currentFilteredList.length; 
-    animateTransition('next'); 
+function updateSliderText() {
+    const prevIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length;
+    const nextIdx = (currentIdx + 1) % currentFilteredList.length;
+    document.getElementById('slide-prev').innerHTML = `<h2>${currentFilteredList[prevIdx].name}</h2><p>${currentFilteredList[prevIdx].desc}</p>`;
+    document.getElementById('slide-current').innerHTML = `<h2>${currentFilteredList[currentIdx].name}</h2><p>${currentFilteredList[currentIdx].desc}</p>`;
+    document.getElementById('slide-next').innerHTML = `<h2>${currentFilteredList[nextIdx].name}</h2><p>${currentFilteredList[nextIdx].desc}</p>`;
 }
 
-function prev() { 
-    const btn = document.getElementById('btn-prev');
-    btn.classList.add('btn-prev-anim');
-    setTimeout(() => btn.classList.remove('btn-prev-anim'), 500);
-    currentIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length; 
-    animateTransition('prev'); 
-}
+function playStation() { loadStationInfo(currentIdx, true); switchTab('player'); }
+
+function next() { currentIdx = (currentIdx + 1) % currentFilteredList.length; animateTransition('next'); }
+function prev() { currentIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length; animateTransition('prev'); }
 
 function animateTransition(dir) {
-    wrapper.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
-    wrapper.style.transform = dir==='next' ? 'translateX(-66.666%)' : 'translateX(0)';
-    setTimeout(()=>{ 
-        wrapper.style.transition='none';
+    wrapper.style.transition = 'transform 0.5s ease';
+    wrapper.style.transform = dir === 'next' ? 'translateX(-66.66%)' : 'translateX(0)';
+    setTimeout(() => {
+        wrapper.style.transition = 'none';
         loadStationInfo(currentIdx, true);
-        updateSliderText();
-        wrapper.style.transform = 'translateX(-33.333%)';
-    }, 600);
+        wrapper.style.transform = 'translateX(-33.33%)';
+    }, 500);
 }
 
-function setupSwipe() {
-    const zones = [document.getElementById('swipe-zone-art'), document.getElementById('swipe-zone-text')];
-    zones.forEach(z => {
-        z.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; isDragging=true; wrapper.style.transition='none'; }, {passive: true});
-        z.addEventListener('touchmove', e=>{ if(!isDragging) return; const d = e.touches[0].clientX-startX; wrapper.style.transform = `translateX(calc(-33.333% + ${(d/window.innerWidth)*33}%))`; }, {passive: true});
-        z.addEventListener('touchend', e=>{ 
-            if(!isDragging) return;
-            const d = e.changedTouches[0].clientX - startX;
-            if(d>60) prev(); else if(d<-60) next(); else {
-                wrapper.style.transition = 'transform 0.4s ease';
-                wrapper.style.transform='translateX(-33.333%)';
-            }
-            isDragging=false;
-        });
-    });
+function togglePlay() { 
+    if(audio.paused) { audio.play(); updateUI(true); } 
+    else { audio.pause(); updateUI(false); }
 }
 
-function togglePlay() {
-    if(audio.paused){ updateUI('loading'); audio.play().catch(()=>{}); } 
-    else { audio.pause(); }
+function updateUI(playing) {
+    const btn = document.getElementById('play-trigger');
+    btn.innerHTML = playing ? '<i data-lucide="pause" fill="currentColor"></i>' : '<i data-lucide="play" fill="currentColor"></i>';
+    btn.classList.toggle('playing', playing);
+    lucide.createIcons();
 }
 
 function switchTab(t) {
     const nav = document.getElementById('main-nav');
-    if(t==='list'){ 
-        document.getElementById('list-view').style.display='flex'; 
+    if(t==='list') {
+        document.getElementById('list-view').style.display='flex';
         document.getElementById('player-view').style.display='none';
-        document.getElementById('nav-list').classList.add('active'); 
-        document.getElementById('nav-player').classList.remove('active'); 
+        document.getElementById('nav-list').classList.add('active');
+        document.getElementById('nav-player').classList.remove('active');
         nav.className = 'nav-bar on-radio';
-    } else { 
-        document.getElementById('list-view').style.display='none'; 
+    } else {
+        document.getElementById('list-view').style.display='none';
         document.getElementById('player-view').style.display='flex';
-        document.getElementById('nav-list').classList.remove('active'); 
-        document.getElementById('nav-player').classList.add('active'); 
+        document.getElementById('nav-player').classList.add('active');
+        document.getElementById('nav-list').classList.remove('active');
         nav.className = 'nav-bar on-player';
     }
 }
 
-function updateUI(state){ 
-    const b = document.getElementById('play-trigger'); 
-    if(state === 'loading') { b.innerHTML='<i data-lucide="loader-2" class="spin"></i>'; b.classList.remove('playing'); }
-    else if(state === true){ b.innerHTML='<i data-lucide="pause" fill="currentColor"></i>'; b.classList.add('playing'); }
-    else{ b.innerHTML='<i data-lucide="play" fill="currentColor"></i>'; b.classList.remove('playing'); }
-    lucide.createIcons();
+function setupSwipe() {
+    let startX = 0;
+    const zone = document.getElementById('player-view');
+    zone.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+    zone.addEventListener('touchend', e => {
+        const diff = e.changedTouches[0].clientX - startX;
+        if(diff > 70) prev(); else if(diff < -70) next();
+    });
 }
 
 init();
