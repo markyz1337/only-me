@@ -144,7 +144,7 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 .nav-link.active { color: #fff; }
 .nav-link.active i { color: var(--accent); }
 
-.fab { position: absolute; bottom: 100px; right: 25px; background: var(--accent); width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(255,94,58,0.4); z-index: 15; transition: transform 0.2s; }
+.fab { position: absolute; bottom: 115px; right: 26px; background: var(--accent); width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(255,94,58,0.4); z-index: 15; transition: transform 0.2s; }
 .fab:active { transform: scale(0.9); }
 </style>
 </head>
@@ -161,7 +161,7 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
             <div class="tab" id="tab-russian" onclick="renderList('russian', this)">Russian</div>
         </div>
         <div class="content" id="stations-list"></div>
-        <div class="fab" onclick="alert('Adaugă post')"><i data-lucide="plus"></i></div>
+        <div class="fab" onclick="alert('Funcție indisponibilă')"><i data-lucide="plus"></i></div>
     </div>
 
     <div id="player-view">
@@ -193,25 +193,18 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 <script>
 // --- FIX BARA NEAGRĂ & RESETARE VIEWPORT ---
 function fixIOSLayout() {
-    // Resetăm scroll-ul forțat la 0
     window.scrollTo(0, 0);
-    
-    // Forțăm o recalculare a layout-ului prin modificarea temporară a înălțimii
     document.body.style.height = '100.1dvh';
     setTimeout(() => {
         document.body.style.height = '100dvh';
     }, 50);
 }
 
-// Se execută la revenirea prin butonul "Back"
 window.addEventListener('pageshow', fixIOSLayout);
-
-// Se execută când aplicația reintră în focus (din background)
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') fixIOSLayout();
 });
 
-// Blocare zoom gesturi sistem
 document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 let lastTouch = 0;
 document.addEventListener('touchend', (e) => {
@@ -255,6 +248,25 @@ function init() {
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
+}
+
+// --- MEDIA SESSION API ---
+function updateMediaSession(station) {
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: station.name,
+            artist: "Sergiu FM",
+            album: station.desc,
+            artwork: [
+                { src: station.img || FALLBACK_IMG, sizes: '512x512', type: 'image/png' }
+            ]
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => audio.play());
+        navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+        navigator.mediaSession.setActionHandler('previoustrack', () => prev());
+        navigator.mediaSession.setActionHandler('nexttrack', () => next());
+    }
 }
 
 function renderList(mode, el) {
@@ -304,6 +316,10 @@ function loadStationInfo(idx, shouldPlay = true) {
     const finalImg = s.img || FALLBACK_IMG;
     document.getElementById('player-img').src = finalImg;
     audio.src = s.stream;
+
+    // Actualizare Media Session (Lock Screen)
+    updateMediaSession(s);
+
     const l1 = document.getElementById('bg-layer-1');
     const l2 = document.getElementById('bg-layer-2');
     const nextL = activeLayer === 1 ? l2 : l1;
