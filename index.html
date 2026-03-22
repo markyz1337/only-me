@@ -94,7 +94,14 @@ body {
 border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; }
 .station-thumb { width: 55px; height: 55px; border-radius: 12px; margin-right: 15px; object-fit: cover; background: #111; }
 .station-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+
+/* MODIFICARE AICI: Am uniformizat culoarea descrierii */
 .station-desc { font-size: 11px; color: #b3b3b3; text-transform: uppercase; }
+.station-desc.playing-now { 
+    color: #b3b3b3; /* Rămâne gri, chiar dacă e activ */
+    font-weight: 400; 
+    text-transform: none; 
+}
 
 #player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
 .art-container { width: 100%; display: flex; justify-content: center; margin-bottom: 30px; }
@@ -188,31 +195,20 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
     </div>
 </div>
 
-<audio id="audio-engine" preload="auto"></audio>
+<audio id="audio-engine" preload="auto" crossorigin="anonymous"></audio>
 
 <script>
-// --- FIX BARA NEAGRĂ & RESETARE VIEWPORT ---
-function fixIOSLayout() {
-    window.scrollTo(0, 0);
-    document.body.style.height = '100.1dvh';
-    setTimeout(() => {
-        document.body.style.height = '100dvh';
-    }, 50);
-}
+// --- CONFIGURARE ȘI VARIABILE ---
+let currentIdx = 0;
+let currentFilteredList = []; 
+let activeLayer = 1;
+let startX = 0;
+let isDragging = false;
+let currentMetadataRequestId = 0;
+let metadataInterval = null;
 
-window.addEventListener('pageshow', fixIOSLayout);
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') fixIOSLayout();
-});
-
-document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-let lastTouch = 0;
-document.addEventListener('touchend', (e) => {
-    const now = Date.now();
-    if (now - lastTouch <= 300) e.preventDefault();
-    lastTouch = now;
-}, false);
-
+const audio = document.getElementById('audio-engine');
+const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
 
 const stations = [
@@ -231,13 +227,7 @@ const stations = [
     { name: "Speranță", stream: "http://155.133.23.121/hls/hope/live.m3u8", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8aX5i1Sosu19dYGhKZwB3XHN2aFFLnuPUToBVDQVjOplOdpr5q3ZxEy8&s=10", desc: "LA FEL CA MINE", isMine: true }
 ];
 
-let currentIdx = 0;
-let currentFilteredList = []; 
-let activeLayer = 1;
-let startX = 0;
-let isDragging = false;
-const audio = document.getElementById('audio-engine');
-const wrapper = document.getElementById('info-wrapper');
+stations.forEach(s => s.originalDesc = s.desc);
 
 function init() {
     renderList('all', document.getElementById('tab-all')); 
@@ -245,28 +235,121 @@ function init() {
     updateSliderText();
     loadStationInfo(0, false);
     setupSwipe();
+    scanAllStations();
+
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
 
-// --- MEDIA SESSION API ---
+function scanAllStations() {
+    stations.forEach(s => {
+        if (!s.stream.includes('.m3u8')) { fetchSilentMetadata(s); }
+    });
+}
+
+async function fetchSilentMetadata(station) {
+    try {
+        const response = await fetch(station.stream, { headers: { "Icy-MetaData": "1" } });
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let metaInt = parseInt(response.headers.get("icy-metaint"));
+        if (!metaInt) return;
+
+        let buffer = new Uint8Array();
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            let temp = new Uint8Array(buffer.length + value.length);
+            temp.set(buffer); temp.set(value, buffer.length);
+            buffer = temp;
+
+            while (buffer.length >= metaInt + 1) {
+                let metaLength = buffer[metaInt] * 16;
+                if (buffer.length < metaInt + 1 + metaLength) break;
+                let metadata = buffer.slice(metaInt + 1, metaInt + 1 + metaLength);
+                let metaString = decoder.decode(metadata);
+                let match = metaString.match(/StreamTitle='([^']*)'/);
+                if (match && match[1]) {
+                    station.desc = match[1].replace(/;/g, "").trim();
+                    updateUIMetadata(station);
+                    reader.cancel();
+                    return;
+                }
+                buffer = buffer.slice(metaInt + 1 + metaLength);
+            }
+        }
+    } catch(e) {}
+}
+
+function updateUIMetadata(station) {
+    if (currentFilteredList[currentIdx] === station) {
+        const slide = document.getElementById('slide-current');
+        if (slide) slide.querySelector('p').innerText = station.desc;
+        
+        if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
+            navigator.mediaSession.metadata.title = station.desc;
+            navigator.mediaSession.metadata.artist = station.name;
+        }
+    }
+    const listItems = document.querySelectorAll('.station-item');
+    listItems.forEach(item => {
+        if (item.querySelector('.station-name').innerText === station.name) {
+            const descEl = item.querySelector('.station-desc');
+            descEl.innerText = station.desc;
+            // Clasa se adaugă pentru logică, dar CSS-ul îi ține culoarea gri
+            descEl.classList.add('playing-now');
+        }
+    });
+}
+
 function updateMediaSession(station) {
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: station.name,
-            artist: "Sergiu FM",
-            album: station.desc,
-            artwork: [
-                { src: station.img || FALLBACK_IMG, sizes: '512x512', type: 'image/png' }
-            ]
+            title: station.desc,
+            artist: station.name,
+            album: "Sergiu FM",
+            artwork: [{ src: station.img || FALLBACK_IMG, sizes: '512x512', type: 'image/png' }]
         });
-
         navigator.mediaSession.setActionHandler('play', () => audio.play());
         navigator.mediaSession.setActionHandler('pause', () => audio.pause());
         navigator.mediaSession.setActionHandler('previoustrack', () => prev());
         navigator.mediaSession.setActionHandler('nexttrack', () => next());
     }
+}
+
+async function fetchMetadata(streamUrl, stationRef) {
+    const requestId = ++currentMetadataRequestId;
+    try {
+        const response = await fetch(streamUrl, { headers: { "Icy-MetaData": "1" } });
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let metaInt = response.headers.get("icy-metaint");
+        if (!metaInt) return;
+        metaInt = parseInt(metaInt);
+        let buffer = new Uint8Array();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done || requestId !== currentMetadataRequestId) break;
+            let temp = new Uint8Array(buffer.length + value.length);
+            temp.set(buffer); temp.set(value, buffer.length);
+            buffer = temp;
+
+            while (buffer.length >= metaInt + 1) {
+                let metaLength = buffer[metaInt] * 16;
+                if (buffer.length < metaInt + 1 + metaLength) break;
+                let metadata = buffer.slice(metaInt + 1, metaInt + 1 + metaLength);
+                let metaString = decoder.decode(metadata);
+                let match = metaString.match(/StreamTitle='([^']*)'/);
+                if (match && match[1] && match[1].trim() !== "") {
+                    stationRef.desc = match[1].replace(/;/g, "");
+                    updateUIMetadata(stationRef);
+                }
+                buffer = buffer.slice(metaInt + 1 + metaLength);
+            }
+        }
+    } catch (err) {}
 }
 
 function renderList(mode, el) {
@@ -277,7 +360,7 @@ function renderList(mode, el) {
         el.classList.add('active');
     }
     currentFilteredList = stations.filter(s => {
-        if (mode === 'all') return s.isAll;
+        if (mode === 'all') return s.isAll || s.isMine;
         if (mode === 'fav') return s.isFav;
         if (mode === 'russian') return s.isRussian;
         if (mode === 'mine') return s.isMine;
@@ -286,10 +369,16 @@ function renderList(mode, el) {
     currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
         item.className = 'station-item';
-        item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb" onerror="this.src=FALLBACK_IMG"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>`;
+        const hasMeta = s.desc !== s.originalDesc;
+        item.innerHTML = `
+            <img src="${s.img || FALLBACK_IMG}" class="station-thumb" onerror="this.src=FALLBACK_IMG">
+            <div style="flex:1">
+                <div class="station-name">${s.name}</div>
+                <div class="station-desc ${hasMeta ? 'playing-now' : ''}">${s.desc}</div>
+            </div>`;
         item.onclick = () => { 
             if (s.isMine) { window.location.href = s.stream; } 
-            else { currentIdx = i; playStation(); }
+            else { currentIdx = currentFilteredList.indexOf(s); playStation(); }
         };
         list.appendChild(item);
     });
@@ -315,11 +404,12 @@ function loadStationInfo(idx, shouldPlay = true) {
     const s = currentFilteredList[idx];
     const finalImg = s.img || FALLBACK_IMG;
     document.getElementById('player-img').src = finalImg;
+    if (metadataInterval) clearInterval(metadataInterval);
+    currentMetadataRequestId++; 
     audio.src = s.stream;
-
-    // Actualizare Media Session (Lock Screen)
     updateMediaSession(s);
-
+    fetchMetadata(s.stream, s);
+    metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 20000);
     const l1 = document.getElementById('bg-layer-1');
     const l2 = document.getElementById('bg-layer-2');
     const nextL = activeLayer === 1 ? l2 : l1;
