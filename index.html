@@ -42,30 +42,32 @@ body {
 }
 
 .bg-blur {
-    position:absolute; top:-25%; left:-25%; width:150%; height:150%;
+    position:absolute; top:-5%; left:-5%; width:125%; height:125%;
     background-size:cover; background-position:center;
-    filter:blur(70px) brightness(0.4); background-repeat:no-repeat;
+    filter:blur(30px) brightness(0.4) saturate(1.1); background-repeat:no-repeat;
     z-index:0; will-change:opacity,transform;
-    animation: bgBreathe 90s infinite ease-in-out;
-    transition: opacity 1.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+    animation: bgBreathe 25s infinite ease-in-out;
+    transition: opacity 2s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 #bg-layer-1 { opacity:1; animation-delay:0s; }
 #bg-layer-2 { opacity:0; animation-delay:45s; }
 
 @keyframes bgBreathe {
-    0%   { transform: rotate(30deg) scale(1.00) translate(0%, 0%); }
-    20%  { transform: rotate(30deg) scale(1.08) translate(4%, -3%); }
-    40%  { transform: rotate(30deg) scale(1.15) translate(-3%, 4%); }
-    60%  { transform: rotate(30deg) scale(1.11) translate(3%, 1%); }
-    80%  { transform: rotate(30deg) scale(1.06) translate(-4%, -2%); }
-    100% { transform: rotate(30deg) scale(1.00) translate(0%, 0%); }
+    0%   { transform: rotate(0deg) scale(1.0); translate: 0% 0%; }
+    25%  { transform: rotate(15deg) scale(1.4); translate: 10% -5%; }
+    50%  { transform: rotate(-10deg) scale(1.2); translate: -10% 10%; }
+    75%  { transform: rotate(20deg) scale(1.5); translate: 5% 5%; }
+    100% { transform: rotate(0deg) scale(1.0); translate: 0% 0%; }
 }
+
+
 
 .header-tabs { position:relative; z-index:10; padding:20px 20px 10px; display:flex; gap:10px; overflow-x:auto; }
 .tab { background:var(--glass); padding:8px 18px; border-radius:20px; font-size:13px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); cursor:pointer; white-space:nowrap; }
 .tab.active { background:var(--accent); border-color:transparent; }
 .content { position:relative; z-index:10; flex:1; padding:0 20px 140px 20px; overflow-y:auto; }
-.station-item { display:flex; align-items:center; padding:15px 0; border-bottom:0.5px solid rgba(255,255,255,0.1); cursor:pointer; }
+.station-item { display:flex; align-items:center; padding:15px 0; border-bottom: 1px solid transparent;
+border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; }
 .station-thumb { width:55px; height:55px; border-radius:12px; margin-right:15px; object-fit:cover; background:#111; }
 .station-name { font-weight:600; font-size:16px; margin-bottom:4px; }
 .station-desc { font-size:11px; color:#b3b3b3; text-transform:uppercase; }
@@ -95,7 +97,7 @@ body {
     position: absolute;
     top: 8px;
     left: 8px;
-    width: calc(50% - 12px); /* Jumătate din bară minus padding */
+    width: calc(50% - 8.5px); /* Jumătate din bară minus padding */
     height: calc(100% - 16px);
     background: rgba(255, 255, 255, 0.08);
     border-radius: 35px;
@@ -110,7 +112,7 @@ body {
 .nav-link { 
     position: relative;
     display:flex; flex-direction:column; align-items:center; gap:3px; 
-    padding:10px 0; width: 50%; border-radius:50px; color:#777; cursor:pointer; font-size:11px; 
+    padding:8px 0; width: 50%; border-radius:50px; color:#777; cursor:pointer; font-size:11px; 
     transition: color 0.3s;
 }
 .nav-link.active { color:#fff; }
