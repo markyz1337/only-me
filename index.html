@@ -1,231 +1,234 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<meta name="theme-color" content="#0a0a15">
-<meta name="color-scheme" content="dark">
-
-<title>Sergiu R | Stations 🌅</title>
-
-<link rel="icon" href="favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="icon-180.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Sergiu FM">
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Radio Player Premium Swipe</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
 <style>
 :root {
-  --bg: #0a0a15;
-  --glass: rgba(35, 35, 75, 0.16);
-  --glass-border: rgba(160, 160, 255, 0.07);
-  --text: #f1f5f9;
-  --font-size-title-main: 1.7rem;
-  --font-size-title-mobile: 1.60rem;
-  --font-size-station-name: 1.2rem;
-  --font-size-button: 0.85rem;
-  --card-height: 72px;
+    --accent: #ff5e3a;
+    --glass: rgba(255, 255, 255, 0.1);
+    --bg-dark: #000000;
+}
+* { box-sizing: border-box; margin:0; padding:0; font-family:'Inter',sans-serif; -webkit-tap-highlight-color:transparent; }
+body { background:var(--bg-dark); color:white; height:100dvh; overflow:hidden; display:flex; justify-content:center; }
+.app-container {
+    width:100%; max-width:430px; height:100%; position:relative; overflow:hidden;
+    display:flex; flex-direction:column; padding-bottom:env(safe-area-inset-bottom);
 }
 
-* { margin:0; padding:0; box-sizing:border-box; }
-html, body { height: 100%; min-height: 100dvh; overflow: hidden; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  display: grid; place-items: center; padding: 1.5rem; position: relative;
+/* === FUNDAL BLURAT – ACUM MULT MAI VIZIBIL === */
+.bg-blur {
+    position:absolute; top:-25%; left:-25%; width:150%; height:150%;
+    background-size:cover; background-position:center;
+    filter:blur(70px) brightness(0.4); background-repeat:no-repeat;
+    z-index:0; will-change:opacity,transform;
+    animation: bgBreathe 90s infinite ease-in-out;
+    transition: opacity 1.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+#bg-layer-1 { opacity:1; animation-delay:0s; }
+#bg-layer-2 { opacity:0; animation-delay:45s; }   /* fază decalată */
+
+@keyframes bgBreathe {
+    0%   { transform: rotate(30deg) scale(1.00) translate(0%, 0%); }
+    20%  { transform: rotate(30deg) scale(1.08) translate(4%, -3%); }
+    40%  { transform: rotate(30deg) scale(1.15) translate(-3%, 4%); }
+    60%  { transform: rotate(30deg) scale(1.11) translate(3%, 1%); }
+    80%  { transform: rotate(30deg) scale(1.06) translate(-4%, -2%); }
+    100% { transform: rotate(30deg) scale(1.00) translate(0%, 0%); }
 }
 
-.stars { position: fixed; inset:0; pointer-events:none; z-index:-1; overflow:hidden; }
-.star { position: absolute; background: white; border-radius:50%; opacity:0; box-shadow:0 0 5px rgba(255,255,255,0.8); animation: twinkle infinite ease-in-out; will-change: opacity, transform; }
-@keyframes twinkle { 0%,100%{opacity:0.3;transform:scale(1);} 50%{opacity:1;transform:scale(1.4);} }
-
-@keyframes gradientMove { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
-
-body::after { content:""; position: fixed; inset:0; background: linear-gradient(135deg, rgba(10,10,21,0.82), rgba(26,27,46,0.88)); z-index:-1; pointer-events:none; }
-
-.container { width:100%; max-width:340px; position: relative; z-index:1; }
-.header { text-align:center; margin-bottom:1.6rem; }
-
-.header h1 { font-size: var(--font-size-title-main); font-weight:800; margin-bottom:0.7rem; }
-
-.header h1 span {
-  background: linear-gradient(90deg, #e0e7ff, #c4b5fd, #a78bfa, #f0abfc, #e0e7ff);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: gradientMove 4s linear infinite;
-}
-
-.instagram-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-  color:white;
-  font-family: impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-  font-size:1.0rem; 
-  padding:0.0rem 0.9rem; 
-  border-radius:0.9rem;
-  text-decoration:none; 
-  transition: all 0.2s ease;
-  box-shadow:0 3px 10px rgba(220,35,67,0.4);
-  cursor:pointer;
-}
-.instagram-cta:hover { transform:translateY(-1px); box-shadow:0 5px 14px rgba(220,35,67,0.6); }
-.instagram-cta span { position: relative; top: -2px; } /* ridică emoji-ul */
-
-.station-list {
-  display:flex; flex-direction:column;
-  gap: 12px;
-  max-height: calc((var(--card-height) + 12px) * 5 + 12px);
-  overflow-y:auto;
-  background: var(--glass);
-  border-radius: 1.1rem;
-  padding: 12px 1rem 12px 1rem;
-}
-
-.station-list::-webkit-scrollbar { width:0; background:transparent; }
-.station-list { -ms-overflow-style: none; scrollbar-width: none; }
-
-.card {
-  background: var(--glass);
-  backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  border-radius: 1rem;
-  padding: 1rem 1.2rem;
-  display:flex; align-items:center; justify-content:space-between;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-  height: var(--card-height);
-  transition: all 0.28s ease;
-}
-
-.card.yellow {
-  background: rgba(255, 223, 130, 0.35);
-  border-color: rgba(255, 223, 130, 0.25);
-}
-
-.card.yellow button { 
-  background: linear-gradient(145deg, rgba(255,223,130,0.35), rgba(255,223,130,0.25)); 
-  border:1px solid rgba(255,223,130,0.35); color:white; 
-}
-
-.name { font-size: var(--font-size-station-name); font-weight:500; }
-
-button {
-  font-size: var(--font-size-button);
-  padding:0.6rem 1rem;
-  border-radius:0.9rem;
-  cursor:pointer;
-  background: linear-gradient(145deg, rgba(167,139,250,0.24), rgba(139,92,246,0.19));
-  border:1px solid rgba(167,139,250,0.32);
-  color:white;
-  font-weight:550;
-  transition: all 0.25s ease;
-}
-
-button:hover { 
-  background: linear-gradient(145deg, rgba(167,139,250,0.42), rgba(139,92,246,0.35)); 
-  transform:translateY(-1px); 
-  box-shadow:0 6px 20px rgba(139,92,246,0.32); 
-}
-
-/* Glow subtil și fluid */
-@keyframes glowPulse {
-  0%,100% { box-shadow: 0 0 4px rgba(0,0,0,0); }
-  50% { box-shadow: 0 0 15px var(--glow-color, #a78bfa); }
-}
-.glow { animation: glowPulse 2.5s ease-in-out forwards; }
-
-/* Hover special galben */
-.card.yellow button:hover {
-  background: linear-gradient(145deg, rgba(255,223,130,0.55), rgba(255,223,130,0.35));
-  box-shadow: 0 6px 20px rgba(255,223,130,0.6);
-  transform:translateY(-1px);
-}
-
-/* Glow special galben */
-.card.yellow button.glow {
-  --glow-color: rgba(255,223,130,0.7);
-  box-shadow: 0 0 15px rgba(255,223,130,0.7);
-}
-
-.shooting-star { position:absolute; width:3px; height:3px; background:#fffef0; border-radius:50%; box-shadow:0 0 12px 4px rgba(255,240,180,0.9),0 0 25px 8px rgba(255,200,100,0.6); opacity:0; pointer-events:none; z-index:-1; animation:shooting-dot linear forwards; }
-
-@keyframes shooting-dot { 0%{opacity:0;transform:translate(0,0) scale(0.3);} 20%{opacity:1;transform:translate(60px,80px) scale(1.4);} 80%{opacity:1;transform:translate(100px,140px) scale(0.9);} 100%{opacity:0;transform:translate(140px,200px) scale(0.2);} }
-
-@media (max-width:400px){ .header h1 { font-size: var(--font-size-title-mobile); } }
+.header-tabs { position:relative; z-index:10; padding:20px 20px 10px; display:flex; gap:10px; overflow-x:auto; }
+.tab { background:var(--glass); padding:8px 18px; border-radius:20px; font-size:13px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); cursor:pointer; white-space:nowrap; }
+.tab.active { background:var(--accent); border-color:transparent; }
+.content { position:relative; z-index:10; flex:1; padding:0 20px 140px 20px; overflow-y:auto; }
+.station-item { display:flex; align-items:center; padding:15px 0; border-bottom:0.5px solid rgba(255,255,255,0.1); cursor:pointer; }
+.station-thumb { width:55px; height:55px; border-radius:12px; margin-right:15px; object-fit:cover; background:#111; }
+.station-name { font-weight:600; font-size:16px; margin-bottom:4px; }
+.station-desc { font-size:11px; color:#b3b3b3; text-transform:uppercase; }
+#player-view { display:none; position:relative; z-index:10; height:100%; flex-direction:column; align-items:center; justify-content:center; padding:20px 0 100px 0; touch-action:pan-y; }
+.art-container { width:100%; display:flex; justify-content:center; margin-bottom:30px; }
+.main-art { width:280px; height:280px; border-radius:25px; box-shadow:0 25px 50px rgba(0,0,0,0.6); object-fit:cover; background:#111; transition:transform .6s ease, opacity .6s ease; }
+.track-viewport { width:100%; overflow:hidden; margin-bottom:30px; position:relative; }
+.track-slider-wrapper { display:flex; width:300%; transform:translateX(-33.333%); transition:transform .3s ease-out; will-change:transform; }
+.track-info-slide { width:33.333%; text-align:center; padding:0 40px; flex-shrink:0; }
+.track-info-slide h2 { font-size:22px; font-weight:600; margin-bottom:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.track-info-slide p { color:#b3b3b3; font-size:14px; text-transform:uppercase; }
+.main-controls { display:flex; align-items:center; gap:30px; margin-bottom:20px; }
+.btn-round { background:var(--glass); width:55px; height:55px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); color:white; }
+.btn-play { background:#fff; color:#000; width:70px; height:70px; }
+.btn-play.playing { background:var(--accent); color:#fff; }
+.nav-bar { position:absolute; bottom:calc(15px + env(safe-area-inset-bottom)); left:20px; right:20px; z-index:50; background:rgba(20,20,20,0.85); backdrop-filter:blur(25px); border-radius:40px; display:flex; justify-content:space-around; padding:8px; border:1px solid rgba(255,255,255,0.1); }
+.nav-link { display:flex; flex-direction:column; align-items:center; gap:3px; padding:2% 20%; border-radius:50px; color:#777; cursor:pointer; font-size:11px; }
+.nav-link.active { color:#fff; background:rgba(255,255,255,0.08); }
+.nav-link.active i { color:var(--accent); }
+.fab { position:absolute; bottom:calc(100px + env(safe-area-inset-bottom)); right:25px; background:var(--accent); width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px rgba(255,94,58,0.4); z-index:15; }
 </style>
 </head>
 <body>
-<div class="stars"></div>
+<div class="app-container">
+    <div class="bg-blur" id="bg-layer-1"></div>
+    <div class="bg-blur" id="bg-layer-2"></div>
 
-<div class="container">
-  <div class="header">
-    <h1><span>Sergiu R | Stations</span> 🌅</h1>
-    <a href="https://www.instagram.com/redclonex" target="_blank" class="instagram-cta">
-      <span>📸</span> Instagram
-    </a>
-  </div>
+    <div id="list-view" style="height:100%; display:flex; flex-direction:column;">
+        <div class="header-tabs">
+            <div class="tab active">Favorites</div>
+            <div class="tab">Recent</div>
+            <div class="tab">All</div>
+        </div>
+        <div class="content" id="stations-list"></div>
+        <div class="fab" onclick="alert('Adaugă post')"><i data-lucide="plus"></i></div>
+    </div>
 
-  <div class="station-list">
-    <div class="card"><div class="name">📀 Mix 10s (offline)</div><button onclick="window.location='http://155.133.23.121/hls/radio/live.m3u8'" data-color="#a78bfa">Play</button></div>
-    <div class="card"><div class="name">⏳ Muzică veche</div><button onclick="window.location='http://155.133.23.121/hls/muzicaveche/live.m3u8'" data-color="#a78bfa">Play</button></div>
-    <div class="card"><div class="name">📟 Emisiuni vechi</div><button onclick="window.location='http://155.133.23.121/hls/emisiunivechi/live.m3u8'" data-color="#a78bfa">Play</button></div>
-    <div class="card"><div class="name">🎷 Manele</div><button onclick="window.location='http://155.133.23.121/hls/manele/live.m3u8'" data-color="#a78bfa">Play</button></div>
-    <div class="card"><div class="name">🌉 Pop actual</div><button onclick="window.location='http://155.133.23.121/hls/pop_actual/live.m3u8'" data-color="#a78bfa">Play</button></div>
-    <div class="card yellow"><div class="name">💛 Hope</div><button onclick="window.location='http://155.133.23.121/hls/hope/live.m3u8'" data-color="rgba(255,223,130,0.7)">Play</button></div>
-  </div>
+    <div id="player-view">
+        <div class="art-container" id="swipe-zone-art">
+            <img src="" class="main-art" id="player-img" onerror="this.src=FALLBACK_IMG">
+        </div>
+        <div class="track-viewport" id="swipe-zone-text">
+            <div class="track-slider-wrapper" id="info-wrapper">
+                <div class="track-info-slide" id="slide-prev"><h2>Nume Post</h2><p>Gen Muzical</p></div>
+                <div class="track-info-slide" id="slide-current"><h2>Selectează Post</h2><p>Apasă pe o stație</p></div>
+                <div class="track-info-slide" id="slide-next"><h2>Nume Post</h2><p>Gen Muzical</p></div>
+            </div>
+        </div>
+        <div class="main-controls">
+            <div class="btn-round" onclick="prev()"><i data-lucide="skip-back" fill="currentColor"></i></div>
+            <div class="btn-round btn-play" id="play-trigger" onclick="togglePlay()"><i data-lucide="play" fill="currentColor"></i></div>
+            <div class="btn-round" onclick="next()"><i data-lucide="skip-forward" fill="currentColor"></i></div>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <div class="nav-link active" id="nav-list" onclick="switchTab('list')"><i data-lucide="radio"></i><span>Radio</span></div>
+        <div class="nav-link" id="nav-player" onclick="switchTab('player')"><i data-lucide="play-circle"></i><span>Player</span></div>
+    </div>
 </div>
 
+<audio id="audio-engine"></audio>
+
 <script>
-/* stele */
-const starsContainer = document.querySelector('.stars');
-for (let i=0;i<120;i++){
-  const star=document.createElement('div');
-  star.className='star';
-  star.style.width=star.style.height=(Math.random()*2.4+0.7)+'px';
-  star.style.top=Math.random()*100+'%';
-  star.style.left=Math.random()*100+'%';
-  star.style.animationDuration=(Math.random()*6+3.5)+'s';
-  star.style.animationDelay=Math.random()*10+'s';
-  starsContainer.appendChild(star);
+const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
+
+const stations = [ /* exact aceleași 11 stații ca înainte */ 
+    { name: "ONE FM DANCE", stream: "https://live.onefm.ro/onefm.aacp", img: "https://onefm.es/wp-content/uploads/2023/09/LOGO-2025.jpg", desc: "DANCE, HOUSE, TECHNO" },
+    { name: "Millenium Hits", stream: "https://dc.digi.live.kissfm.ro/milleniumhits", img: "https://api.kissfm.ro/resized/streams/homepage/2024/10/07/homepage-logo-kiss-millenium-hits_bd81e49f11f3edfff722aecb28f9ae34.png", desc: "KISS MILLENIUM HITS" },
+    { name: "DFM Pop", stream: "https://dfm-popgold10.hostingradio.ru/popgold1096.aacp", img: "https://radiopotok.com/assets/image/radio/180/dfmpopdance.jpg", desc: "POP GOLD, HITS" },
+    { name: "Kiss 10s", stream: "https://dc.digi.live.kissfm.ro/kiss.hits.from.the.10s/listen.m3u", img: "https://api.kissfm.ro/resized/streams/homepage/2025/01/10/cover-kiss-hits-from-the-10s_6210a8bb4e6b58d8b6d2c0342721cdb9.png", desc: "HITS FROM THE 10S" },
+    { name: "DFM DANCE", stream: "https://dfm-dancegold10.hostingradio.ru/dancegold1096.aacp", img: "https://americadance90.com.br/wp-content/uploads/2024/05/DFM-Dance-Gold-90s.png", desc: "DANCE GOLD, 90S" },
+    { name: "Radio Record", stream: "https://radiorecord.hostingradio.ru/rus96.aacp", img: "https://www.radiorecord.ru/icons/apple-touch-icon.png", desc: "RECORD RUSSIAN MIX" },
+    { name: "PRO DJ RADIO", stream: "http://live.prodjradio.net:8000/;?type=http&nocache=4585", img: "https://myradioonline.ro/public/uploads/radio_img/pro-dj-radio/play_250_250.webp", desc: "DJ MIX, CLUB, DANCE" },
+    { name: "Positively 10s", stream: "https://streaming.positivity.radio/pr/posi10s/icecast.audio", img: "https://cdn.autopo.st/images/coverart/r/Roll_Deep_-_Good_Times.jpg", desc: "10S HITS, POSITIVE" },
+    { name: "HEART 10S", stream: "https://media-ice.musicradio.com/Heart10sMP3", img: "https://images.weserv.nl/?url=www.globalplayer.com/assets/track-placeholders/heart10s.png", desc: "POP, HITS, CHART" },
+    { name: "RADIO ZU", stream: "https://live.radiozu.ro:8000/radiozu.aacp", img: "", desc: "POP, TOP 40, ROMANIA" },
+    { name: "ROCK FM", stream: "https://live.rockfm.ro/rockfm.aacp", img: "", desc: "CLASSIC ROCK, METAL" }
+];
+
+let currentIdx = 0;
+let activeLayer = 1;
+let startX = 0;
+let isDragging = false;
+const audio = document.getElementById('audio-engine');
+const wrapper = document.getElementById('info-wrapper');
+
+function init() {
+    const list = document.getElementById('stations-list');
+    stations.forEach((s, i) => {
+        const finalImg = (s.img && s.img.trim() !== "") ? s.img : FALLBACK_IMG;
+        const item = document.createElement('div');
+        item.className = 'station-item';
+        item.innerHTML = `<img src="${finalImg}" class="station-thumb" onerror="this.src=FALLBACK_IMG">
+            <div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>`;
+        item.onclick = () => { currentIdx = i; playStation(); };
+        list.appendChild(item);
+    });
+    lucide.createIcons();
+    updateSliderText();
+    loadStationInfo(0, false);
+    setupSwipe();
 }
 
-function createShootingStar(){
-  const meteor=document.createElement('div');
-  meteor.className='shooting-star';
-  const startX=Math.random()*80-20;
-  const duration=0.6+Math.random()*1.1;
-  meteor.style.left=startX+'%';
-  meteor.style.top=(Math.random()*30-15)+'%';
-  meteor.style.animationDuration=duration+'s';
-  meteor.style.transform=`rotate(${30+Math.random()*35}deg)`;
-  starsContainer.appendChild(meteor);
-  setTimeout(()=>meteor.remove(),2500);
-  setTimeout(createShootingStar,700+Math.random()*3200);
+function updateSliderText() {
+    const prev = (currentIdx - 1 + stations.length) % stations.length;
+    const next = (currentIdx + 1) % stations.length;
+    updateSlide('slide-prev', stations[prev]);
+    updateSlide('slide-current', stations[currentIdx]);
+    updateSlide('slide-next', stations[next]);
 }
-setTimeout(createShootingStar,800);
-
-/* Glow secvențial fluid */
-const buttons = document.querySelectorAll('.station-list button');
-const durationGlow = 2500; // durata animației glowPulse
-let index = 0;
-
-function glowSequential() {
-  const btn = buttons[index];
-  const color = btn.getAttribute('data-color') || '#a78bfa';
-  btn.style.setProperty('--glow-color', color);
-  btn.classList.add('glow');
-
-  const nextTime = durationGlow * 0.75;
-  index = (index + 1) % buttons.length;
-
-  setTimeout(glowSequential, nextTime);
-  setTimeout(()=>btn.classList.remove('glow'), durationGlow);
+function updateSlide(id, data) {
+    const el = document.getElementById(id);
+    el.querySelector('h2').innerText = data.name;
+    el.querySelector('p').innerText = data.desc;
 }
 
-glowSequential();
+function loadStationInfo(idx, shouldPlay = true) {
+    const s = stations[idx];
+    const finalImg = (s.img && s.img.trim() !== "") ? s.img : FALLBACK_IMG;
+    document.getElementById('player-img').src = finalImg;
+    audio.src = s.stream;
+    if(shouldPlay) audio.play().catch(()=>{}); 
+
+    const l1 = document.getElementById('bg-layer-1');
+    const l2 = document.getElementById('bg-layer-2');
+    const nextL = activeLayer === 1 ? l2 : l1;
+    const prevL = activeLayer === 1 ? l1 : l2;
+
+    nextL.style.backgroundImage = `url(${finalImg})`;
+    nextL.style.opacity = '1';
+    prevL.style.opacity = '0';
+    activeLayer = activeLayer === 1 ? 2 : 1;
+
+    updateUI(!audio.paused && shouldPlay);
+}
+
+function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
+function next() { currentIdx = (currentIdx + 1) % stations.length; animateTransition('next'); }
+function prev() { currentIdx = (currentIdx - 1 + stations.length) % stations.length; animateTransition('prev'); }
+
+function animateTransition(dir) {
+    wrapper.style.transition = 'transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)';
+    wrapper.style.transform = dir==='next' ? 'translateX(-66.666%)' : 'translateX(0)';
+    setTimeout(()=>{ 
+        wrapper.style.transition='none';
+        loadStationInfo(currentIdx, true);
+        updateSliderText();
+        wrapper.style.transform = 'translateX(-33.333%)';
+    },400);
+}
+
+function setupSwipe() {
+    const zones = [document.getElementById('swipe-zone-art'), document.getElementById('swipe-zone-text')];
+    zones.forEach(z => {
+        z.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; isDragging=true; wrapper.style.transition='none'; });
+        z.addEventListener('touchmove', e=>{ if(!isDragging) return; const d = e.touches[0].clientX-startX; wrapper.style.transform = `translateX(calc(-33.333% + ${(d/window.innerWidth)*33}%))`; });
+        z.addEventListener('touchend', e=>{ 
+            if(!isDragging) return;
+            const d = e.changedTouches[0].clientX - startX;
+            if(d>50) prev(); else if(d<-50) next(); else wrapper.style.transform='translateX(-33.333%)';
+            isDragging=false;
+        });
+    });
+}
+
+function togglePlay() {
+    const b = document.getElementById('play-trigger');
+    if(audio.paused){ audio.play().catch(()=>{}); b.classList.add('playing'); b.innerHTML='<i data-lucide="pause" fill="currentColor"></i>'; }
+    else{ audio.pause(); b.classList.remove('playing'); b.innerHTML='<i data-lucide="play" fill="currentColor"></i>'; }
+    lucide.createIcons();
+}
+function switchTab(t) {
+    if(t==='list'){ document.getElementById('list-view').style.display='flex'; document.getElementById('player-view').style.display='none';
+        document.getElementById('nav-list').classList.add('active'); document.getElementById('nav-player').classList.remove('active'); }
+    else{ document.getElementById('list-view').style.display='none'; document.getElementById('player-view').style.display='flex';
+        document.getElementById('nav-list').classList.remove('active'); document.getElementById('nav-player').classList.add('active'); }
+}
+function updateUI(p){ const b=document.getElementById('play-trigger'); 
+    if(p){ b.classList.add('playing'); b.innerHTML='<i data-lucide="pause" fill="currentColor"></i>'; }
+    else{ b.classList.remove('playing'); b.innerHTML='<i data-lucide="play" fill="currentColor"></i>'; }
+    lucide.createIcons();
+}
+init();
 </script>
 </body>
 </html>
