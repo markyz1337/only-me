@@ -123,8 +123,8 @@ body {
     </div>
 
     <div class="nav-bar">
-        <div class="nav-link active" id="nav-list" onclick="switchTab('list')"><i data-lucide="radio"></i><span>Radio</span></div>
         <div class="nav-link" id="nav-player" onclick="switchTab('player')"><i data-lucide="play-circle"></i><span>Player</span></div>
+        <div class="nav-link active" id="nav-list" onclick="switchTab('list')"><i data-lucide="radio"></i><span>Radio</span></div>
     </div>
 </div>
 
@@ -180,15 +180,11 @@ function renderList(mode, el) {
         if (mode === 'all') return s.isAll;
         if (mode === 'fav') return s.isFav;
         if (mode === 'russian') return s.isRussian;
+        if (mode === 'mine') return s.isMine;
         return false;
     });
 
-    stations.forEach((s, i) => {
-        if (mode === 'all' && !s.isAll) return;
-        if (mode === 'fav' && !s.isFav) return;
-        if (mode === 'russian' && !s.isRussian) return;
-        if (mode === 'mine' && !s.isMine) return;
-
+    currentFilteredList.forEach((s, i) => {
         const finalImg = (s.img && s.img.trim() !== "") ? s.img : FALLBACK_IMG;
         const item = document.createElement('div');
         item.className = 'station-item';
@@ -198,7 +194,7 @@ function renderList(mode, el) {
             if (s.isMine) {
                 window.location.href = s.stream;
             } else {
-                currentIdx = currentFilteredList.findIndex(fs => fs.name === s.name);
+                currentIdx = i;
                 playStation(); 
             }
         };
@@ -227,6 +223,22 @@ function loadStationInfo(idx, shouldPlay = true) {
     const finalImg = (s.img && s.img.trim() !== "") ? s.img : FALLBACK_IMG;
     document.getElementById('player-img').src = finalImg;
     audio.src = s.stream;
+
+    // --- MEDIA SESSION API ---
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: s.name,
+            artist: s.desc,
+            artwork: [
+                { src: finalImg, sizes: '512x512', type: 'image/png' }
+            ]
+        });
+        navigator.mediaSession.setActionHandler('play', () => togglePlay());
+        navigator.mediaSession.setActionHandler('pause', () => togglePlay());
+        navigator.mediaSession.setActionHandler('previoustrack', () => prev());
+        navigator.mediaSession.setActionHandler('nexttrack', () => next());
+    }
+
     if(shouldPlay) audio.play().catch(()=>{});
     
     const l1 = document.getElementById('bg-layer-1');
@@ -271,9 +283,13 @@ function setupSwipe() {
 
 function togglePlay() {
     const b = document.getElementById('play-trigger');
-    if(audio.paused){ audio.play().catch(()=>{}); b.classList.add('playing'); b.innerHTML='<i data-lucide="pause" fill="currentColor"></i>'; }
-    else{ audio.pause(); b.classList.remove('playing'); b.innerHTML='<i data-lucide="play" fill="currentColor"></i>'; }
-    lucide.createIcons();
+    if(audio.paused){ 
+        audio.play().catch(()=>{}); 
+        updateUI(true);
+    } else { 
+        audio.pause(); 
+        updateUI(false);
+    }
 }
 
 function switchTab(t) {
@@ -292,8 +308,16 @@ function switchTab(t) {
 
 function updateUI(p){ 
     const b = document.getElementById('play-trigger'); 
-    if(p){ b.classList.add('playing'); b.innerHTML='<i data-lucide="pause" fill="currentColor"></i>'; }
-    else{ b.classList.remove('playing'); b.innerHTML='<i data-lucide="play" fill="currentColor"></i>'; }
+    if(p){ 
+        b.classList.add('playing'); 
+        b.innerHTML='<i data-lucide="pause" fill="currentColor"></i>'; 
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
+    }
+    else{ 
+        b.classList.remove('playing'); 
+        b.innerHTML='<i data-lucide="play" fill="currentColor"></i>'; 
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "paused";
+    }
     lucide.createIcons();
 }
 
