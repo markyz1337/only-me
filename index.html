@@ -2,7 +2,6 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<!-- Modificat pentru a bloca zoom-ul la nivel de browser -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Sergiu FM</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
@@ -10,6 +9,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Sergiu FM">
+<!-- Black-translucent permite background-ului să urce sub oră -->
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -20,24 +20,16 @@
     --bg-dark: #000000;
 }
 
-/* BLOCARE SELECȚIE ȘI ZOOM VIZUAL */
 * { 
     box-sizing: border-box; 
     margin: 0; padding: 0; 
     font-family: 'Inter', sans-serif; 
     -webkit-tap-highlight-color: transparent; 
-    
-    /* Blocare selecție text */
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none;    /* Firefox */
-    -ms-user-select: none;     /* IE/Edge */
-    user-select: none;         /* Standard */
-    
-    /* Blocare scroll elastic (opțional, pentru aspect de app) */
+    -webkit-user-select: none;
+    user-select: none;
     overscroll-behavior: none;
 }
 
-/* ELIMINARE SCROLLBAR */
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; -ms-overflow-style: none; }
 
@@ -48,23 +40,28 @@ body {
     overflow: hidden; 
     display: flex; 
     justify-content: center;
-    /* Blocare lupa și gesturi de sistem pe unele browsere */
     touch-action: pan-y; 
 }
 
 .app-container {
     width: 100%; max-width: 430px; height: 100%; position: relative; overflow: hidden;
-    display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
+    display: flex; flex-direction: column;
+    /* REZOLVARE SUPRAPUNERE ORĂ ȘI BARĂ JOS (IOS SAFE AREAS) */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .bg-blur {
-    position: absolute; top: -10%; left: -10%; width: 120%; height: 120%;
+    position: absolute; 
+    /* Fundalul rămâne sub oră (top: 0 în loc de safe-area) */
+    top: -10%; left: -10%; width: 120%; height: 120%;
     background-size: cover; background-position: center;
     filter: blur(40px) brightness(0.4) saturate(1.2);
     z-index: 0; will-change: opacity, transform;
     animation: bgBreathe 30s infinite ease-in-out;
     transition: opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 #bg-layer-1 { opacity: 1; }
 #bg-layer-2 { opacity: 0; }
 
@@ -73,7 +70,13 @@ body {
     50% { transform: scale(1.1) rotate(5deg); }
 }
 
-.header-tabs { position: relative; z-index: 10; padding: 20px 20px 10px; display: flex; gap: 10px; overflow-x: auto; }
+/* Tab-urile vor sta acum imediat sub status bar (oră) fără să se atingă */
+.header-tabs { 
+    position: relative; z-index: 10; 
+    padding: 15px 20px 10px; 
+    display: flex; gap: 10px; overflow-x: auto; 
+}
+
 .tab { 
     background: var(--glass); 
     padding: 8px 18px; 
@@ -96,11 +99,11 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 .station-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
 .station-desc { font-size: 11px; color: #b3b3b3; text-transform: uppercase; }
 
-#player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0 100px 0; }
-.art-container { width: 100%; display: flex; justify-content: center; margin-bottom: 35px; }
+#player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
+.art-container { width: 100%; display: flex; justify-content: center; margin-bottom: 30px; }
 .main-art { width: 280px; height: 280px; border-radius: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.7); object-fit: cover; background: #111; transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
 
-.track-viewport { width: 100%; overflow: hidden; margin-bottom: 35px; position: relative; }
+.track-viewport { width: 100%; overflow: hidden; margin-bottom: 30px; position: relative; }
 .track-slider-wrapper { display: flex; width: 300%; transform: translateX(-33.333%); will-change: transform; }
 .track-info-slide { width: 33.333%; text-align: center; padding: 0 45px; flex-shrink: 0; }
 .track-info-slide h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -128,7 +131,7 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 .nav-bar { 
-    position: absolute; bottom: calc(20px + env(safe-area-inset-bottom)); left: 25px; right: 25px; z-index: 50; 
+    position: absolute; bottom: 20px; left: 25px; right: 25px; z-index: 50; 
     background: rgba(25,25,25,0.8); backdrop-filter: blur(25px); border-radius: 40px; 
     display: flex; justify-content: space-around; padding: 8px; border: 1px solid rgba(255,255,255,0.08); 
 }
@@ -144,11 +147,11 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 .nav-link.active { color: #fff; }
 .nav-link.active i { color: var(--accent); }
 
-.fab { position: absolute; bottom: calc(110px + env(safe-area-inset-bottom)); right: 25px; background: var(--accent); width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(255,94,58,0.4); z-index: 15; transition: transform 0.2s; }
+.fab { position: absolute; bottom: 100px; right: 25px; background: var(--accent); width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(255,94,58,0.4); z-index: 15; transition: transform 0.2s; }
 .fab:active { transform: scale(0.9); }
 </style>
 </head>
-<body oncontextmenu="return false;"> <!-- Dezactivare click dreapta / meniu contextual -->
+<body oncontextmenu="return false;">
 <div class="app-container">
     <div class="bg-blur" id="bg-layer-1"></div>
     <div class="bg-blur" id="bg-layer-2"></div>
@@ -191,20 +194,13 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 <audio id="audio-engine" preload="auto"></audio>
 
 <script>
-// Dezactivare suplimentară gesturi de zoom pe iOS prin JS
-document.addEventListener('touchstart', function (event) {
-  if (event.touches.length > 1) {
-     event.preventDefault();
-  }
-}, { passive: false });
-
-let lastTouchEnd = 0;
-document.addEventListener('touchend', function (event) {
-  const now = (new Date()).getTime();
-  if (now - lastTouchEnd <= 300) {
-    event.preventDefault(); // Blocare double-tap zoom
-  }
-  lastTouchEnd = now;
+// Blocare zoom gesturi sistem
+document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let lastTouch = 0;
+document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouch <= 300) e.preventDefault();
+    lastTouch = now;
 }, false);
 
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
@@ -239,7 +235,6 @@ function init() {
     updateSliderText();
     loadStationInfo(0, false);
     setupSwipe();
-
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
@@ -292,7 +287,6 @@ function loadStationInfo(idx, shouldPlay = true) {
     const finalImg = s.img || FALLBACK_IMG;
     document.getElementById('player-img').src = finalImg;
     audio.src = s.stream;
-
     const l1 = document.getElementById('bg-layer-1');
     const l2 = document.getElementById('bg-layer-2');
     const nextL = activeLayer === 1 ? l2 : l1;
@@ -301,7 +295,6 @@ function loadStationInfo(idx, shouldPlay = true) {
     nextL.style.opacity = '1';
     prevL.style.opacity = '0';
     activeLayer = activeLayer === 1 ? 2 : 1;
-
     if(shouldPlay) { updateUI('loading'); audio.play().catch(()=>{}); }
 }
 
@@ -337,18 +330,8 @@ function animateTransition(dir) {
 function setupSwipe() {
     const zones = [document.getElementById('swipe-zone-art'), document.getElementById('swipe-zone-text')];
     zones.forEach(z => {
-        z.addEventListener('touchstart', e=>{ 
-            startX=e.touches[0].clientX; 
-            isDragging=true; 
-            wrapper.style.transition='none'; 
-        }, {passive: true});
-        
-        z.addEventListener('touchmove', e=>{ 
-            if(!isDragging) return; 
-            const d = e.touches[0].clientX-startX; 
-            wrapper.style.transform = `translateX(calc(-33.333% + ${(d/window.innerWidth)*33}%))`; 
-        }, {passive: true});
-
+        z.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; isDragging=true; wrapper.style.transition='none'; }, {passive: true});
+        z.addEventListener('touchmove', e=>{ if(!isDragging) return; const d = e.touches[0].clientX-startX; wrapper.style.transform = `translateX(calc(-33.333% + ${(d/window.innerWidth)*33}%))`; }, {passive: true});
         z.addEventListener('touchend', e=>{ 
             if(!isDragging) return;
             const d = e.changedTouches[0].clientX - startX;
