@@ -92,20 +92,25 @@ body {
 .content { position: relative; z-index: 10; flex: 1; padding: 0 20px 140px 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .station-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid transparent;
 border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; }
-.station-thumb { width: 55px; height: 55px; border-radius: 12px; margin-right: 15px; object-fit: cover; background: #111; }
-.station-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
 
-/* MODIFICARE AICI: Am uniformizat culoarea descrierii */
-.station-desc { font-size: 11px; color: #b3b3b3; text-transform: uppercase; }
-.station-desc.playing-now { 
-    color: #b3b3b3; /* Rămâne gri, chiar dacă e activ */
-    font-weight: 400; 
-    text-transform: none; 
+.station-thumb { 
+    width: 55px; height: 55px; border-radius: 12px; margin-right: 15px; 
+    object-fit: cover; background: #111; 
+    transition: opacity 0.5s ease;
 }
+
+.station-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+.station-desc { font-size: 11px; color: #b3b3b3; text-transform: uppercase; }
+.station-desc.playing-now { color: #b3b3b3; font-weight: 400; text-transform: none; }
 
 #player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
 .art-container { width: 100%; display: flex; justify-content: center; margin-bottom: 30px; }
-.main-art { width: 280px; height: 280px; border-radius: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.7); object-fit: cover; background: #111; transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.main-art { 
+    width: 280px; height: 280px; border-radius: 30px; 
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7); object-fit: cover; 
+    background: #111; 
+    transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease; 
+}
 
 .track-viewport { width: 100%; overflow: hidden; margin-bottom: 30px; position: relative; }
 .track-slider-wrapper { display: flex; width: 300%; transform: translateX(-33.333%); will-change: transform; }
@@ -198,7 +203,6 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 <audio id="audio-engine" preload="auto" crossorigin="anonymous"></audio>
 
 <script>
-// --- CONFIGURARE ȘI VARIABILE ---
 let currentIdx = 0;
 let currentFilteredList = []; 
 let activeLayer = 1;
@@ -227,7 +231,11 @@ const stations = [
     { name: "Speranță", stream: "http://155.133.23.121/hls/hope/live.m3u8", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8aX5i1Sosu19dYGhKZwB3XHN2aFFLnuPUToBVDQVjOplOdpr5q3ZxEy8&s=10", desc: "LA FEL CA MINE", isMine: true }
 ];
 
-stations.forEach(s => s.originalDesc = s.desc);
+stations.forEach(s => { 
+    s.originalDesc = s.desc; 
+    s.originalImg = s.img; 
+    s.currentTrack = ""; // Salvăm piesa curentă pentru a evita flicker-ul
+});
 
 function init() {
     renderList('all', document.getElementById('tab-all')); 
@@ -271,10 +279,13 @@ async function fetchSilentMetadata(station) {
                 let metaString = decoder.decode(metadata);
                 let match = metaString.match(/StreamTitle='([^']*)'/);
                 if (match && match[1]) {
-                    station.desc = match[1].replace(/;/g, "").trim();
-                    updateUIMetadata(station);
-                    reader.cancel();
-                    return;
+                    let title = match[1].replace(/;/g, "").trim();
+                    if(station.currentTrack !== title) {
+                        station.desc = title;
+                        station.currentTrack = title;
+                        updateUIMetadata(station);
+                    }
+                    reader.cancel(); return;
                 }
                 buffer = buffer.slice(metaInt + 1 + metaLength);
             }
@@ -282,22 +293,62 @@ async function fetchSilentMetadata(station) {
     } catch(e) {}
 }
 
+async function fetchAlbumArt(title, stationRef) {
+    if (!title || title.length < 3) return;
+    try {
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
+        const data = await res.json();
+        if (data.results && data.results.length > 0) {
+            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
+            
+            // Doar dacă imaginea e diferită de cea actuală, facem swap
+            if(stationRef.img === newImg) return;
+            stationRef.img = newImg;
+            
+            // Update în PLAYER
+            if (currentFilteredList[currentIdx] === stationRef) {
+                const pImg = document.getElementById('player-img');
+                pImg.style.opacity = '0';
+                setTimeout(() => {
+                    pImg.src = newImg;
+                    pImg.style.opacity = '1';
+                    const activeBG = activeLayer === 1 ? document.getElementById('bg-layer-1') : document.getElementById('bg-layer-2');
+                    activeBG.style.backgroundImage = `url(${newImg})`;
+                }, 250);
+            }
+            
+            // Update în LISTĂ
+            const listItems = document.querySelectorAll('.station-item');
+            listItems.forEach(item => {
+                if (item.querySelector('.station-name').innerText === stationRef.name) {
+                    const thumb = item.querySelector('.station-thumb');
+                    thumb.style.opacity = '0';
+                    setTimeout(() => {
+                        thumb.src = newImg;
+                        thumb.style.opacity = '1';
+                    }, 250);
+                }
+            });
+        }
+    } catch (e) {}
+}
+
 function updateUIMetadata(station) {
+    fetchAlbumArt(station.desc, station);
+
     if (currentFilteredList[currentIdx] === station) {
         const slide = document.getElementById('slide-current');
         if (slide) slide.querySelector('p').innerText = station.desc;
-        
         if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
             navigator.mediaSession.metadata.title = station.desc;
-            navigator.mediaSession.metadata.artist = station.name;
         }
     }
+
     const listItems = document.querySelectorAll('.station-item');
     listItems.forEach(item => {
         if (item.querySelector('.station-name').innerText === station.name) {
             const descEl = item.querySelector('.station-desc');
             descEl.innerText = station.desc;
-            // Clasa se adaugă pentru logică, dar CSS-ul îi ține culoarea gri
             descEl.classList.add('playing-now');
         }
     });
@@ -342,9 +393,14 @@ async function fetchMetadata(streamUrl, stationRef) {
                 let metadata = buffer.slice(metaInt + 1, metaInt + 1 + metaLength);
                 let metaString = decoder.decode(metadata);
                 let match = metaString.match(/StreamTitle='([^']*)'/);
-                if (match && match[1] && match[1].trim() !== "") {
-                    stationRef.desc = match[1].replace(/;/g, "");
-                    updateUIMetadata(stationRef);
+                if (match && match[1]) {
+                    let newTitle = match[1].replace(/;/g, "").trim();
+                    // VERIFICARE CRITICĂ: Dacă piesa e aceeași, ignorăm pentru a opri clipirea
+                    if (stationRef.currentTrack !== newTitle) {
+                        stationRef.desc = newTitle;
+                        stationRef.currentTrack = newTitle;
+                        updateUIMetadata(stationRef);
+                    }
                 }
                 buffer = buffer.slice(metaInt + 1 + metaLength);
             }
@@ -369,12 +425,11 @@ function renderList(mode, el) {
     currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
         item.className = 'station-item';
-        const hasMeta = s.desc !== s.originalDesc;
         item.innerHTML = `
             <img src="${s.img || FALLBACK_IMG}" class="station-thumb" onerror="this.src=FALLBACK_IMG">
             <div style="flex:1">
                 <div class="station-name">${s.name}</div>
-                <div class="station-desc ${hasMeta ? 'playing-now' : ''}">${s.desc}</div>
+                <div class="station-desc ${s.desc !== s.originalDesc ? 'playing-now' : ''}">${s.desc}</div>
             </div>`;
         item.onclick = () => { 
             if (s.isMine) { window.location.href = s.stream; } 
@@ -402,22 +457,32 @@ function updateSlide(id, data) {
 function loadStationInfo(idx, shouldPlay = true) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
-    const finalImg = s.img || FALLBACK_IMG;
-    document.getElementById('player-img').src = finalImg;
+
+    // Resetăm imaginea la logo dacă nu avem încă o piesă activă
+    document.getElementById('player-img').src = s.img || FALLBACK_IMG;
+    document.getElementById('player-img').style.opacity = '1';
+    
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
     audio.src = s.stream;
     updateMediaSession(s);
-    fetchMetadata(s.stream, s);
-    metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 20000);
+
     const l1 = document.getElementById('bg-layer-1');
     const l2 = document.getElementById('bg-layer-2');
     const nextL = activeLayer === 1 ? l2 : l1;
     const prevL = activeLayer === 1 ? l1 : l2;
-    nextL.style.backgroundImage = `url(${finalImg})`;
+    nextL.style.backgroundImage = `url(${s.img || FALLBACK_IMG})`;
     nextL.style.opacity = '1';
     prevL.style.opacity = '0';
     activeLayer = activeLayer === 1 ? 2 : 1;
+    
+    // Declanșăm metadatele după 1 secundă
+    setTimeout(() => {
+        fetchMetadata(s.stream, s);
+        if (metadataInterval) clearInterval(metadataInterval);
+        metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000);
+    }, 1000);
+
     if(shouldPlay) { updateUI('loading'); audio.play().catch(()=>{}); }
 }
 
