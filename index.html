@@ -100,16 +100,26 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 }
 
 .station-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
-.station-desc { font-size: 11px; color: #b3b3b3; text-transform: uppercase; }
+
+/* MODIFICARE: Limitare la 2 rânduri în listă */
+.station-desc { 
+    font-size: 11px; 
+    color: #b3b3b3; 
+    text-transform: uppercase;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+    line-height: 1.4;
+    max-height: 2.8em; /* 2 rânduri x 1.4 line-height */
+}
 .station-desc.playing-now { color: #b3b3b3; font-weight: 400; text-transform: none; }
 
 #player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
 
-/* MODIFICARE: Containerele pentru arta fluidă */
 .art-container { 
     width: 280px; height: 280px; position: relative; 
     margin-bottom: 30px; 
-    perspective: 1000px;
 }
 .main-art { 
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -126,7 +136,20 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 .track-slider-wrapper { display: flex; width: 300%; transform: translateX(-33.333%); will-change: transform; }
 .track-info-slide { width: 33.333%; text-align: center; padding: 0 45px; flex-shrink: 0; }
 .track-info-slide h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.track-info-slide p { color: #b3b3b3; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+
+/* MODIFICARE: Limitare la 2 rânduri în player */
+.track-info-slide p { 
+    color: #b3b3b3; 
+    font-size: 13px; 
+    letter-spacing: 1px; 
+    text-transform: uppercase;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+    line-height: 1.5;
+    min-height: 3em; /* Menține spațiul constant pentru design */
+}
 
 .main-controls { display: flex; align-items: center; gap: 35px; margin-bottom: 20px; }
 .btn-round { 
@@ -217,7 +240,7 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 let currentIdx = 0;
 let currentFilteredList = []; 
 let activeBGLayer = 1;
-let activeArtLayer = 1; // Nou: track strat imagine player
+let activeArtLayer = 1; 
 let startX = 0;
 let isDragging = false;
 let currentMetadataRequestId = 0;
@@ -243,11 +266,7 @@ const stations = [
     { name: "Speranță", stream: "http://155.133.23.121/hls/hope/live.m3u8", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8aX5i1Sosu19dYGhKZwB3XHN2aFFLnuPUToBVDQVjOplOdpr5q3ZxEy8&s=10", desc: "LA FEL CA MINE", isMine: true }
 ];
 
-stations.forEach(s => { 
-    s.originalDesc = s.desc; 
-    s.originalImg = s.img; 
-    s.currentTrack = "";
-});
+stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
 
 function init() {
     renderList('all', document.getElementById('tab-all')); 
@@ -256,16 +275,13 @@ function init() {
     loadStationInfo(0, false);
     setupSwipe();
     scanAllStations();
-
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
 
 function scanAllStations() {
-    stations.forEach(s => {
-        if (!s.stream.includes('.m3u8')) { fetchSilentMetadata(s); }
-    });
+    stations.forEach(s => { if (!s.stream.includes('.m3u8')) { fetchSilentMetadata(s); } });
 }
 
 async function fetchSilentMetadata(station) {
@@ -275,7 +291,6 @@ async function fetchSilentMetadata(station) {
         const decoder = new TextDecoder("utf-8");
         let metaInt = parseInt(response.headers.get("icy-metaint"));
         if (!metaInt) return;
-
         let buffer = new Uint8Array();
         while (true) {
             const { done, value } = await reader.read();
@@ -283,7 +298,6 @@ async function fetchSilentMetadata(station) {
             let temp = new Uint8Array(buffer.length + value.length);
             temp.set(buffer); temp.set(value, buffer.length);
             buffer = temp;
-
             while (buffer.length >= metaInt + 1) {
                 let metaLength = buffer[metaInt] * 16;
                 if (buffer.length < metaInt + 1 + metaLength) break;
@@ -305,29 +319,21 @@ async function fetchSilentMetadata(station) {
     } catch(e) {}
 }
 
-// FUNCȚIE ACTUALIZATĂ: Tranziție fluidă pentru artă
 function updateArtUI(newImg) {
     const art1 = document.getElementById('player-img-1');
     const art2 = document.getElementById('player-img-2');
     const bg1 = document.getElementById('bg-layer-1');
     const bg2 = document.getElementById('bg-layer-2');
-
     const nextArt = activeArtLayer === 1 ? art2 : art1;
     const currentArt = activeArtLayer === 1 ? art1 : art2;
     const nextBG = activeBGLayer === 1 ? bg2 : bg1;
     const currentBG = activeBGLayer === 1 ? bg1 : bg2;
-
-    // Pregătim noua imagine
     nextArt.src = newImg;
     nextBG.style.backgroundImage = `url(${newImg})`;
-
-    // Cross-fade
     nextArt.classList.replace('art-hidden', 'art-visible');
     currentArt.classList.replace('art-visible', 'art-hidden');
-    
     nextBG.style.opacity = '1';
     currentBG.style.opacity = '0';
-
     activeArtLayer = activeArtLayer === 1 ? 2 : 1;
     activeBGLayer = activeBGLayer === 1 ? 2 : 1;
 }
@@ -339,16 +345,9 @@ async function fetchAlbumArt(title, stationRef) {
         const data = await res.json();
         if (data.results && data.results.length > 0) {
             const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
-            
             if(stationRef.img === newImg) return;
             stationRef.img = newImg;
-            
-            // Update în PLAYER (Fluid)
-            if (currentFilteredList[currentIdx] === stationRef) {
-                updateArtUI(newImg);
-            }
-            
-            // Update în LISTĂ
+            if (currentFilteredList[currentIdx] === stationRef) { updateArtUI(newImg); }
             const listItems = document.querySelectorAll('.station-item');
             listItems.forEach(item => {
                 if (item.querySelector('.station-name').innerText === stationRef.name) {
@@ -363,7 +362,6 @@ async function fetchAlbumArt(title, stationRef) {
 
 function updateUIMetadata(station) {
     fetchAlbumArt(station.desc, station);
-
     if (currentFilteredList[currentIdx] === station) {
         const slide = document.getElementById('slide-current');
         if (slide) slide.querySelector('p').innerText = station.desc;
@@ -371,7 +369,6 @@ function updateUIMetadata(station) {
             navigator.mediaSession.metadata.title = station.desc;
         }
     }
-
     const listItems = document.querySelectorAll('.station-item');
     listItems.forEach(item => {
         if (item.querySelector('.station-name').innerText === station.name) {
@@ -405,14 +402,12 @@ async function fetchMetadata(streamUrl, stationRef) {
         if (!metaInt) return;
         metaInt = parseInt(metaInt);
         let buffer = new Uint8Array();
-
         while (true) {
             const { done, value } = await reader.read();
             if (done || requestId !== currentMetadataRequestId) break;
             let temp = new Uint8Array(buffer.length + value.length);
             temp.set(buffer); temp.set(value, buffer.length);
             buffer = temp;
-
             while (buffer.length >= metaInt + 1) {
                 let metaLength = buffer[metaInt] * 16;
                 if (buffer.length < metaInt + 1 + metaLength) break;
@@ -482,22 +477,16 @@ function updateSlide(id, data) {
 function loadStationInfo(idx, shouldPlay = true) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
-
-    // Schimbăm imaginea cu tranziție fluidă
     updateArtUI(s.img || FALLBACK_IMG);
-    
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
     audio.src = s.stream;
     updateMediaSession(s);
-
-    // Declanșăm metadatele după 1 secundă
     setTimeout(() => {
         fetchMetadata(s.stream, s);
         if (metadataInterval) clearInterval(metadataInterval);
         metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000);
     }, 1000);
-
     if(shouldPlay) { updateUI('loading'); audio.play().catch(()=>{}); }
 }
 
