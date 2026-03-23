@@ -423,13 +423,14 @@ function renderList(mode, el) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
-    currentFilteredList = stations.filter(s => {
-        if (mode === 'all') return s.isAll || s.isMine;
+     currentFilteredList = stations.filter(s => {
+        if (mode === 'all') return s.isAll === true; 
         if (mode === 'fav') return s.isFav;
         if (mode === 'russian') return s.isRussian;
         if (mode === 'mine') return s.isMine;
         return false;
     });
+
     currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
         item.className = 'station-item';
