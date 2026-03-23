@@ -104,13 +104,23 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 .station-desc.playing-now { color: #b3b3b3; font-weight: 400; text-transform: none; }
 
 #player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
-.art-container { width: 100%; display: flex; justify-content: center; margin-bottom: 30px; }
+
+/* MODIFICARE: Containerele pentru arta fluidă */
+.art-container { 
+    width: 280px; height: 280px; position: relative; 
+    margin-bottom: 30px; 
+    perspective: 1000px;
+}
 .main-art { 
-    width: 280px; height: 280px; border-radius: 30px; 
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border-radius: 30px; 
     box-shadow: 0 30px 60px rgba(0,0,0,0.7); object-fit: cover; 
     background: #111; 
-    transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease; 
+    transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); 
+    will-change: opacity, transform;
 }
+.art-hidden { opacity: 0; transform: scale(0.95); }
+.art-visible { opacity: 1; transform: scale(1); }
 
 .track-viewport { width: 100%; overflow: hidden; margin-bottom: 30px; position: relative; }
 .track-slider-wrapper { display: flex; width: 300%; transform: translateX(-33.333%); will-change: transform; }
@@ -178,7 +188,8 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 
     <div id="player-view">
         <div class="art-container" id="swipe-zone-art">
-            <img src="" class="main-art" id="player-img" onerror="this.src=FALLBACK_IMG">
+            <img src="" class="main-art art-visible" id="player-img-1" onerror="this.src=FALLBACK_IMG">
+            <img src="" class="main-art art-hidden" id="player-img-2" onerror="this.src=FALLBACK_IMG">
         </div>
         <div class="track-viewport" id="swipe-zone-text">
             <div class="track-slider-wrapper" id="info-wrapper">
@@ -205,7 +216,8 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 <script>
 let currentIdx = 0;
 let currentFilteredList = []; 
-let activeLayer = 1;
+let activeBGLayer = 1;
+let activeArtLayer = 1; // Nou: track strat imagine player
 let startX = 0;
 let isDragging = false;
 let currentMetadataRequestId = 0;
@@ -234,7 +246,7 @@ const stations = [
 stations.forEach(s => { 
     s.originalDesc = s.desc; 
     s.originalImg = s.img; 
-    s.currentTrack = ""; // Salvăm piesa curentă pentru a evita flicker-ul
+    s.currentTrack = "";
 });
 
 function init() {
@@ -293,6 +305,33 @@ async function fetchSilentMetadata(station) {
     } catch(e) {}
 }
 
+// FUNCȚIE ACTUALIZATĂ: Tranziție fluidă pentru artă
+function updateArtUI(newImg) {
+    const art1 = document.getElementById('player-img-1');
+    const art2 = document.getElementById('player-img-2');
+    const bg1 = document.getElementById('bg-layer-1');
+    const bg2 = document.getElementById('bg-layer-2');
+
+    const nextArt = activeArtLayer === 1 ? art2 : art1;
+    const currentArt = activeArtLayer === 1 ? art1 : art2;
+    const nextBG = activeBGLayer === 1 ? bg2 : bg1;
+    const currentBG = activeBGLayer === 1 ? bg1 : bg2;
+
+    // Pregătim noua imagine
+    nextArt.src = newImg;
+    nextBG.style.backgroundImage = `url(${newImg})`;
+
+    // Cross-fade
+    nextArt.classList.replace('art-hidden', 'art-visible');
+    currentArt.classList.replace('art-visible', 'art-hidden');
+    
+    nextBG.style.opacity = '1';
+    currentBG.style.opacity = '0';
+
+    activeArtLayer = activeArtLayer === 1 ? 2 : 1;
+    activeBGLayer = activeBGLayer === 1 ? 2 : 1;
+}
+
 async function fetchAlbumArt(title, stationRef) {
     if (!title || title.length < 3) return;
     try {
@@ -301,20 +340,12 @@ async function fetchAlbumArt(title, stationRef) {
         if (data.results && data.results.length > 0) {
             const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
             
-            // Doar dacă imaginea e diferită de cea actuală, facem swap
             if(stationRef.img === newImg) return;
             stationRef.img = newImg;
             
-            // Update în PLAYER
+            // Update în PLAYER (Fluid)
             if (currentFilteredList[currentIdx] === stationRef) {
-                const pImg = document.getElementById('player-img');
-                pImg.style.opacity = '0';
-                setTimeout(() => {
-                    pImg.src = newImg;
-                    pImg.style.opacity = '1';
-                    const activeBG = activeLayer === 1 ? document.getElementById('bg-layer-1') : document.getElementById('bg-layer-2');
-                    activeBG.style.backgroundImage = `url(${newImg})`;
-                }, 250);
+                updateArtUI(newImg);
             }
             
             // Update în LISTĂ
@@ -323,10 +354,7 @@ async function fetchAlbumArt(title, stationRef) {
                 if (item.querySelector('.station-name').innerText === stationRef.name) {
                     const thumb = item.querySelector('.station-thumb');
                     thumb.style.opacity = '0';
-                    setTimeout(() => {
-                        thumb.src = newImg;
-                        thumb.style.opacity = '1';
-                    }, 250);
+                    setTimeout(() => { thumb.src = newImg; thumb.style.opacity = '1'; }, 250);
                 }
             });
         }
@@ -357,9 +385,7 @@ function updateUIMetadata(station) {
 function updateMediaSession(station) {
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: station.desc,
-            artist: station.name,
-            album: "Sergiu FM",
+            title: station.desc, artist: station.name, album: "Sergiu FM",
             artwork: [{ src: station.img || FALLBACK_IMG, sizes: '512x512', type: 'image/png' }]
         });
         navigator.mediaSession.setActionHandler('play', () => audio.play());
@@ -395,7 +421,6 @@ async function fetchMetadata(streamUrl, stationRef) {
                 let match = metaString.match(/StreamTitle='([^']*)'/);
                 if (match && match[1]) {
                     let newTitle = match[1].replace(/;/g, "").trim();
-                    // VERIFICARE CRITICĂ: Dacă piesa e aceeași, ignorăm pentru a opri clipirea
                     if (stationRef.currentTrack !== newTitle) {
                         stationRef.desc = newTitle;
                         stationRef.currentTrack = newTitle;
@@ -458,24 +483,14 @@ function loadStationInfo(idx, shouldPlay = true) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
 
-    // Resetăm imaginea la logo dacă nu avem încă o piesă activă
-    document.getElementById('player-img').src = s.img || FALLBACK_IMG;
-    document.getElementById('player-img').style.opacity = '1';
+    // Schimbăm imaginea cu tranziție fluidă
+    updateArtUI(s.img || FALLBACK_IMG);
     
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
     audio.src = s.stream;
     updateMediaSession(s);
 
-    const l1 = document.getElementById('bg-layer-1');
-    const l2 = document.getElementById('bg-layer-2');
-    const nextL = activeLayer === 1 ? l2 : l1;
-    const prevL = activeLayer === 1 ? l1 : l2;
-    nextL.style.backgroundImage = `url(${s.img || FALLBACK_IMG})`;
-    nextL.style.opacity = '1';
-    prevL.style.opacity = '0';
-    activeLayer = activeLayer === 1 ? 2 : 1;
-    
     // Declanșăm metadatele după 1 secundă
     setTimeout(() => {
         fetchMetadata(s.stream, s);
