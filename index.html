@@ -100,33 +100,20 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 }
 
 .station-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
-
-/* MODIFICARE: Limitare la 2 rânduri în listă */
 .station-desc { 
-    font-size: 11px; 
-    color: #b3b3b3; 
-    text-transform: uppercase;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;  
-    overflow: hidden;
-    line-height: 1.4;
-    max-height: 2.8em; /* 2 rânduri x 1.4 line-height */
+    font-size: 11px; color: #b3b3b3; text-transform: uppercase;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;  
+    overflow: hidden; line-height: 1.4; max-height: 2.8em;
 }
 .station-desc.playing-now { color: #b3b3b3; font-weight: 400; text-transform: none; }
 
 #player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
 
-.art-container { 
-    width: 280px; height: 280px; position: relative; 
-    margin-bottom: 30px; 
-}
+.art-container { width: 280px; height: 280px; position: relative; margin-bottom: 30px; }
 .main-art { 
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    border-radius: 30px; 
-    box-shadow: 0 30px 60px rgba(0,0,0,0.7); object-fit: cover; 
-    background: #111; 
-    transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); 
+    border-radius: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.7); object-fit: cover; 
+    background: #111; transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), transform 1.2s cubic-bezier(0.4, 0, 0.2, 1); 
     will-change: opacity, transform;
 }
 .art-hidden { opacity: 0; transform: scale(0.95); }
@@ -136,19 +123,10 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 .track-slider-wrapper { display: flex; width: 300%; transform: translateX(-33.333%); will-change: transform; }
 .track-info-slide { width: 33.333%; text-align: center; padding: 0 45px; flex-shrink: 0; }
 .track-info-slide h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* MODIFICARE: Limitare la 2 rânduri în player */
 .track-info-slide p { 
-    color: #b3b3b3; 
-    font-size: 13px; 
-    letter-spacing: 1px; 
-    text-transform: uppercase;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;  
-    overflow: hidden;
-    line-height: 1.5;
-    min-height: 3em; /* Menține spațiul constant pentru design */
+    color: #b3b3b3; font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;  
+    overflow: hidden; line-height: 1.5; min-height: 3em;
 }
 
 .main-controls { display: flex; align-items: center; gap: 35px; margin-bottom: 20px; }
@@ -319,6 +297,7 @@ async function fetchSilentMetadata(station) {
     } catch(e) {}
 }
 
+// FUNCȚIE REVIZUITĂ: Notifică și sistemul MediaSession la schimbarea imaginii
 function updateArtUI(newImg) {
     const art1 = document.getElementById('player-img-1');
     const art2 = document.getElementById('player-img-2');
@@ -328,14 +307,22 @@ function updateArtUI(newImg) {
     const currentArt = activeArtLayer === 1 ? art1 : art2;
     const nextBG = activeBGLayer === 1 ? bg2 : bg1;
     const currentBG = activeBGLayer === 1 ? bg1 : bg2;
+
     nextArt.src = newImg;
     nextBG.style.backgroundImage = `url(${newImg})`;
     nextArt.classList.replace('art-hidden', 'art-visible');
     currentArt.classList.replace('art-visible', 'art-hidden');
     nextBG.style.opacity = '1';
     currentBG.style.opacity = '0';
+
     activeArtLayer = activeArtLayer === 1 ? 2 : 1;
     activeBGLayer = activeBGLayer === 1 ? 2 : 1;
+
+    // CRITIC: Update ecran de blocare imediat ce imaginea nouă e setată
+    const currentStation = currentFilteredList[currentIdx];
+    if (currentStation) {
+        updateMediaSession(currentStation);
+    }
 }
 
 async function fetchAlbumArt(title, stationRef) {
@@ -347,7 +334,9 @@ async function fetchAlbumArt(title, stationRef) {
             const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
             if(stationRef.img === newImg) return;
             stationRef.img = newImg;
-            if (currentFilteredList[currentIdx] === stationRef) { updateArtUI(newImg); }
+            if (currentFilteredList[currentIdx] === stationRef) { 
+                updateArtUI(newImg); 
+            }
             const listItems = document.querySelectorAll('.station-item');
             listItems.forEach(item => {
                 if (item.querySelector('.station-name').innerText === stationRef.name) {
@@ -365,9 +354,6 @@ function updateUIMetadata(station) {
     if (currentFilteredList[currentIdx] === station) {
         const slide = document.getElementById('slide-current');
         if (slide) slide.querySelector('p').innerText = station.desc;
-        if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
-            navigator.mediaSession.metadata.title = station.desc;
-        }
     }
     const listItems = document.querySelectorAll('.station-item');
     listItems.forEach(item => {
@@ -382,7 +368,9 @@ function updateUIMetadata(station) {
 function updateMediaSession(station) {
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: station.desc, artist: station.name, album: "Sergiu FM",
+            title: station.desc,
+            artist: station.name,
+            album: "Sergiu FM",
             artwork: [{ src: station.img || FALLBACK_IMG, sizes: '512x512', type: 'image/png' }]
         });
         navigator.mediaSession.setActionHandler('play', () => audio.play());
@@ -481,7 +469,7 @@ function loadStationInfo(idx, shouldPlay = true) {
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
     audio.src = s.stream;
-    updateMediaSession(s);
+    
     setTimeout(() => {
         fetchMetadata(s.stream, s);
         if (metadataInterval) clearInterval(metadataInterval);
