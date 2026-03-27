@@ -98,7 +98,7 @@ body {
 .station-thumb { 
     width: 55px; height: 55px; border-radius: 12px; margin-right: 15px; 
     object-fit: cover; background: #111; 
-    transition: opacity 0.5s ease;
+    transition: opacity 0.8s ease, transform 0.5s ease;
 }
 
 .station-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
@@ -106,8 +106,8 @@ body {
     font-size: 11px; color: #b3b3b3; text-transform: uppercase;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;  
     overflow: hidden; line-height: 1.4; max-height: 2.8em;
+    transition: color 0.5s ease;
 }
-.station-desc.playing-now { color: #b3b3b3; font-weight: 400; text-transform: none; }
 
 .owned-yt-btn {
     width: 50px; height: 50px;
@@ -301,6 +301,7 @@ function renderList(mode, el) {
     currentFilteredList.forEach((s) => {
         const item = document.createElement('div');
         item.className = 'station-item';
+        item.setAttribute('data-name', s.name); // Atribut pentru identificare fara re-render
         let ownedControl = '';
         if (mode === 'mine' && s.yt) {
             ownedControl = `<div class="owned-yt-btn" onclick="event.stopPropagation(); window.open('${s.yt}', '_blank');"><img src="https://static.vecteezy.com/system/resources/thumbnails/047/580/502/small/youtube-popular-social-media-logo-free-png.png"></div>`;
@@ -382,6 +383,7 @@ function updateArtUI(newImg) {
     const bg1 = document.getElementById('bg-layer-1'); const bg2 = document.getElementById('bg-layer-2');
     const nextArt = activeArtLayer === 1 ? art2 : art1; const currentArt = activeArtLayer === 1 ? art1 : art2;
     const nextBG = activeBGLayer === 1 ? bg2 : bg1; const currentBG = activeBGLayer === 1 ? bg1 : bg2;
+    
     nextArt.src = newImg; nextBG.style.backgroundImage = `url(${newImg})`;
     nextArt.classList.replace('art-hidden', 'art-visible'); currentArt.classList.replace('art-visible', 'art-hidden');
     nextBG.style.opacity = '1'; currentBG.style.opacity = '0';
@@ -397,8 +399,24 @@ async function fetchAlbumArt(title, stationRef) {
         if (data.results && data.results.length > 0) {
             const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
             stationRef.img = newImg;
+            
+            // 1. Update Player (Cross-fade coperta mare)
             if (currentFilteredList[currentIdx] === stationRef) updateArtUI(newImg);
-            renderList(document.querySelector('.tab.active').id.replace('tab-',''), null);
+            
+            // 2. Update List (Fade-in imagine mica in lista fara re-render)
+            const listItems = document.querySelectorAll('.station-item');
+            listItems.forEach(item => {
+                if(item.getAttribute('data-name') === stationRef.name) {
+                    const thumb = item.querySelector('.station-thumb');
+                    const desc = item.querySelector('.station-desc');
+                    thumb.style.opacity = '0';
+                    setTimeout(() => {
+                        thumb.src = newImg;
+                        thumb.style.opacity = '1';
+                        if(desc) desc.innerText = stationRef.desc;
+                    }, 400);
+                }
+            });
         }
     } catch (e) {}
 }
