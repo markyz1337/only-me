@@ -316,7 +316,7 @@ function renderList(mode, el) {
         item.setAttribute('data-name', s.name); 
         let ownedControl = '';
         if (mode === 'mine' && s.yt) {
-            ownedControl = `<div class="owned-yt-btn" onclick="event.stopPropagation(); window.open('${s.yt}', '_blank');"><img src="https://static.vecteezy.com/system/resources/thumbnails/047/580/502/small/youtube-popular-social-media-logo-free-png.png"></div>`;
+            ownedControl = `<div class="owned-yt-btn" onclick="event.stopPropagation(); window.open('${s.yt}', '_blank');"><img src="https://static.vecteezy.com/system/resources/previews/018/930/688/non_2x/youtube-logo-youtube-icon-transparent-free-png.png"></div>`;
         }
         item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>${ownedControl}`;
         item.onclick = () => { if (s.isMine) { window.location.href = s.stream; } else { currentIdx = currentFilteredList.indexOf(s); playStation(); } };
