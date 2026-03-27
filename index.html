@@ -43,6 +43,15 @@ body {
     touch-action: pan-y; 
 }
 
+.fab.playing {
+    background: var(--accent);
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(255, 94, 58, 0.6);
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+
+
 .app-container {
     width: 100%; max-width: 430px; height: 100%; position: relative; overflow: hidden;
     display: flex; flex-direction: column;
@@ -64,7 +73,7 @@ body {
 #bg-layer-2 { opacity: 0; }
 
 @keyframes bgBreathe {
-    0%, 100% { transform: scale(1.0) rotate(0deg); }
+    0%, 100!% { transform: scale(1.0) rotate(0deg); }
     50% { transform: scale(1.1) rotate(5deg); }
 }
 
@@ -118,7 +127,7 @@ body {
 }
 .owned-yt-btn:active { transform: scale(0.85); }
 .owned-yt-btn img {
-    width: 50px; height: 50px;
+    width: 30px; height: 30px;
     object-fit: contain; opacity: 0.80; 
 }
 
@@ -145,7 +154,7 @@ body {
     display: flex; align-items: center; justify-content: center; cursor: pointer; 
     backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); color: white;
 }
-/* Aici am adaugat Glow-ul */
+
 .btn-play { background: #fff; color: #000; width: 75px; height: 75px; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .btn-play.playing { 
     background: var(--accent); 
@@ -243,10 +252,10 @@ const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.1398
 const stations = [
     { name: "Heart 10s", stream: "https://media-ice.musicradio.com/Heart10sMP3", img: "https://images.weserv.nl/?url=www.globalplayer.com/assets/track-placeholders/heart10s.png", desc: "POP, HITS, CHART", isFav: true, isAll: true },
     { name: "Kiss 10s", stream: "https://dc.digi.live.kissfm.ro/kiss.hits.from.the.10s/listen.m3u", img: "https://api.kissfm.ro/resized/streams/homepage/2025/01/10/cover-kiss-hits-from-the-10s_6210a8bb4e6b58d8b6d2c0342721cdb9.png", desc: "HITS FROM THE 10S", isFav: true, isAll: true },
-    { name: "Millenium Hits", stream: "https://dc.digi.live.kissfm.ro/milleniumhits", img: "https://api.kissfm.ro/resized/streams/homepage/2024/10/07/homepage-logo-kiss-millenium-hits_bd81e49f11f3edfff722aecb28f9ae34.png", desc: "KISS MILLENIUM HITS", isFav: true, isAll: true },
-    { name: "ONE FM DANCE", stream: "https://live.onefm.ro/onefm.aacp", img: "https://onefm.es/wp-content/uploads/2023/09/LOGO-2025.jpg", desc: "DANCE, HOUSE, TECHNO", isFav: true, isAll: true },
-    { name: "Positively 10s", stream: "https://streaming.positivity.radio/pr/posi10s/icecast.audio", img: "https://cdn.autopo.st/images/coverart/r/Roll_Deep_-_Good_Times.jpg", desc: "10S HITS, POSITIVE", isFav: true, isAll: true },
-    { name: "PRO DJ RADIO", stream: "http://live.prodjradio.net:8000/;?type=http&nocache=4585", img: "https://yt3.googleusercontent.com/ytc/AIdro_kzkPgiLvOOACJ8JsiVWcgjbDaDftezak5j9Pv9KAp2cg=s900-c-k-c0x00ffffff-no-rj", desc: "DJ MIX, CLUB, DANCE", isFav: true, isAll: true },
+    { name: "Millenium Hits", stream: "https://dc.digi.live.kissfm.ro/milleniumhits", img: "https://api.kissfm.ro/resized/streams/homepage/2024/10/07/homepage-logo-kiss-millenium-hits_bd81e49f11f3edfff722aecb28f9ae34.png", desc: "KISS MILLENIUM HITS", isAll: true },
+    { name: "ONE FM DANCE", stream: "https://live.onefm.ro/onefm.aacp", img: "https://onefm.es/wp-content/uploads/2023/09/LOGO-2025.jpg", desc: "DANCE, HOUSE, TECHNO", isAll: true },
+    { name: "Positively 10s", stream: "https://streaming.positivity.radio/pr/posi10s/icecast.audio", img: "https://cdn.autopo.st/images/coverart/r/Roll_Deep_-_Good_Times.jpg", desc: "10S HITS, POSITIVE", isAll: true },
+    { name: "PRO DJ RADIO", stream: "http://live.prodjradio.net:8000/;?type=http&nocache=4585", img: "https://yt3.googleusercontent.com/ytc/AIdro_kzkPgiLvOOACJ8JsiVWcgjbDaDftezak5j9Pv9KAp2cg=s900-c-k-c0x00ffffff-no-rj", desc: "DJ MIX, CLUB, DANCE", isAll: true },
     { name: "Radio Record", stream: "https://radiorecord.hostingradio.ru/rus96.aacp", img: "https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/0e/fe/53/0efe532a-3cee-6c89-1d8d-c9f18284c0f2/mza_5165669991707061934.jpg/1200x1200bf-60.jpg", desc: "RECORD RUSSIAN MIX", isRussian: true, isAll: true },
     { name: "Маруся ФМ", stream: "https://radio-holding.ru:9433/marusya_default", img: "https://cover.marus.fm/cover/default.jpg", desc: "RUSSIAN POP MIX", isRussian: true, isAll: true },
     { name: "Европа Плюс", stream: "http://ep256.hostingradio.ru:8052/europaplus256.mp3", img: "https://static2.mytuner.mobi/media/tvos_radios/Fs3ahQV6xT.png", desc: "EUROPE MIX", isRussian: true, isAll: true },
@@ -254,12 +263,12 @@ const stations = [
     { name: "DFM DANCE", stream: "https://dfm-dancegold10.hostingradio.ru/dancegold1096.aacp", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIoi_I2LWM0BpqHgWDPIjwxIF_E3POxwYL4YCBgQrepVIodIXXbv2zvAh4&s=10", desc: "DANCE GOLD, 90S", isRussian: true, isAll: true },
     
     // OWNED
-    { name: "Sergiu x Emisiuni Vechi", stream: "http://155.133.23.121:8000/emisiunivechi", img: "https://yt3.googleusercontent.com/ytc/AIdro_mH-dA0beci-h-44yevlAUUDaajRWTiBcdverBGK7XXBw=s900-c-k-c0x00ffffff-no-rj", desc: "KISS FM • RADIO 21 • RADIO ZU", isMine: true },
-    { name: "Sergiu x Muzică Veche", stream: "http://155.133.23.121:8000/muzicaveche", img: "https://i.scdn.co/image/ab67616d0000b27316eb598cccbced4c4ac6bbbf", desc: "Childhood", isMine: true, yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J" },
-    { name: "Sergiu x Pop Actual", stream: "http://155.133.23.121:8000/popactual", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRrd73RzhRJNu8IQ94U9TPy4O_hB2qVefaiynqfIk4TfXZ2xdAsvI7ynw&s=10", desc: "POP 20s", isMine: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12h2VlBi5lPddOig7Ki-dE2S&si=4StSQYlR4uazgPKO" },
-    { name: "Sergiu x Russian", stream: "http://155.133.23.121:8000/russian", img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", desc: "RUS • POP", isMine: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12hUgv96dGWDN5_0zqyfwh1t&si=Ezw2KRYTNtJAAKnW" },
-    { name: "Sergiu x Manele", stream: "http://155.133.23.121:8000/manele", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", desc: "Gypsy Team", isMine: true, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXtIaoNo0wKIH9q_BFCHw4S_&si=XPeFO_NctOno3Vbu" },
-    { name: "Sergiu x Hope", stream: "http://155.133.23.121:8000/hope", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8aX5i1Sosu19dYGhKZwB3XHN2aFFLnuPUToBVDQVjOplOdpr5q3ZxEy8&s=10", desc: "LOVEFOOL POP", isMine: true, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXuwf5SEEH9vhwwSci67SNnU&si=NclZd61NGrsZ0UCm" }
+    { name: "Emisiuni Vechi", stream: "https://sergiumusic.duckdns.org/emisiunivechi", img: "https://yt3.googleusercontent.com/ytc/AIdro_mH-dA0beci-h-44yevlAUUDaajRWTiBcdverBGK7XXBw=s900-c-k-c0x00ffffff-no-rj", desc: "KISS FM • RADIO 21 • RADIO ZU", isMine: true, isFav: true, isAll: true},
+    { name: "Muzică Veche", stream: "https://sergiumusic.duckdns.org/muzicaveche", img: "https://i.scdn.co/image/ab67616d0000b27316eb598cccbced4c4ac6bbbf", desc: "Childhood", isMine: true, isFav: true, isAll: true, yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J" },
+    { name: "Pop Actual", stream: "https://sergiumusic.duckdns.org/popactual", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRrd73RzhRJNu8IQ94U9TPy4O_hB2qVefaiynqfIk4TfXZ2xdAsvI7ynw&s=10", desc: "POP 20s", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12h2VlBi5lPddOig7Ki-dE2S&si=4StSQYlR4uazgPKO" },
+    { name: "Russian", stream: "https://sergiumusic.duckdns.org/russian", img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", desc: "RUS • POP", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12hUgv96dGWDN5_0zqyfwh1t&si=Ezw2KRYTNtJAAKnW" },
+    { name: "Manele", stream: "https://sergiumusic.duckdns.org/manele", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", desc: "Gypsy Team", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXtIaoNo0wKIH9q_BFCHw4S_&si=XPeFO_NctOno3Vbu" },
+    { name: "Hope", stream: "https://sergiumusic.duckdns.org/hope", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8aX5i1Sosu19dYGhKZwB3XHN2aFFLnuPUToBVDQVjOplOdpr5q3ZxEy8&s=10", desc: "LOVEFOOL POP", isMine: true, isFav: true, isAll: true, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXuwf5SEEH9vhwwSci67SNnU&si=NclZd61NGrsZ0UCm" }
 ];
 
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
@@ -299,8 +308,8 @@ function renderList(mode, el) {
         el.classList.add('active');
     }
     
-    if (mode === 'mine') fab.style.display = 'none';
-    else fab.style.display = 'flex';
+    // FAB vizibil mereu
+    fab.style.display = 'flex';
 
     currentFilteredList = stations.filter(s => {
         if (mode === 'all') return s.isAll === true; 
@@ -314,21 +323,28 @@ function renderList(mode, el) {
         const item = document.createElement('div');
         item.className = 'station-item';
         item.setAttribute('data-name', s.name); 
+        
         let ownedControl = '';
+        // MODIFICARE: Verificăm dacă suntem în modul 'mine' ȘI dacă stația are link YT
         if (mode === 'mine' && s.yt) {
-            ownedControl = `<div class="owned-yt-btn" onclick="event.stopPropagation(); window.open('${s.yt}', '_blank');"><img src="https://static.vecteezy.com/system/resources/previews/018/930/688/non_2x/youtube-logo-youtube-icon-transparent-free-png.png"></div>`;
+            ownedControl = `<div class="owned-yt-btn" onclick="event.stopPropagation(); window.open('${s.yt}', '_blank');"><img src="https://cdn-icons-png.flaticon.com/512/10308/10308828.png"></div>`;
         }
+        
         item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>${ownedControl}`;
-        item.onclick = () => { if (s.isMine) { window.location.href = s.stream; } else { currentIdx = currentFilteredList.indexOf(s); playStation(); } };
+        
+        item.onclick = () => { 
+            currentIdx = currentFilteredList.indexOf(s); 
+            playStation(); 
+        };
         list.appendChild(item);
     });
     lucide.createIcons();
 }
 
+
 function switchTab(t) {
     const nav = document.getElementById('main-nav');
     const fab = document.getElementById('fab-play-pause');
-    const isMine = document.getElementById('tab-mine').classList.contains('active');
     
     if(t==='list'){ 
         document.getElementById('list-view').style.display='flex'; 
@@ -336,7 +352,7 @@ function switchTab(t) {
         document.getElementById('nav-list').classList.add('active'); 
         document.getElementById('nav-player').classList.remove('active'); 
         nav.className = 'nav-bar on-radio';
-        fab.style.display = isMine ? 'none' : 'flex';
+        fab.style.display = 'flex';
     } else { 
         document.getElementById('list-view').style.display='none'; 
         document.getElementById('player-view').style.display='flex';
@@ -351,14 +367,29 @@ function updateUI(state){
     const b = document.getElementById('play-trigger'); 
     const f = document.getElementById('fab-play-pause');
     if(!b) return;
+    
     let icon = '';
-    if(state === 'loading') { icon = '<i data-lucide="loader-2" class="spin"></i>'; b.classList.remove('playing'); }
-    else if(state === true){ icon = '<i data-lucide="pause" fill="currentColor"></i>'; b.classList.add('playing'); }
-    else{ icon = '<i data-lucide="play" fill="currentColor"></i>'; b.classList.remove('playing'); }
+    if(state === 'loading') { 
+        icon = '<i data-lucide="loader-2" class="spin"></i>'; 
+        b.classList.remove('playing');
+        if(f) f.classList.remove('playing'); // Oprim pulsul la loading
+    }
+    else if(state === true){ 
+        icon = '<i data-lucide="pause" fill="currentColor"></i>'; 
+        b.classList.add('playing');
+        if(f) f.classList.add('playing'); // PORNEȘTE PULSUL PE LISTĂ
+    }
+    else{ 
+        icon = '<i data-lucide="play" fill="currentColor"></i>'; 
+        b.classList.remove('playing');
+        if(f) f.classList.remove('playing'); // OPREȘTE PULSUL PE LISTĂ
+    }
+    
     b.innerHTML = icon;
     if(f) f.innerHTML = icon;
     lucide.createIcons();
 }
+
 
 function scanAllStations() { stations.forEach(s => { if (!s.stream.includes('.m3u8')) fetchSilentMetadata(s); }); }
 
@@ -432,7 +463,8 @@ async function fetchAlbumArt(title, stationRef) {
 function updateUIMetadata(station) {
     fetchAlbumArt(station.desc, station);
     if (currentFilteredList[currentIdx] === station) {
-        document.getElementById('slide-current').querySelector('p').innerText = station.desc;
+        const slide = document.getElementById('slide-current');
+        if(slide) slide.querySelector('p').innerText = station.desc;
         updateMediaSession(station);
     }
 }
@@ -474,14 +506,20 @@ function updateSliderText() {
     updateSlide('slide-next', currentFilteredList[nIdx]);
 }
 
-function updateSlide(id, data) { const el = document.getElementById(id); el.querySelector('h2').innerText = data.name; el.querySelector('p').innerText = data.desc; }
+function updateSlide(id, data) { 
+    const el = document.getElementById(id); 
+    if(!el) return;
+    el.querySelector('h2').innerText = data.name; 
+    el.querySelector('p').innerText = data.desc; 
+}
 
 function loadStationInfo(idx, sp = true) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
     updateArtUI(s.img || FALLBACK_IMG);
     if (metadataInterval) clearInterval(metadataInterval);
-    currentMetadataRequestId++; audio.src = s.stream;
+    currentMetadataRequestId++; 
+    audio.src = s.stream;
     setTimeout(() => { fetchMetadata(s.stream, s); metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); }, 1000);
     if(sp) { updateUI('loading'); audio.play().catch(()=>{}); }
     updateMediaSession(s);
