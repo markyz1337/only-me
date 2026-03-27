@@ -90,8 +90,10 @@ body {
 .tab:active { transform: scale(0.95); }
 
 .content { position: relative; z-index: 10; flex: 1; padding: 0 20px 140px 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.station-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid transparent;
-border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; }
+.station-item { 
+    display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid transparent;
+    border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; 
+}
 
 .station-thumb { 
     width: 55px; height: 55px; border-radius: 12px; margin-right: 15px; 
@@ -106,6 +108,25 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
     overflow: hidden; line-height: 1.4; max-height: 2.8em;
 }
 .station-desc.playing-now { color: #b3b3b3; font-weight: 400; text-transform: none; }
+
+/* BUTON YOUTUBE PNG PENTRU OWNED */
+.owned-yt-btn {
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    margin-left: 10px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.owned-yt-btn:active { transform: scale(0.85); }
+
+.owned-yt-btn img {
+    width: 64px; /* Mărimea imaginii PNG */
+    height: 64px;
+    object-fit: contain;
+    opacity: 0.75; /* 95% transparent (adică 25% vizibil) */
+    transition: opacity 0.2s ease;
+}
+.owned-yt-btn:active img { opacity: 0.5; } /* Puțin mai vizibil la apăsare */
 
 #player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
 
@@ -178,8 +199,8 @@ border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), tran
 
     <div id="list-view" style="height:100%; display:flex; flex-direction:column;">
         <div class="header-tabs">
-            <div class="tab" id="tab-all" onclick="renderList('all', this)">All</div>
-            <div class="tab active" id="tab-fav" onclick="renderList('fav', this)">Favorites</div>
+            <div class="tab active" id="tab-all" onclick="renderList('all', this)">All</div>
+            <div class="tab" id="tab-fav" onclick="renderList('fav', this)">Favorites</div>
             <div class="tab" id="tab-mine" onclick="renderList('mine', this)">Owned</div>
             <div class="tab" id="tab-russian" onclick="renderList('russian', this)">Russian</div>
         </div>
@@ -238,15 +259,58 @@ const stations = [
     { name: "Radio Record", stream: "https://radiorecord.hostingradio.ru/rus96.aacp", img: "https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/0e/fe/53/0efe532a-3cee-6c89-1d8d-c9f18284c0f2/mza_5165669991707061934.jpg/1200x1200bf-60.jpg", desc: "RECORD RUSSIAN MIX", isRussian: true, isAll: true },
     { name: "Маруся ФМ", stream: "https://radio-holding.ru:9433/marusya_default", img: "https://cover.marus.fm/cover/default.jpg", desc: "RUSSIAN POP MIX", isRussian: true, isAll: true },
     { name: "Европа Плюс", stream: "http://ep256.hostingradio.ru:8052/europaplus256.mp3", img: "https://static2.mytuner.mobi/media/tvos_radios/Fs3ahQV6xT.png", desc: "EUROPE MIX", isRussian: true, isAll: true },
-    
     { name: "DFM Pop", stream: "https://dfm-popgold10.hostingradio.ru/popgold1096.aacp", img: "https://radiopotok.com/assets/image/radio/180/dfmpopdance.jpg", desc: "POP GOLD, HITS", isRussian: true, isAll: true },
     { name: "DFM DANCE", stream: "https://dfm-dancegold10.hostingradio.ru/dancegold1096.aacp", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIoi_I2LWM0BpqHgWDPIjwxIF_E3POxwYL4YCBgQrepVIodIXXbv2zvAh4&s=10", desc: "DANCE GOLD, 90S", isRussian: true, isAll: true },
-    { name: "Sergiu x Emisiuni Vechi", stream: "http://155.133.23.121:8000/emisiunivechi", img: "https://yt3.googleusercontent.com/ytc/AIdro_mH-dA0beci-h-44yevlAUUDaajRWTiBcdverBGK7XXBw=s900-c-k-c0x00ffffff-no-rj", desc: "KISS FM • RADIO 21 • RADIO ZU", isMine: true },
-    { name: "Sergiu x Muzică Veche", stream: "http://155.133.23.121:8000/muzicaveche", img: "https://i.scdn.co/image/ab67616d0000b27316eb598cccbced4c4ac6bbbf", desc: "Childhood", isMine: true },
-    { name: "Sergiu x Pop Actual", stream: "http://155.133.23.121:8000/popactual", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRrd73RzhRJNu8IQ94U9TPy4O_hB2qVefaiynqfIk4TfXZ2xdAsvI7ynw&s=10", desc: "POP 20s", isMine: true },
-    { name: "Sergiu x Russian", stream: "http://155.133.23.121:8000/russian", img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", desc: "RUS • POP", isMine: true },
-    { name: "Sergiu x Manele", stream: "http://155.133.23.121:8000/manele", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", desc: "Gypsy Team", isMine: true },
-    { name: "Sergiu x Hope", stream: "http://155.133.23.121:8000/hope", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8aX5i1Sosu19dYGhKZwB3XHN2aFFLnuPUToBVDQVjOplOdpr5q3ZxEy8&s=10", desc: "LOVEFOOL POP", isMine: true }
+    
+    // SECȚIUNEA OWNED (MATEI / MINE)
+    { 
+        name: "Sergiu x Emisiuni Vechi", 
+        stream: "http://155.133.23.121:8000/emisiunivechi", 
+        img: "https://yt3.googleusercontent.com/ytc/AIdro_mH-dA0beci-h-44yevlAUUDaajRWTiBcdverBGK7XXBw=s900-c-k-c0x00ffffff-no-rj", 
+        desc: "KISS FM • RADIO 21 • RADIO ZU", 
+        isMine: true
+        // FĂRĂ YT AICI -> BUTONUL NU VA APARE
+    },
+    { 
+        name: "Sergiu x Muzică Veche", 
+        stream: "http://155.133.23.121:8000/muzicaveche", 
+        img: "https://i.scdn.co/image/ab67616d0000b27316eb598cccbced4c4ac6bbbf", 
+        desc: "Childhood", 
+        isMine: true,
+        yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J" 
+    },
+    { 
+        name: "Sergiu x Pop Actual", 
+        stream: "http://155.133.23.121:8000/popactual", 
+        img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRrd73RzhRJNu8IQ94U9TPy4O_hB2qVefaiynqfIk4TfXZ2xdAsvI7ynw&s=10", 
+        desc: "POP 20s", 
+        isMine: true,
+        yt: "https://youtube.com/playlist?list=PLju_tYPLb12h2VlBi5lPddOig7Ki-dE2S&si=4StSQYlR4uazgPKO"
+    },
+    { 
+        name: "Sergiu x Russian", 
+        stream: "http://155.133.23.121:8000/russian", 
+        img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", 
+        desc: "RUS • POP", 
+        isMine: true,
+        yt: "https://youtube.com/playlist?list=PLju_tYPLb12hUgv96dGWDN5_0zqyfwh1t&si=Ezw2KRYTNtJAAKnW"
+    },
+    { 
+        name: "Sergiu x Manele", 
+        stream: "http://155.133.23.121:8000/manele", 
+        img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", 
+        desc: "Gypsy Team", 
+        isMine: true,
+        yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXtIaoNo0wKIH9q_BFCHw4S_&si=XPeFO_NctOno3Vbu"
+    },
+    { 
+        name: "Sergiu x Hope", 
+        stream: "http://155.133.23.121:8000/hope", 
+        img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8aX5i1Sosu19dYGhKZwB3XHN2aFFLnuPUToBVDQVjOplOdpr5q3ZxEy8&s=10", 
+        desc: "LOVEFOOL POP", 
+        isMine: true,
+        yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXuwf5SEEH9vhwwSci67SNnU&si=NclZd61NGrsZ0UCm"
+    }
 ];
 
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
@@ -302,7 +366,6 @@ async function fetchSilentMetadata(station) {
     } catch(e) {}
 }
 
-// FUNCȚIE REVIZUITĂ: Notifică și sistemul MediaSession la schimbarea imaginii
 function updateArtUI(newImg) {
     const art1 = document.getElementById('player-img-1');
     const art2 = document.getElementById('player-img-2');
@@ -323,7 +386,6 @@ function updateArtUI(newImg) {
     activeArtLayer = activeArtLayer === 1 ? 2 : 1;
     activeBGLayer = activeBGLayer === 1 ? 2 : 1;
 
-    // CRITIC: Update ecran de blocare imediat ce imaginea nouă e setată
     const currentStation = currentFilteredList[currentIdx];
     if (currentStation) {
         updateMediaSession(currentStation);
@@ -439,18 +501,31 @@ function renderList(mode, el) {
     currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
         item.className = 'station-item';
+        
+        let ownedControl = '';
+        if (mode === 'mine' && s.yt) { // Folosește variabila din array
+            // ADAUGAT PNG ȘI TRANSPARENȚĂ AICI
+            ownedControl = `
+                <div class="owned-yt-btn" onclick="event.stopPropagation(); window.open('${s.yt}', '_blank');">
+                    <img src="https://static.vecteezy.com/system/resources/thumbnails/047/580/530/small/youtube-logo-on-white-shape-free-png.png" alt="Playlist">
+                </div>`;
+        }
+
         item.innerHTML = `
             <img src="${s.img || FALLBACK_IMG}" class="station-thumb" onerror="this.src=FALLBACK_IMG">
             <div style="flex:1">
                 <div class="station-name">${s.name}</div>
                 <div class="station-desc ${s.desc !== s.originalDesc ? 'playing-now' : ''}">${s.desc}</div>
-            </div>`;
+            </div>
+            ${ownedControl}`;
+
         item.onclick = () => { 
             if (s.isMine) { window.location.href = s.stream; } 
             else { currentIdx = currentFilteredList.indexOf(s); playStation(); }
         };
         list.appendChild(item);
     });
+    lucide.createIcons();
 }
 
 function updateSliderText() {
@@ -464,6 +539,7 @@ function updateSliderText() {
 
 function updateSlide(id, data) {
     const el = document.getElementById(id);
+    if (!el) return;
     el.querySelector('h2').innerText = data.name;
     el.querySelector('p').innerText = data.desc;
 }
@@ -554,6 +630,7 @@ function switchTab(t) {
 
 function updateUI(state){ 
     const b = document.getElementById('play-trigger'); 
+    if(!b) return;
     if(state === 'loading') { b.innerHTML='<i data-lucide="loader-2" class="spin"></i>'; b.classList.remove('playing'); }
     else if(state === true){ b.innerHTML='<i data-lucide="pause" fill="currentColor"></i>'; b.classList.add('playing'); }
     else{ b.innerHTML='<i data-lucide="play" fill="currentColor"></i>'; b.classList.remove('playing'); }
