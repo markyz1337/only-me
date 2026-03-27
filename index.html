@@ -161,13 +161,20 @@ body {
     color: #fff; 
     transform: scale(1.1);
     box-shadow: 0 0 30px rgba(255, 94, 58, 0.6);
-    animation: pulseGlow 2s infinite ease-in-out;
+    animation: pulseGlow 3s infinite ease-in-out;
 }
 
 @keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 20px rgba(255, 94, 58, 0.4); }
-    50% { box-shadow: 0 0 45px rgba(255, 94, 58, 0.8); }
+    0%, 100% { 
+        box-shadow: 0 0 15px rgba(255, 94, 58, 0.3); 
+        transform: scale(1.05); 
+    }
+    50% { 
+        box-shadow: 0 0 50px rgba(255, 94, 58, 0.7); 
+        transform: scale(1.10); /* O ușoară mărire suplimentară la mijlocul pulsului */
+    }
 }
+
 
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -189,7 +196,34 @@ body {
 .nav-link.active { color: #fff; }
 .nav-link.active i { color: var(--accent); }
 
-.fab { position: absolute; bottom: 115px; right: 26px; background: var(--accent); width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(255,94,58,0.4); z-index: 15; }
+/* Stilul de bază pentru FAB (stare de pauză) */
+.fab { 
+    position: absolute; 
+    bottom: 115px; 
+    right: 26px; 
+    background: #fff; /* Fundal alb la pauză, ca în player */
+    color: #000;      /* Iconiță neagră */
+    width: 56px; 
+    height: 56px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3); 
+    z-index: 15; 
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Starea de Play pentru FAB */
+.fab.playing {
+    background: var(--accent); /* Culoarea portocalie */
+    color: #fff;               /* Iconiță albă */
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(255, 94, 58, 0.6);
+    animation: pulseGlow 3s infinite ease-in-out;
+}
+
+
 </style>
 </head>
 <body oncontextmenu="return false;">
@@ -263,8 +297,8 @@ const stations = [
     { name: "DFM DANCE", stream: "https://dfm-dancegold10.hostingradio.ru/dancegold1096.aacp", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIoi_I2LWM0BpqHgWDPIjwxIF_E3POxwYL4YCBgQrepVIodIXXbv2zvAh4&s=10", desc: "DANCE GOLD, 90S", isRussian: true, isAll: true },
     
     // OWNED
-    { name: "Emisiuni Vechi", stream: "https://sergiumusic.duckdns.org/emisiunivechi", img: "https://yt3.googleusercontent.com/ytc/AIdro_mH-dA0beci-h-44yevlAUUDaajRWTiBcdverBGK7XXBw=s900-c-k-c0x00ffffff-no-rj", desc: "KISS FM • RADIO 21 • RADIO ZU", isMine: true, isFav: true, isAll: true},
-    { name: "Muzică Veche", stream: "https://sergiumusic.duckdns.org/muzicaveche", img: "https://i.scdn.co/image/ab67616d0000b27316eb598cccbced4c4ac6bbbf", desc: "Childhood", isMine: true, isFav: true, isAll: true, yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J" },
+    { name: "Emisiuni 10s", stream: "https://sergiumusic.duckdns.org/emisiunivechi", img: "https://yt3.googleusercontent.com/ytc/AIdro_mH-dA0beci-h-44yevlAUUDaajRWTiBcdverBGK7XXBw=s900-c-k-c0x00ffffff-no-rj", desc: "KISS FM • RADIO 21 • RADIO ZU", isMine: true, isFav: true, isAll: true},
+    { name: "Muzică 10s", stream: "https://sergiumusic.duckdns.org/muzicaveche", img: "https://i.scdn.co/image/ab67616d0000b27316eb598cccbced4c4ac6bbbf", desc: "Childhood", isMine: true, isFav: true, isAll: true, yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J" },
     { name: "Pop Actual", stream: "https://sergiumusic.duckdns.org/popactual", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRrd73RzhRJNu8IQ94U9TPy4O_hB2qVefaiynqfIk4TfXZ2xdAsvI7ynw&s=10", desc: "POP 20s", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12h2VlBi5lPddOig7Ki-dE2S&si=4StSQYlR4uazgPKO" },
     { name: "Russian", stream: "https://sergiumusic.duckdns.org/russian", img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", desc: "RUS • POP", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12hUgv96dGWDN5_0zqyfwh1t&si=Ezw2KRYTNtJAAKnW" },
     { name: "Manele", stream: "https://sergiumusic.duckdns.org/manele", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", desc: "Gypsy Team", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXtIaoNo0wKIH9q_BFCHw4S_&si=XPeFO_NctOno3Vbu" },
@@ -376,31 +410,32 @@ function switchTab(t) {
 
 
 function updateUI(state){ 
-    const b = document.getElementById('play-trigger'); 
-    const f = document.getElementById('fab-play-pause');
-    if(!b) return;
+    const b = document.getElementById('play-trigger'); // Butonul din Player
+    const f = document.getElementById('fab-play-pause'); // Butonul FAB din Listă
+    if(!b && !f) return;
     
-    let icon = '';
+    let iconPlay = '<i data-lucide="play" fill="currentColor"></i>';
+    let iconPause = '<i data-lucide="pause" fill="currentColor"></i>';
+    let iconLoad = '<i data-lucide="loader-2" class="spin"></i>';
+
     if(state === 'loading') { 
-        icon = '<i data-lucide="loader-2" class="spin"></i>'; 
-        b.classList.remove('playing');
-        if(f) f.classList.remove('playing'); // Oprim pulsul la loading
+        if(b) { b.innerHTML = iconLoad; b.classList.remove('playing'); }
+        if(f) { f.innerHTML = iconLoad; f.classList.remove('playing'); }
     }
     else if(state === true){ 
-        icon = '<i data-lucide="pause" fill="currentColor"></i>'; 
-        b.classList.add('playing');
-        if(f) f.classList.add('playing'); // PORNEȘTE PULSUL PE LISTĂ
+        // CÂNTĂ (Stare activă - Portocaliu)
+        if(b) { b.innerHTML = iconPause; b.classList.add('playing'); }
+        if(f) { f.innerHTML = iconPause; f.classList.add('playing'); }
     }
-    else{ 
-        icon = '<i data-lucide="play" fill="currentColor"></i>'; 
-        b.classList.remove('playing');
-        if(f) f.classList.remove('playing'); // OPREȘTE PULSUL PE LISTĂ
+    else { 
+        // PAUZĂ (Stare inactivă - Alb)
+        if(b) { b.innerHTML = iconPlay; b.classList.remove('playing'); }
+        if(f) { f.innerHTML = iconPlay; f.classList.remove('playing'); }
     }
     
-    b.innerHTML = icon;
-    if(f) f.innerHTML = icon;
     lucide.createIcons();
 }
+
 
 
 function scanAllStations() { stations.forEach(s => { if (!s.stream.includes('.m3u8')) fetchSilentMetadata(s); }); }
@@ -560,9 +595,24 @@ function setupSwipe() {
     });
 }
 
-function togglePlay() { if(audio.paused) audio.play().catch(()=>{}); else audio.pause(); }
+function togglePlay() { 
+    if (audio.paused) {
+        // Punem butonul în starea de încărcare imediat
+        updateUI('loading'); 
+        
+        audio.play().catch((error) => {
+            console.error("Eroare la redare:", error);
+            updateUI(false); // Revenim la iconița de Play dacă eșuează (ex: block de browser)
+        }); 
+    } else {
+        audio.pause(); 
+        // updateUI(false) va fi chemat automat de event listener-ul 'pause' din init()
+    }
+}
+
 
 init();
 </script>
 </body>
 </html>
+
