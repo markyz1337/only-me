@@ -471,7 +471,8 @@ function updateSlide(id, data) {
 function loadStationInfo(idx, shouldPlay = true) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
-    updateArtUI(s.img || FALLBACK_IMG);
+    const globalStation = stations.find(st => st.stream === s.stream) || stations[0];
+    updateArtUI(globalStation.img || FALLBACK_IMG);
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
     audio.src = s.stream;
