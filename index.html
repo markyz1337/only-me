@@ -564,13 +564,22 @@ function loadStationInfo(idx, sp = true) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
     updateArtUI(s.img || FALLBACK_IMG);
+    
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
+    
     audio.src = s.stream;
-    setTimeout(() => { fetchMetadata(s.stream, s); metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); }, 1000);
+
+    // MODIFICĂ AICI: de la 1000 la 3000
+    setTimeout(() => { 
+        fetchMetadata(s.stream, s); 
+        metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
+    }, 3000); // <--- Aici sunt cele 3 secunde
+
     if(sp) { updateUI('loading'); audio.play().catch(()=>{}); }
     updateMediaSession(s);
 }
+
 
 function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
 function next() { currentIdx = (currentIdx + 1) % currentFilteredList.length; animateTransition('next'); }
