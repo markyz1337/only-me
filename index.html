@@ -274,7 +274,7 @@ const stations = [
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
 
 function init() {
-    renderList('all', document.getElementById('tab-all')); 
+    renderList('fav', document.getElementById('tab-fav')); 
     updateSliderText();
     loadStationInfo(0, false);
     setupSwipe();
@@ -303,13 +303,18 @@ function renderList(mode, el) {
     const list = document.getElementById('stations-list');
     const fab = document.getElementById('fab-play-pause');
     list.innerHTML = "";
+    
     if(el) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
     
-    // FAB vizibil mereu
-    fab.style.display = 'flex';
+    // LOGICA NOUĂ: Ascunde butonul dacă suntem în modul 'mine' (Owned)
+    if (mode === 'mine') {
+        fab.style.display = 'none';
+    } else {
+        fab.style.display = 'flex';
+    }
 
     currentFilteredList = stations.filter(s => {
         if (mode === 'all') return s.isAll === true; 
@@ -352,7 +357,12 @@ function switchTab(t) {
         document.getElementById('nav-list').classList.add('active'); 
         document.getElementById('nav-player').classList.remove('active'); 
         nav.className = 'nav-bar on-radio';
-        fab.style.display = 'flex';
+
+        // --- CODUL NOU ESTE AICI ---
+        const isMineActive = document.getElementById('tab-mine').classList.contains('active');
+        fab.style.display = isMineActive ? 'none' : 'flex';
+        // ---------------------------
+        
     } else { 
         document.getElementById('list-view').style.display='none'; 
         document.getElementById('player-view').style.display='flex';
@@ -362,6 +372,8 @@ function switchTab(t) {
         fab.style.display = 'none';
     }
 }
+
+
 
 function updateUI(state){ 
     const b = document.getElementById('play-trigger'); 
