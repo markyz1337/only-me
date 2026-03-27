@@ -252,7 +252,7 @@ const stations = [
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
 
 function init() {
-    renderList('mine', document.getElementById('tab-mine')); 
+    renderList('all', document.getElementById('tab-all')); 
     lucide.createIcons();
     updateSliderText();
     loadStationInfo(0, false);
