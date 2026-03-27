@@ -384,7 +384,7 @@ function renderList(mode, el) {
         let ownedControl = '';
         // MODIFICARE: Verificăm dacă suntem în modul 'mine' ȘI dacă stația are link YT
         if (mode === 'mine' && s.yt) {
-            ownedControl = `<div class="owned-yt-btn" onclick="event.stopPropagation(); window.open('${s.yt}', '_blank');"><img src="https://cdn-icons-png.flaticon.com/512/10308/10308828.png"></div>`;
+            ownedControl = `<div class="owned-yt-btn" onclick="event.stopPropagation(); window.open('${s.yt}', '_blank');"><img src="https://www.covetedition.com/wp-content/plugins/yith-woocommerce-wishlist-premium/plugin-fw/assets/images/widgets/link-bg2.png"></div>`;
         }
         
         item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>${ownedControl}`;
