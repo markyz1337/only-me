@@ -463,20 +463,31 @@ function setupFabSwipe() {
         
         const diffX = e.changedTouches[0].clientX - fabStartX;
         const diffY = e.changedTouches[0].clientY - fabStartY;
-        const threshold = 30; // Am scăzut pragul pentru a fi mai receptiv
+        const threshold = 30;
 
-        // Verificăm care mișcare a fost mai lungă: orizontală sau verticală
+        // Verificăm dacă există o listă filtrată validă (pentru siguranță)
+        if (currentFilteredList.length === 0) return;
+
         if (Math.abs(diffY) > Math.abs(diffX)) {
-            // Mișcare predominant verticală -> SUS
+            // GEST: SUS (Next)
             if (diffY < -threshold) {
-                next();
-                showFabFeedback('NEXT', 'skip-forward');
+                // Dacă audio e oprit și nu avem post încărcat, activăm postul curent, altfel trecem la următorul
+                if (audio.paused && !audio.src) {
+                    playStation(); 
+                } else {
+                    next();
+                }
+                showFabFeedback('skip-forward');
             }
         } else {
-            // Mișcare predominant orizontală -> STÂNGA
+            // GEST: STÂNGA (Prev)
             if (diffX < -threshold) {
-                prev();
-                showFabFeedback('PREV', 'skip-back');
+                if (audio.paused && !audio.src) {
+                    playStation();
+                } else {
+                    prev();
+                }
+                showFabFeedback('skip-back');
             }
         }
         
@@ -485,25 +496,25 @@ function setupFabSwipe() {
 }
 
 
+
 function showFabFeedback(iconName) {
     const fab = document.getElementById('fab-play-pause');
     const iconEl = fab.querySelector('i');
 
     if (iconEl) {
-        // Schimbăm iconița scurt pentru feedback vizual
         iconEl.setAttribute('data-lucide', iconName);
         lucide.createIcons();
         
-        // Revenire la starea normală (Play/Pause) după 800ms
         setTimeout(() => {
+            // Revenim la iconița de Play/Pause în funcție de starea reală a sunetului
             const stateIcon = audio.paused ? 'play' : 'pause';
             iconEl.setAttribute('data-lucide', stateIcon);
             lucide.createIcons();
         }, 800);
     }
-
-    if (navigator.vibrate) navigator.vibrate(30); // Vibrație scurtă "haptic"
+    if (navigator.vibrate) navigator.vibrate(30);
 }
+
 
 
 
