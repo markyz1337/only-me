@@ -469,24 +469,16 @@ function setupFabSwipe() {
         if (currentFilteredList.length === 0) return;
 
 if (Math.abs(diffY) > Math.abs(diffX)) {
-    // 🔽 SWIPE JOS → PREVIOUS
+    // 🔽 JOS → NEXT
     if (diffY > threshold) {
-        if (audio.paused && !audio.src) {
-            playStation(); 
-        } else {
-            prev();
-        }
-        showFabFeedback('skip-back');
+        next();
+        showFabFeedback('skip-forward');
     }
 
-    // 🔼 SWIPE SUS → NEXT
+    // 🔼 SUS → PREVIOUS
     if (diffY < -threshold) {
-        if (audio.paused && !audio.src) {
-            playStation();
-        } else {
-            next();
-        }
-        showFabFeedback('skip-forward');
+        prev();
+        showFabFeedback('skip-back');
     }
 } else {
             // GEST: STÂNGA (Prev)
@@ -494,9 +486,9 @@ if (Math.abs(diffY) > Math.abs(diffX)) {
                 if (audio.paused && !audio.src) {
                     playStation();
                 } else {
-                    prev();
+                    next();
                 }
-                showFabFeedback('skip-back');
+                showFabFeedback('skip-forward');
             }
         }
         
