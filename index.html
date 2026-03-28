@@ -37,11 +37,12 @@ body {
     color: white; 
     height: 100dvh; 
     width: 100vw;
-    overflow: hidden; 
+    overflow: hidden; /* Previne scroll-ul pe body */
     display: flex; 
     justify-content: center;
-    touch-action: pan-y; 
+    touch-action: pan-y; /* Permite doar gesturi verticale, util pentru acuratețe */
 }
+
 
 .fab.playing {
     background: var(--accent);
@@ -98,7 +99,24 @@ body {
 .tab.active { background: var(--accent); border-color: transparent; font-weight: 900; }
 .tab:active { transform: scale(0.95); }
 
-.content { position: relative; z-index: 10; flex: 1; padding: 0 20px 140px 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+.content { 
+    position: relative; 
+    z-index: 10; 
+    flex: 1; 
+    padding: 0 20px 140px 20px; 
+    
+    /* Activează scroll-ul pe verticală */
+    overflow-y: auto; 
+    
+    /* === ADAUGĂ ACESTE LINII PENTRU EFECTUL ELASTIC === */
+    /* Permite "overscroll" (trecerea peste limită) cu efect de bounce */
+    overscroll-behavior-y: contain; 
+    
+    /* Asigură fluiditatea scroll-ului pe iOS */
+    -webkit-overflow-scrolling: touch; 
+}
+
 .station-item { 
     display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid transparent;
     border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; 
