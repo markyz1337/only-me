@@ -37,12 +37,11 @@ body {
     color: white; 
     height: 100dvh; 
     width: 100vw;
-    overflow: hidden; /* Previne scroll-ul pe body */
+    overflow: hidden; 
     display: flex; 
     justify-content: center;
-    touch-action: pan-y; /* Permite doar gesturi verticale, util pentru acuratețe */
+    touch-action: pan-y; 
 }
-
 
 .fab.playing {
     background: var(--accent);
@@ -99,24 +98,7 @@ body {
 .tab.active { background: var(--accent); border-color: transparent; font-weight: 900; }
 .tab:active { transform: scale(0.95); }
 
-
-.content { 
-    position: relative; 
-    z-index: 10; 
-    flex: 1; 
-    padding: 0 20px 140px 20px; 
-    
-    /* Activează scroll-ul pe verticală */
-    overflow-y: auto; 
-    
-    /* === ADAUGĂ ACESTE LINII PENTRU EFECTUL ELASTIC === */
-    /* Permite "overscroll" (trecerea peste limită) cu efect de bounce */
-    overscroll-behavior-y: contain; 
-    
-    /* Asigură fluiditatea scroll-ului pe iOS */
-    -webkit-overflow-scrolling: touch; 
-}
-
+.content { position: relative; z-index: 10; flex: 1; padding: 0 20px 140px 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .station-item { 
     display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid transparent;
     border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; 
@@ -321,7 +303,7 @@ const stations = [
     { name: "Russian", stream: "https://sergiumusic.duckdns.org/russian", img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", desc: "Sergiu | RUS • POP", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12hUgv96dGWDN5_0zqyfwh1t&si=Ezw2KRYTNtJAAKnW" },
     { name: "Manele", stream: "https://sergiumusic.duckdns.org/manele", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", desc: "Sergiu | Gypsy Team", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXtIaoNo0wKIH9q_BFCHw4S_&si=XPeFO_NctOno3Vbu" },
     { name: "Hope", stream: "https://sergiumusic.duckdns.org/hope", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8aX5i1Sosu19dYGhKZwB3XHN2aFFLnuPUToBVDQVjOplOdpr5q3ZxEy8&s=10", desc: "Sergiu | Lovefool Pop", isMine: true, isFav: true, isAll: true, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXuwf5SEEH9vhwwSci67SNnU&si=NclZd61NGrsZ0UCm" },
-    { name: "AI Generated Music", stream: "https://sergiumusic.duckdns.org/aimusic", img: "https://64.media.tumblr.com/7465fc41dfb26a358fb4de847e01cc6c/9e30d8250eceec35-6d/s500x750/c9490c00499d5873e1499387c83af8fe79ec2928.gifv", desc: "Sergiu | AI POP", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12jv_iNgO8ApKgjIO-9NSg85&si=Qs6H1Iogrp47YRuX" }
+    { name: "AI Generated Music", stream: "https://sergiumusic.duckdns.org/aimusic", img: "https://i.pinimg.com/236x/fd/fc/82/fdfc82753e4f8cbdd49184e9dea43d06.jpg", desc: "Sergiu | AI POP", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12jv_iNgO8ApKgjIO-9NSg85&si=Qs6H1Iogrp47YRuX" }
 ];
 
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
