@@ -455,15 +455,27 @@ function updateMediaSession(station) {
 function renderList(mode, el) {
     const list = document.getElementById('stations-list');
     const fab = document.getElementById('fab-play-pause');
+    
+    // 1. Resetăm scroll-ul la 0 (SUS) imediat ce schimbăm categoria
+    // Folosim elementul cu clasa .content deoarece acesta are overflow-y: auto
+    const scrollContainer = document.querySelector('.content');
+    if (scrollContainer) {
+        scrollContainer.scrollTop = 0;
+    }
+
+    // 2. Curățăm lista existentă
     list.innerHTML = "";
     
+    // 3. Gestionăm starea vizuală a tab-urilor
     if(el) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
     
+    // Ne asigurăm că butonul plutitor (FAB) este vizibil în modul listă
     fab.style.display = 'flex';
 
+    // 4. Filtrăm stațiile pe baza modului selectat
     currentFilteredList = stations.filter(s => {
         if (mode === 'all') return s.isAll === true; 
         if (mode === 'fav') return s.isFav;
@@ -472,11 +484,11 @@ function renderList(mode, el) {
         return false;
     });
 
+    // 5. Generăm elementele în DOM
     currentFilteredList.forEach((s) => {
         const item = document.createElement('div');
         
-        // VERIFICARE: Dacă audio nu e oprit ȘI numele stației desenate 
-        // coincide cu numele stației din obiectul activ
+        // Verificăm dacă stația curentă este cea care rulează acum pentru a activa egalizatorul
         const isCurrent = (!audio.paused && activeStationObject && activeStationObject.name === s.name);
         
         item.className = `station-item ${isCurrent ? 'is-playing' : ''}`;
@@ -493,6 +505,7 @@ function renderList(mode, el) {
             </div>
         `;
         
+        // La click, setăm indexul și pornim playerul
         item.onclick = () => { 
             currentIdx = currentFilteredList.indexOf(s); 
             playStation(); 
@@ -500,9 +513,11 @@ function renderList(mode, el) {
         list.appendChild(item);
     });
     
+    // 6. Reinițializăm iconițele Lucide și starea UI
     lucide.createIcons();
     updateUI(!audio.paused);
 }
+
 
 
 
