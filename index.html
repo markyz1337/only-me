@@ -29,6 +29,55 @@
     overscroll-behavior: none;
 }
 
+/* Stiluri pentru Egalizatorul din Listă */
+.playing-icon {
+    display: none;
+    align-items: flex-end;
+    gap: 2px;
+    width: 20px;
+    height: 20px;
+    margin-left: 10px;
+}
+
+.station-item.is-playing .playing-icon {
+    display: flex; /* Se afișează doar când părintele are clasa .is-playing */
+}
+
+/* Egalizatorul optimizat */
+.playing-icon span {
+    display: inline-block;
+    width: 3px;
+    background: linear-gradient(to top, var(--accent), #ff9d85); 
+    border-radius: 2px;
+    animation: bounce 0.5s ease-in-out infinite alternate;
+    box-shadow: 0 0 3px var(--accent), 0 0 5px rgba(255, 94, 58, 0.4);
+}
+
+/* Titlul postului care rulează cu efect de Neon discret */
+.station-item.is-playing .station-name {
+    color: var(--accent);
+    /* Aplicăm același tip de glow subtil ca la egalizator */
+    text-shadow: 0 0 25px var(--accent), 0 0 6px rgba(255, 94, 58, 0.2);
+    transition: all 0.4s ease;
+}
+
+
+
+
+.playing-icon span:nth-child(2) { animation-duration: 0.7s; }
+.playing-icon span:nth-child(3) { animation-duration: 0.6s; }
+
+@keyframes bounce {
+    from { height: 5px; }
+    to { height: 18px; }
+}
+
+/* Stil pentru a evidenția rândul activ (opțional) */
+.station-item.is-playing .station-name {
+    color: var(--accent);
+}
+
+
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; -ms-overflow-style: none; }
 
@@ -43,47 +92,47 @@ body {
     touch-action: pan-y; /* Permite doar gesturi verticale, util pentru acuratețe */
 }
 
-/* Containerul care dictează poziția peste copertă */
+
+/* Containerul butonului - poziționat peste copertă */
 .player-yt-link {
     position: absolute;
-    right: 12px;  /* Distanța de marginea dreaptă a pozei */
-    bottom: 12px; /* Distanța de marginea de jos a pozei */
-    z-index: 30
+    right: 10px;
+    bottom: 10px;
+    z-index: 35;
     display: flex;
-    background: transparent; /* Forțăm să nu aibă fundal */
-    border: none;
-    padding: 0;
-    margin: 0;
-    transition: transform 0.2s ease;
-    -webkit-tap-highlight-color: transparent;
-}
-
-/* Aici modifici mărimea imaginii PNG */
-.player-yt-link img {
-    width: 39px;  /* Schimbă aici lățimea */
-    height: 39px; /* Schimbă aici înălțimea */
-    object-fit: contain;
+    background: rgba(0, 0, 0, 0); /* Fundal semitransparent ca să se vadă pe orice poză */
+    backdrop-filter: blur(0px);
+    border-radius: 12px;
+    padding: 6px;
+    transition: transform 0.3s ease, opacity 0.5s ease, visibility 0.5s ease;
     opacity: 0.7;
+    visibility: visible;
+    text-decoration: none;
+}
+
+/* LIMITAREA ICONIȚEI - Aceasta este partea care rezolvă problema "gigantului" */
+.player-yt-link img {
+    width: 36px;  /* Dimensiune mică, controlată */
+    height: 36px;
     display: block;
-    /* Opțional: poți adăuga un mic drop-shadow dacă PNG-ul e prea întunecat */
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); 
+    object-fit: contain;
 }
 
-/* Efect de apăsare (zoom mic) */
+/* Efect de apăsare */
 .player-yt-link:active {
-    transform: scale(0.85);
+    transform: scale(0.9);
 }
 
-/* Clasa care ascunde butonul pe posturile care nu au link */
+/* Stilul pentru când butonul trebuie să fie ascuns */
 .yt-hidden {
-    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none;
+    transform: scale(0.7);
 }
 
 
-/* Ascundem butonul dacă postul nu are link YT */
-.yt-hidden {
-    display: none;
-}
+
 
 
 .fab.playing {
@@ -308,9 +357,9 @@ body {
             <img src="" class="main-art art-visible" id="player-img-1" onerror="this.src=FALLBACK_IMG">
             <img src="" class="main-art art-hidden" id="player-img-2" onerror="this.src=FALLBACK_IMG">
             
-            <a id="player-yt-btn" href="#" target="_blank" class="player-yt-link yt-hidden">
-                <img src="https://cdn-icons-png.flaticon.com/512/10610/10610674.png" alt="YouTube Link">
-            </a>
+<a id="player-yt-btn" href="#" target="_blank" class="player-yt-link yt-hidden">
+    <img src="https://cdn-icons-png.flaticon.com/512/10610/10610674.png" alt="YouTube Link">
+</a>
         </div>
 
         <div class="track-viewport" id="swipe-zone-text">
@@ -343,6 +392,7 @@ let currentFilteredList = [];
 let activeBGLayer = 1;
 let activeArtLayer = 1; 
 let startX = 0;
+let activeStationObject = null;
 let isDragging = false;
 let currentMetadataRequestId = 0;
 let metadataInterval = null;
@@ -412,7 +462,6 @@ function renderList(mode, el) {
         el.classList.add('active');
     }
     
-    // Forțăm butonul să fie vizibil indiferent de tab-ul selectat
     fab.style.display = 'flex';
 
     currentFilteredList = stations.filter(s => {
@@ -425,10 +474,24 @@ function renderList(mode, el) {
 
     currentFilteredList.forEach((s) => {
         const item = document.createElement('div');
-        item.className = 'station-item';
+        
+        // VERIFICARE: Dacă audio nu e oprit ȘI numele stației desenate 
+        // coincide cu numele stației din obiectul activ
+        const isCurrent = (!audio.paused && activeStationObject && activeStationObject.name === s.name);
+        
+        item.className = `station-item ${isCurrent ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
         
-        item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>`;
+        item.innerHTML = `
+            <img src="${s.img || FALLBACK_IMG}" class="station-thumb">
+            <div style="flex:1">
+                <div class="station-name">${s.name}</div>
+                <div class="station-desc">${s.desc}</div>
+            </div>
+            <div class="playing-icon">
+                <span></span><span></span><span></span>
+            </div>
+        `;
         
         item.onclick = () => { 
             currentIdx = currentFilteredList.indexOf(s); 
@@ -436,8 +499,13 @@ function renderList(mode, el) {
         };
         list.appendChild(item);
     });
+    
     lucide.createIcons();
+    updateUI(!audio.paused);
 }
+
+
+
 
 
 
@@ -473,32 +541,48 @@ function switchTab(t) {
 
 
 
-function updateUI(state){ 
-    const b = document.getElementById('play-trigger'); // Butonul din Player
-    const f = document.getElementById('fab-play-pause'); // Butonul FAB din Listă
+function updateUI(state) { 
+    const b = document.getElementById('play-trigger');
+    const f = document.getElementById('fab-play-pause');
     if(!b && !f) return;
     
     let iconPlay = '<i data-lucide="play" fill="currentColor"></i>';
     let iconPause = '<i data-lucide="pause" fill="currentColor"></i>';
     let iconLoad = '<i data-lucide="loader-2" class="spin"></i>';
 
-    if(state === 'loading') { 
+    // 1. Curățăm starea vizuală: eliminăm clasa "is-playing" de pe toate rândurile din listă
+    const allItems = document.querySelectorAll('.station-item');
+    allItems.forEach(item => item.classList.remove('is-playing'));
+
+    // 2. Dacă radio-ul cântă sau se încarcă, activăm egalizatorul doar pe rândul corect
+    if ((state === true || state === 'loading') && typeof activeStationObject !== 'undefined' && activeStationObject) {
+        // Căutăm în DOM rândul care are atributul data-name egal cu numele stației active
+        const activeItem = document.querySelector(`.station-item[data-name="${activeStationObject.name}"]`);
+        if (activeItem) {
+            activeItem.classList.add('is-playing');
+        }
+    }
+
+    // 3. Actualizăm iconițele pentru Butonul din Player și pentru butonul plutitor (FAB)
+    if (state === 'loading') { 
         if(b) { b.innerHTML = iconLoad; b.classList.remove('playing'); }
         if(f) { f.innerHTML = iconLoad; f.classList.remove('playing'); }
     }
-    else if(state === true){ 
-        // CÂNTĂ (Stare activă - Portocaliu)
+    else if (state === true) { 
         if(b) { b.innerHTML = iconPause; b.classList.add('playing'); }
         if(f) { f.innerHTML = iconPause; f.classList.add('playing'); }
     }
     else { 
-        // PAUZĂ (Stare inactivă - Alb)
         if(b) { b.innerHTML = iconPlay; b.classList.remove('playing'); }
         if(f) { f.innerHTML = iconPlay; f.classList.remove('playing'); }
     }
     
+    // 4. Re-randăm iconițele Lucide pentru a afișa noile SVG-uri
     lucide.createIcons();
 }
+
+
+
 
 
 
@@ -629,6 +713,9 @@ function updateSlide(id, data) {
 function loadStationInfo(idx, sp = true) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
+    
+    activeStationObject = s; // <--- SALVĂM OBIECTUL ACTIV AICI
+
     updateArtUI(s.img || FALLBACK_IMG);
     
     // --- GESTIONAREA BUTONULUI YOUTUBE ÎN PLAYER ---
