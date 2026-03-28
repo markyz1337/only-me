@@ -29,6 +29,9 @@
     overscroll-behavior: none;
 }
 
+
+
+
 /* Stiluri pentru Egalizatorul din Listă */
 .playing-icon {
     display: none;
@@ -131,16 +134,6 @@ body {
     transform: scale(0.7);
 }
 
-
-
-
-
-.fab.playing {
-    background: var(--accent);
-    transform: scale(1.1);
-    box-shadow: 0 0 30px rgba(255, 94, 58, 0.6);
-    animation: pulseGlow 2s infinite ease-in-out;
-}
 
 
 
@@ -305,13 +298,12 @@ body {
 .nav-link.active { color: #fff; }
 .nav-link.active i { color: var(--accent); }
 
-/* Stilul de bază pentru FAB (stare de pauză) */
 .fab { 
     position: absolute; 
     bottom: 115px; 
     right: 31px; 
-    background: #fff; /* Fundal alb la pauză, ca în player */
-    color: #000;      /* Iconiță neagră */
+    background: #fff; 
+    color: #000;      
     width: 56px; 
     height: 56px; 
     border-radius: 50%; 
@@ -323,14 +315,14 @@ body {
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Starea de Play pentru FAB */
 .fab.playing {
-    background: var(--accent); /* Culoarea portocalie */
-    color: #fff;               /* Iconiță albă */
+    background: var(--accent); 
+    color: #fff;               
     transform: scale(1.1);
     box-shadow: 0 0 30px rgba(255, 94, 58, 0.6);
     animation: pulseGlow 3s infinite ease-in-out;
 }
+
 
 
 </style>
@@ -350,9 +342,11 @@ body {
 
         <div class="content" id="stations-list"></div>
         
-        <div class="fab" id="fab-play-pause" onclick="togglePlay()">
-            <i data-lucide="play" fill="currentColor"></i>
-        </div>
+<div class="fab" id="fab-play-pause" onclick="togglePlay()">
+    <i data-lucide="play" fill="currentColor"></i>
+</div>
+
+
     </div> <div id="player-view">
         <div class="art-container" id="swipe-zone-art">
             <img src="" class="main-art art-visible" id="player-img-1" onerror="this.src=FALLBACK_IMG">
@@ -428,20 +422,19 @@ const stations = [
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
 
 function init() {
-    // 1. Identificăm Heart 10s
     const heart10s = stations.find(s => s.name === "Heart 10s");
     if (heart10s) {
         heart10s.isInitialBgSource = true; 
         fetchSilentMetadata(heart10s); 
     }
 
-    // 2. Deschidem pe 'Owned'
     renderList('mine', document.getElementById('tab-mine')); 
-    
-    // Restul rămâne la fel...
     updateSliderText();
     loadStationInfo(0, false, true); 
-    setupSwipe();
+    
+    setupSwipe();        // Swipe copertă
+    setupFabSwipe();     // Swipe FAB (Sus: Next, Stânga: Prev)
+
     scanAllStations();
 
     audio.addEventListener('waiting', () => updateUI('loading'));
@@ -451,50 +444,137 @@ function init() {
 
 
 
+
+let fabStartX = 0;
+let fabStartY = 0;
+let fabIsDragging = false;
+
+function setupFabSwipe() {
+    const fab = document.getElementById('fab-play-pause');
+    
+    fab.addEventListener('touchstart', (e) => {
+        fabStartX = e.touches[0].clientX;
+        fabStartY = e.touches[0].clientY;
+        fabIsDragging = true;
+    }, { passive: true });
+
+    fab.addEventListener('touchend', (e) => {
+        if (!fabIsDragging) return;
+        
+        const diffX = e.changedTouches[0].clientX - fabStartX;
+        const diffY = e.changedTouches[0].clientY - fabStartY;
+        const threshold = 30; // Am scăzut pragul pentru a fi mai receptiv
+
+        // Verificăm care mișcare a fost mai lungă: orizontală sau verticală
+        if (Math.abs(diffY) > Math.abs(diffX)) {
+            // Mișcare predominant verticală -> SUS
+            if (diffY < -threshold) {
+                next();
+                showFabFeedback('NEXT', 'skip-forward');
+            }
+        } else {
+            // Mișcare predominant orizontală -> STÂNGA
+            if (diffX < -threshold) {
+                prev();
+                showFabFeedback('PREV', 'skip-back');
+            }
+        }
+        
+        fabIsDragging = false;
+    });
+}
+
+
+function showFabFeedback(iconName) {
+    const fab = document.getElementById('fab-play-pause');
+    const iconEl = fab.querySelector('i');
+
+    if (iconEl) {
+        // Schimbăm iconița scurt pentru feedback vizual
+        iconEl.setAttribute('data-lucide', iconName);
+        lucide.createIcons();
+        
+        // Revenire la starea normală (Play/Pause) după 800ms
+        setTimeout(() => {
+            const stateIcon = audio.paused ? 'play' : 'pause';
+            iconEl.setAttribute('data-lucide', stateIcon);
+            lucide.createIcons();
+        }, 800);
+    }
+
+    if (navigator.vibrate) navigator.vibrate(30); // Vibrație scurtă "haptic"
+}
+
+
+
+
+
+
+
+
+
 async function fetchAlbumArt(title, stationRef) {
     if (!title || title.length < 3) return;
+
+    let fallbackTimeout = null;
+
+    // --- LOGICA TIMEOUT 2 SECUNDE PENTRU HEART 10S ---
+    if (stationRef.isInitialBgSource) {
+        fallbackTimeout = setTimeout(() => {
+            // Dacă au trecut 2 secunde și încă nu avem imagine de la iTunes
+            if (stationRef.img === stationRef.originalImg || !stationRef.img) {
+                console.log("iTunes prea lent, aplicăm logo-ul stației ca fundal.");
+                applyImageToUI(stationRef.originalImg, stationRef, true);
+            }
+        }, 2000); // 2000ms = 2 secunde
+    }
+
     try {
         const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
         const data = await res.json();
         
         if (data.results && data.results.length > 0) {
+            // Dacă iTunes a răspuns, curățăm timeout-ul să nu mai punem logo-ul vechi peste
+            if (fallbackTimeout) clearTimeout(fallbackTimeout);
+
             const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
-
-            // --- LOGICA DE PRE-LOAD PENTRU EFECT FLUID ---
-            const tempImg = new Image();
-            tempImg.src = newImg;
-            tempImg.onload = () => {
-                stationRef.img = newImg;
-
-                // Dacă este Heart 10s la început și nu cântă nimic altceva
-                if (stationRef.isInitialBgSource && audio.paused && (!activeStationObject || !activeStationObject.isPlayingNow)) {
-                    const bg1 = document.getElementById('bg-layer-1');
-                    bg1.style.backgroundImage = `url(${newImg})`;
-                    
-                    // Forțăm browserul să proceseze imaginea înainte de a schimba opacitatea
-                    requestAnimationFrame(() => {
-                        bg1.style.opacity = '1';
-                    });
-                }
-
-                // Dacă este stația curentă din Player
-                if (currentFilteredList[currentIdx] === stationRef) {
-                    updateArtUI(newImg);
-                }
-                
-                // Update thumb în listă
-                document.querySelectorAll('.station-item').forEach(item => {
-                    if(item.getAttribute('data-name') === stationRef.name) {
-                        const thumb = item.querySelector('.station-thumb');
-                        if(thumb) thumb.src = newImg;
-                    }
-                });
-            };
+            applyImageToUI(newImg, stationRef, false);
         }
     } catch (e) {
-        console.error("Eroare la preluarea copertei:", e);
+        // În caz de eroare (ex: offline), punem direct logo-ul
+        if (stationRef.isInitialBgSource) applyImageToUI(stationRef.originalImg, stationRef, true);
     }
 }
+
+// Funcție helper pentru a aplica imaginea peste tot unitar
+function applyImageToUI(imgUrl, stationRef, isFallback) {
+    const tempImg = new Image();
+    tempImg.src = imgUrl;
+    tempImg.onload = () => {
+        stationRef.img = imgUrl;
+
+        // 1. Fundalul pentru Heart 10s (Prima pornire)
+        if (stationRef.isInitialBgSource && audio.paused) {
+            const bg1 = document.getElementById('bg-layer-1');
+            bg1.style.backgroundImage = `url(${imgUrl})`;
+            bg1.style.opacity = '1';
+        }
+
+        // 2. Coperta din Player (Dacă e postul activ)
+        if (activeStationObject && activeStationObject.name === stationRef.name) {
+            updateArtUI(imgUrl);
+        }
+        
+        // 3. Miniaturile din listă
+        document.querySelectorAll('.station-item').forEach(item => {
+            if(item.getAttribute('data-name') === stationRef.name) {
+                const thumb = item.querySelector('.station-thumb');
+                if(thumb) thumb.src = imgUrl;
+            }
+        });
+    };
+}
+
 
 
 
@@ -667,33 +747,118 @@ function updateUI(state) {
 
 function scanAllStations() { stations.forEach(s => { if (!s.stream.includes('.m3u8')) fetchSilentMetadata(s); }); }
 
+// 1. Modificăm fetchSilentMetadata să asigure afișarea fundalului
 async function fetchSilentMetadata(station) {
     try {
         const response = await fetch(station.stream, { headers: { "Icy-MetaData": "1" } });
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let metaInt = parseInt(response.headers.get("icy-metaint"));
-        if (!metaInt) return;
+        
+        // Dacă nu avem metadate, punem măcar logo-ul pe fundal la început
+        if (!metaInt && station.isInitialBgSource) {
+            applyImageToUI(station.originalImg, station, true);
+            return;
+        }
+
         let buffer = new Uint8Array();
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            let temp = new Uint8Array(buffer.length + value.length); temp.set(buffer); temp.set(value, buffer.length); buffer = temp;
+            let temp = new Uint8Array(buffer.length + value.length); 
+            temp.set(buffer); temp.set(value, buffer.length); buffer = temp;
+
             while (buffer.length >= metaInt + 1) {
                 let metaLength = buffer[metaInt] * 16;
                 if (buffer.length < metaInt + 1 + metaLength) break;
                 let metaString = decoder.decode(buffer.slice(metaInt + 1, metaInt + 1 + metaLength));
                 let match = metaString.match(/StreamTitle='([^']*)'/);
+                
                 if (match && match[1]) {
                     station.desc = match[1].replace(/;/g, "").trim();
-                    updateUIMetadata(station);
-                    reader.cancel(); return;
+                    // Căutăm coperta pe iTunes
+                    fetchAlbumArt(station.desc, station);
+                    reader.cancel(); 
+                    return;
                 }
                 buffer = buffer.slice(metaInt + 1 + metaLength);
             }
         }
-    } catch(e) {}
+    } catch(e) {
+        // Dacă stream-ul e picat sau eroarea de rețea, punem logo-ul
+        if (station.isInitialBgSource) applyImageToUI(station.originalImg, station, true);
+    }
 }
+
+// 2. Funcția de căutare copertă cu cronometrul de 2 secunde fixat
+async function fetchAlbumArt(title, stationRef) {
+    if (!title || title.length < 3) {
+        if (stationRef.isInitialBgSource) applyImageToUI(stationRef.originalImg, stationRef, true);
+        return;
+    }
+
+    let itunesFinished = false;
+
+    // Timer de 2 secunde: dacă iTunes nu termină, punem logo-ul
+    if (stationRef.isInitialBgSource) {
+        setTimeout(() => {
+            if (!itunesFinished) {
+                console.log("iTunes prea lent, aplicăm logo-ul.");
+                applyImageToUI(stationRef.originalImg, stationRef, true);
+            }
+        }, 2000);
+    }
+
+    try {
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
+        const data = await res.json();
+        itunesFinished = true; // iTunes a răspuns (chiar și cu 0 rezultate)
+        
+        if (data.results && data.results.length > 0) {
+            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
+            applyImageToUI(newImg, stationRef, false);
+        } else {
+            // iTunes a răspuns dar nu a găsit nimic
+            applyImageToUI(stationRef.originalImg, stationRef, true);
+        }
+    } catch (e) {
+        itunesFinished = true;
+        applyImageToUI(stationRef.originalImg, stationRef, true);
+    }
+}
+
+// 3. Funcția care "aprinde" fundalul (CSS opacity 1)
+function applyImageToUI(imgUrl, stationRef, isFallback) {
+    const bg1 = document.getElementById('bg-layer-1');
+    const playerImg1 = document.getElementById('player-img-1');
+    
+    const tempImg = new Image();
+    tempImg.src = imgUrl;
+    tempImg.onload = () => {
+        stationRef.img = imgUrl;
+
+        // Dacă e Heart 10s la pornire, forțăm fundalul să fie vizibil
+        if (stationRef.isInitialBgSource) {
+            bg1.style.backgroundImage = `url(${imgUrl})`;
+            bg1.style.opacity = "1"; // <--- Aici facem fundalul vizibil
+            if (playerImg1) playerImg1.src = imgUrl;
+        }
+
+        // Dacă stația e cea activă (se ascultă acum)
+        if (activeStationObject && activeStationObject.name === stationRef.name) {
+            updateArtUI(imgUrl);
+        }
+        
+        // Update miniaturi în listă
+        document.querySelectorAll('.station-item').forEach(item => {
+            if(item.getAttribute('data-name') === stationRef.name) {
+                const thumb = item.querySelector('.station-thumb');
+                if(thumb) thumb.src = imgUrl;
+            }
+        });
+    };
+}
+
 
 function updateArtUI(newImg) {
     const art1 = document.getElementById('player-img-1'); const art2 = document.getElementById('player-img-2');
