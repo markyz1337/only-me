@@ -43,6 +43,48 @@ body {
     touch-action: pan-y; /* Permite doar gesturi verticale, util pentru acuratețe */
 }
 
+/* Containerul care dictează poziția peste copertă */
+.player-yt-link {
+    position: absolute;
+    right: 12px;  /* Distanța de marginea dreaptă a pozei */
+    bottom: 12px; /* Distanța de marginea de jos a pozei */
+    z-index: 30
+    display: flex;
+    background: transparent; /* Forțăm să nu aibă fundal */
+    border: none;
+    padding: 0;
+    margin: 0;
+    transition: transform 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Aici modifici mărimea imaginii PNG */
+.player-yt-link img {
+    width: 39px;  /* Schimbă aici lățimea */
+    height: 39px; /* Schimbă aici înălțimea */
+    object-fit: contain;
+    opacity: 0.7;
+    display: block;
+    /* Opțional: poți adăuga un mic drop-shadow dacă PNG-ul e prea întunecat */
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); 
+}
+
+/* Efect de apăsare (zoom mic) */
+.player-yt-link:active {
+    transform: scale(0.85);
+}
+
+/* Clasa care ascunde butonul pe posturile care nu au link */
+.yt-hidden {
+    display: none !important;
+}
+
+
+/* Ascundem butonul dacă postul nu are link YT */
+.yt-hidden {
+    display: none;
+}
+
 
 .fab.playing {
     background: var(--accent);
@@ -249,7 +291,7 @@ body {
     <div class="bg-blur" id="bg-layer-1"></div>
     <div class="bg-blur" id="bg-layer-2"></div>
 
-    <div id="list-view" style="height:100%; display:flex; flex-direction:column;">
+        <div id="list-view" style="height:100%; display:flex; flex-direction:column;">
         <div class="header-tabs">
             <div class="tab active" id="tab-all" onclick="renderList('all', this)">All</div>
             <div class="tab" id="tab-fav" onclick="renderList('fav', this)">Favorites</div>
@@ -257,14 +299,20 @@ body {
             <div class="tab" id="tab-russian" onclick="renderList('russian', this)">Russian</div>
         </div>
         <div class="content" id="stations-list"></div>
-        <div class="fab" id="fab-play-pause" onclick="togglePlay()"><i data-lucide="play" fill="currentColor"></i></div>
-    </div>
-
-    <div id="player-view">
+        
+        <div class="fab" id="fab-play-pause" onclick="togglePlay()">
+            <i data-lucide="play" fill="currentColor"></i>
+        </div>
+    </div> <div id="player-view">
         <div class="art-container" id="swipe-zone-art">
             <img src="" class="main-art art-visible" id="player-img-1" onerror="this.src=FALLBACK_IMG">
             <img src="" class="main-art art-hidden" id="player-img-2" onerror="this.src=FALLBACK_IMG">
+            
+            <a id="player-yt-btn" href="#" target="_blank" class="player-yt-link yt-hidden">
+                <img src="https://cdn-icons-png.flaticon.com/512/10610/10610674.png" alt="YouTube Link">
+            </a>
         </div>
+
         <div class="track-viewport" id="swipe-zone-text">
             <div class="track-slider-wrapper" id="info-wrapper">
                 <div class="track-info-slide" id="slide-prev"><h2>Post Anterior</h2><p>Gen</p></div>
@@ -272,12 +320,14 @@ body {
                 <div class="track-info-slide" id="slide-next"><h2>Post Următor</h2><p>Gen</p></div>
             </div>
         </div>
+
         <div class="main-controls">
             <div class="btn-round" id="btn-prev" onclick="prev()"><i data-lucide="skip-back" fill="currentColor"></i></div>
             <div class="btn-round btn-play" id="play-trigger" onclick="togglePlay()"><i data-lucide="play" fill="currentColor"></i></div>
             <div class="btn-round" id="btn-next" onclick="next()"><i data-lucide="skip-forward" fill="currentColor"></i></div>
         </div>
     </div>
+
 
     <div class="nav-bar on-radio" id="main-nav">
         <div class="nav-link" id="nav-player" onclick="switchTab('player')"><i data-lucide="play-circle"></i><span>Player</span></div>
@@ -321,7 +371,7 @@ const stations = [
     { name: "Russian", stream: "https://sergiumusic.duckdns.org/russian", img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", desc: "Sergiu | RUS • POP", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12hUgv96dGWDN5_0zqyfwh1t&si=Ezw2KRYTNtJAAKnW" },
     { name: "Manele", stream: "https://sergiumusic.duckdns.org/manele", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", desc: "Sergiu | Gypsy Team", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXtIaoNo0wKIH9q_BFCHw4S_&si=XPeFO_NctOno3Vbu" },
     { name: "Hope", stream: "https://sergiumusic.duckdns.org/hope", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8aX5i1Sosu19dYGhKZwB3XHN2aFFLnuPUToBVDQVjOplOdpr5q3ZxEy8&s=10", desc: "Sergiu | Lovefool Pop", isMine: true, isFav: true, isAll: true, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXuwf5SEEH9vhwwSci67SNnU&si=NclZd61NGrsZ0UCm" },
-    { name: "AI Generated Music", stream: "https://sergiumusic.duckdns.org/aimusic", img: "https://i.pinimg.com/236x/fd/fc/82/fdfc82753e4f8cbdd49184e9dea43d06.jpg", desc: "Sergiu | AI POP", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12jv_iNgO8ApKgjIO-9NSg85&si=Qs6H1Iogrp47YRuX" }
+    { name: "Generated Music", stream: "https://sergiumusic.duckdns.org/aimusic", img: "https://i.pinimg.com/236x/fd/fc/82/fdfc82753e4f8cbdd49184e9dea43d06.jpg", desc: "Sergiu | AI POP", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12jv_iNgO8ApKgjIO-9NSg85&si=Qs6H1Iogrp47YRuX" }
 ];
 
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
@@ -362,12 +412,8 @@ function renderList(mode, el) {
         el.classList.add('active');
     }
     
-    // LOGICA NOUĂ: Ascunde butonul dacă suntem în modul 'mine' (Owned)
-    if (mode === 'mine') {
-        fab.style.display = 'none';
-    } else {
-        fab.style.display = 'flex';
-    }
+    // Forțăm butonul să fie vizibil indiferent de tab-ul selectat
+    fab.style.display = 'flex';
 
     currentFilteredList = stations.filter(s => {
         if (mode === 'all') return s.isAll === true; 
@@ -382,13 +428,7 @@ function renderList(mode, el) {
         item.className = 'station-item';
         item.setAttribute('data-name', s.name); 
         
-        let ownedControl = '';
-        // MODIFICARE: Verificăm dacă suntem în modul 'mine' ȘI dacă stația are link YT
-        if (mode === 'mine' && s.yt) {
-            ownedControl = `<div class="owned-yt-btn" onclick="event.stopPropagation(); window.open('${s.yt}', '_blank');"><img src="https://www.covetedition.com/wp-content/plugins/yith-woocommerce-wishlist-premium/plugin-fw/assets/images/widgets/link-bg2.png"></div>`;
-        }
-        
-        item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>${ownedControl}`;
+        item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div>`;
         
         item.onclick = () => { 
             currentIdx = currentFilteredList.indexOf(s); 
@@ -400,31 +440,36 @@ function renderList(mode, el) {
 }
 
 
+
+
+
 function switchTab(t) {
     const nav = document.getElementById('main-nav');
     const fab = document.getElementById('fab-play-pause');
     
-    if(t==='list'){ 
-        document.getElementById('list-view').style.display='flex'; 
-        document.getElementById('player-view').style.display='none';
+    if(t === 'list'){ 
+        document.getElementById('list-view').style.display = 'flex'; 
+        document.getElementById('player-view').style.display = 'none';
         document.getElementById('nav-list').classList.add('active'); 
         document.getElementById('nav-player').classList.remove('active'); 
         nav.className = 'nav-bar on-radio';
-
-        // --- CODUL NOU ESTE AICI ---
-        const isMineActive = document.getElementById('tab-mine').classList.contains('active');
-        fab.style.display = isMineActive ? 'none' : 'flex';
-        // ---------------------------
+        
+        // Afișăm butonul mereu când suntem în modul listă
+        fab.style.display = 'flex';
         
     } else { 
-        document.getElementById('list-view').style.display='none'; 
-        document.getElementById('player-view').style.display='flex';
+        document.getElementById('list-view').style.display = 'none'; 
+        document.getElementById('player-view').style.display = 'flex';
         document.getElementById('nav-list').classList.remove('active'); 
         document.getElementById('nav-player').classList.add('active'); 
         nav.className = 'nav-bar on-player';
+        
+        // Ascundem FAB doar când intrăm în Player-ul mare
         fab.style.display = 'none';
     }
 }
+
+
 
 
 
@@ -579,25 +624,38 @@ function updateSlide(id, data) {
     el.querySelector('p').innerText = data.desc; 
 }
 
+// În interiorul funcției loadStationInfo(idx, sp = true)
+
 function loadStationInfo(idx, sp = true) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
     updateArtUI(s.img || FALLBACK_IMG);
     
+    // --- GESTIONAREA BUTONULUI YOUTUBE ÎN PLAYER ---
+    const ytBtn = document.getElementById('player-yt-btn');
+    if (s.yt) {
+        ytBtn.href = s.yt;
+        ytBtn.classList.remove('yt-hidden'); // Afișează butonul
+    } else {
+        ytBtn.classList.add('yt-hidden');    // Ascunde butonul
+    }
+    // -------------------------------------------------
+
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
     
     audio.src = s.stream;
 
-    // MODIFICĂ AICI: de la 1000 la 3000
     setTimeout(() => { 
         fetchMetadata(s.stream, s); 
         metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
-    }, 3000); // <--- Aici sunt cele 3 secunde
+    }, 3000);
 
     if(sp) { updateUI('loading'); audio.play().catch(()=>{}); }
     updateMediaSession(s);
 }
+
+
 
 
 function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
@@ -643,4 +701,5 @@ init();
 </script>
 </body>
 </html>
+
 
