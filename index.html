@@ -466,30 +466,36 @@ function setupFabSwipe() {
         const diffY = e.changedTouches[0].clientY - fabStartY;
         const threshold = 30;
 
-        // Verificăm dacă există o listă filtrată validă (pentru siguranță)
         if (currentFilteredList.length === 0) return;
 
-        if (Math.abs(diffY) > Math.abs(diffX)) {
-            // GEST: SUS (Next)
-            if (diffY < -threshold) {
-                // Dacă audio e oprit și nu avem post încărcat, activăm postul curent, altfel trecem la următorul
-                if (audio.paused && !audio.src) {
-                    playStation(); 
-                } else {
-                    next();
-                }
-                showFabFeedback('skip-forward');
+        // 🔽 JOS → NEXT
+        if (diffY > threshold && Math.abs(diffY) > Math.abs(diffX)) {
+            if (audio.paused && !audio.src) {
+                playStation(); 
+            } else {
+                next();
             }
-        } else {
-            // GEST: STÂNGA (Prev)
-            if (diffX < -threshold) {
-                if (audio.paused && !audio.src) {
-                    playStation();
-                } else {
-                    prev();
-                }
-                showFabFeedback('skip-back');
+            showFabFeedback('skip-forward');
+        }
+
+        // 🔼 SUS → PREVIOUS
+        else if (diffY < -threshold && Math.abs(diffY) > Math.abs(diffX)) {
+            if (audio.paused && !audio.src) {
+                playStation();
+            } else {
+                prev();
             }
+            showFabFeedback('skip-back');
+        }
+
+        // ⬅️ STÂNGA → NEXT
+        else if (diffX < -threshold) {
+            if (audio.paused && !audio.src) {
+                playStation();
+            } else {
+                next();
+            }
+            showFabFeedback('skip-forward');
         }
         
         fabIsDragging = false;
