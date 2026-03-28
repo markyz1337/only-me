@@ -151,18 +151,18 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Modifică/Înlocuiește aceste părți în <style> */
 .bg-blur {
     position: absolute; 
     top: -10%; left: -10%; width: 120%; height: 120%;
-    background-size: cover; background-position: center;
+    background-size: cover; 
+    background-position: center;
     filter: blur(40px) brightness(0.4) saturate(1.2);
-    z-index: 0; will-change: opacity, transform;
-    animation: bgBreathe 30s infinite ease-in-out;
-    transition: opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0; 
+    opacity: 0; /* Toate pornesc de la 0 */
+    transition: opacity 1.5s ease-in-out; /* Tranziție lungă */
+    will-change: opacity;
 }
-
-#bg-layer-1 { opacity: 1; }
-#bg-layer-2 { opacity: 0; }
 
 @keyframes bgBreathe {
     0%, 100!% { transform: scale(1.0) rotate(0deg); }
@@ -341,12 +341,13 @@ body {
     <div class="bg-blur" id="bg-layer-2"></div>
 
         <div id="list-view" style="height:100%; display:flex; flex-direction:column;">
-        <div class="header-tabs">
-            <div class="tab active" id="tab-all" onclick="renderList('all', this)">All</div>
-            <div class="tab" id="tab-fav" onclick="renderList('fav', this)">Favorites</div>
-            <div class="tab" id="tab-mine" onclick="renderList('mine', this)">Owned</div>
-            <div class="tab" id="tab-russian" onclick="renderList('russian', this)">Russian</div>
-        </div>
+<div class="header-tabs">
+    <div class="tab" id="tab-all" onclick="renderList('all', this)">All</div>
+    <div class="tab" id="tab-fav" onclick="renderList('fav', this)">Favorites</div>
+    <div class="tab active" id="tab-mine" onclick="renderList('mine', this)">Owned</div>
+    <div class="tab" id="tab-russian" onclick="renderList('russian', this)">Russian</div>
+</div>
+
         <div class="content" id="stations-list"></div>
         
         <div class="fab" id="fab-play-pause" onclick="togglePlay()">
@@ -427,15 +428,78 @@ const stations = [
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
 
 function init() {
-    renderList('fav', document.getElementById('tab-fav')); 
+    // 1. Identificăm Heart 10s
+    const heart10s = stations.find(s => s.name === "Heart 10s");
+    if (heart10s) {
+        heart10s.isInitialBgSource = true; 
+        fetchSilentMetadata(heart10s); 
+    }
+
+    // 2. Deschidem pe 'Owned'
+    renderList('mine', document.getElementById('tab-mine')); 
+    
+    // Restul rămâne la fel...
     updateSliderText();
-    loadStationInfo(0, false);
+    loadStationInfo(0, false, true); 
     setupSwipe();
     scanAllStations();
+
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
+
+
+async function fetchAlbumArt(title, stationRef) {
+    if (!title || title.length < 3) return;
+    try {
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
+        const data = await res.json();
+        
+        if (data.results && data.results.length > 0) {
+            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
+
+            // --- LOGICA DE PRE-LOAD PENTRU EFECT FLUID ---
+            const tempImg = new Image();
+            tempImg.src = newImg;
+            tempImg.onload = () => {
+                stationRef.img = newImg;
+
+                // Dacă este Heart 10s la început și nu cântă nimic altceva
+                if (stationRef.isInitialBgSource && audio.paused && (!activeStationObject || !activeStationObject.isPlayingNow)) {
+                    const bg1 = document.getElementById('bg-layer-1');
+                    bg1.style.backgroundImage = `url(${newImg})`;
+                    
+                    // Forțăm browserul să proceseze imaginea înainte de a schimba opacitatea
+                    requestAnimationFrame(() => {
+                        bg1.style.opacity = '1';
+                    });
+                }
+
+                // Dacă este stația curentă din Player
+                if (currentFilteredList[currentIdx] === stationRef) {
+                    updateArtUI(newImg);
+                }
+                
+                // Update thumb în listă
+                document.querySelectorAll('.station-item').forEach(item => {
+                    if(item.getAttribute('data-name') === stationRef.name) {
+                        const thumb = item.querySelector('.station-thumb');
+                        if(thumb) thumb.src = newImg;
+                    }
+                });
+            };
+        }
+    } catch (e) {
+        console.error("Eroare la preluarea copertei:", e);
+    }
+}
+
+
+
+
+
 
 function updateMediaSession(station) {
     if ('mediaSession' in navigator) {
@@ -679,33 +743,75 @@ function updateUIMetadata(station) {
     }
 }
 
-async function fetchMetadata(streamUrl, stationRef) {
-    const requestId = ++currentMetadataRequestId;
+async function fetchAlbumArt(title, stationRef) {
+    if (!title || title.length < 3) return;
+
+    let fallbackTimeout = null;
+
+    // DOAR LA PORNIRE: Setăm cronometrul de 2 secunde pentru Heart 10s
+    if (stationRef.isInitialBgSource) {
+        fallbackTimeout = setTimeout(() => {
+            console.log("Prima pornire: iTunes lent. Punem logo Heart 10s.");
+            applyImageToUI(stationRef.originalImg, stationRef, true);
+        }, 2000);
+    }
+
     try {
-        const response = await fetch(streamUrl, { headers: { "Icy-MetaData": "1" } });
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let metaInt = parseInt(response.headers.get("icy-metaint"));
-        if (!metaInt) return;
-        let buffer = new Uint8Array();
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done || requestId !== currentMetadataRequestId) break;
-            let temp = new Uint8Array(buffer.length + value.length); temp.set(buffer); temp.set(value, buffer.length); buffer = temp;
-            while (buffer.length >= metaInt + 1) {
-                let metaLength = buffer[metaInt] * 16;
-                if (buffer.length < metaInt + 1 + metaLength) break;
-                let metaString = decoder.decode(buffer.slice(metaInt + 1, metaInt + 1 + metaLength));
-                let match = metaString.match(/StreamTitle='([^']*)'/);
-                if (match && match[1]) {
-                    let nt = match[1].replace(/;/g, "").trim();
-                    if (stationRef.currentTrack !== nt) { stationRef.desc = nt; stationRef.currentTrack = nt; updateUIMetadata(stationRef); }
-                }
-                buffer = buffer.slice(metaInt + 1 + metaLength);
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
+        const data = await res.json();
+        
+        if (data.results && data.results.length > 0) {
+            // Dacă iTunes a răspuns, anulăm cronometrul (dacă există)
+            if (fallbackTimeout) clearTimeout(fallbackTimeout);
+
+            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
+            applyImageToUI(newImg, stationRef, false);
+        }
+    } catch (e) {
+        // În caz de eroare rețea, forțăm imaginea originală dacă e la pornire
+        if (stationRef.isInitialBgSource) applyImageToUI(stationRef.originalImg, stationRef, true);
+    }
+}
+
+function applyImageToUI(imgUrl, stationRef, isFallback) {
+    const tempImg = new Image();
+    tempImg.src = imgUrl;
+    tempImg.onload = () => {
+        stationRef.img = imgUrl;
+
+        // 1. Gestionare Fundal Inițial (Heart 10s)
+        if (stationRef.isInitialBgSource && audio.paused && (!activeStationObject || !activeStationObject.isPlayingNow)) {
+            const bg1 = document.getElementById('bg-layer-1');
+            bg1.style.backgroundImage = `url(${imgUrl})`;
+            
+            // Forțăm vizibilitatea fluidă
+            setTimeout(() => { bg1.style.opacity = '1'; }, 50);
+            
+            // Dacă am aplicat deja o imagine (fie ea metadata sau fallback), 
+            // marcăm că nu mai avem nevoie de sursa inițială
+            if (!isFallback || imgUrl === stationRef.originalImg) {
+                // Opțional: putem lăsa isInitialBgSource true până la primul Play
             }
         }
-    } catch (err) {}
+
+        // 2. Gestionare Player Activ (Schimbare radio/Play)
+        // Dacă stația care tocmai a primit imaginea este cea selectată în Player
+        if (activeStationObject && activeStationObject.name === stationRef.name) {
+            updateArtUI(imgUrl);
+        }
+        
+        // 3. Update Miniaturi Listă
+        document.querySelectorAll('.station-item').forEach(item => {
+            if(item.getAttribute('data-name') === stationRef.name) {
+                const thumb = item.querySelector('.station-thumb');
+                if(thumb) thumb.src = imgUrl;
+            }
+        });
+    };
 }
+
+
+
 
 function updateSliderText() {
     if (currentFilteredList.length === 0) return;
@@ -725,27 +831,33 @@ function updateSlide(id, data) {
 
 // În interiorul funcției loadStationInfo(idx, sp = true)
 
-function loadStationInfo(idx, sp = true) {
+function loadStationInfo(idx, sp = true, skipArt = false) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
     
-    activeStationObject = s; // <--- SALVĂM OBIECTUL ACTIV AICI
-
-    updateArtUI(s.img || FALLBACK_IMG);
-    
-    // --- GESTIONAREA BUTONULUI YOUTUBE ÎN PLAYER ---
-    const ytBtn = document.getElementById('player-yt-btn');
-    if (s.yt) {
-        ytBtn.href = s.yt;
-        ytBtn.classList.remove('yt-hidden'); // Afișează butonul
-    } else {
-        ytBtn.classList.add('yt-hidden');    // Ascunde butonul
+    // DEZACTIVĂM starea de "Prima pornire" imediat ce utilizatorul interacționează
+    if (sp) {
+        stations.forEach(st => st.isInitialBgSource = false);
     }
-    // -------------------------------------------------
+
+    activeStationObject = s;
+
+    // Când dăm play, dezactivăm sursa de fundal inițială (Heart 10s)
+    if (sp) {
+        stations.forEach(st => st.isInitialBgSource = false);
+        s.isPlayingNow = true;
+        updateArtUI(s.img || FALLBACK_IMG);
+    } else if (!skipArt) {
+        updateArtUI(s.img || FALLBACK_IMG);
+    }
+
+    // ... restul codului pentru YouTube și Metadata rămâne la fel ...
+    const ytBtn = document.getElementById('player-yt-btn');
+    if (s.yt) { ytBtn.href = s.yt; ytBtn.classList.remove('yt-hidden'); } 
+    else { ytBtn.classList.add('yt-hidden'); }
 
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
-    
     audio.src = s.stream;
 
     setTimeout(() => { 
@@ -756,6 +868,7 @@ function loadStationInfo(idx, sp = true) {
     if(sp) { updateUI('loading'); audio.play().catch(()=>{}); }
     updateMediaSession(s);
 }
+
 
 
 
@@ -785,18 +898,15 @@ function setupSwipe() {
 
 function togglePlay() { 
     if (audio.paused) {
-        // Punem butonul în starea de încărcare imediat
-        updateUI('loading'); 
-        
-        audio.play().catch((error) => {
-            console.error("Eroare la redare:", error);
-            updateUI(false); // Revenim la iconița de Play dacă eșuează (ex: block de browser)
-        }); 
+        // Dacă nu cântă nimic, forțăm încărcarea stației curente din listă (cu tot cu artă)
+        // Folosim parametrul false la final pentru skipArt, ca să AFIDEZE coperta
+        loadStationInfo(currentIdx, true, false); 
     } else {
         audio.pause(); 
-        // updateUI(false) va fi chemat automat de event listener-ul 'pause' din init()
     }
 }
+
+
 
 
 init();
