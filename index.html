@@ -458,43 +458,50 @@ function setupFabSwipe() {
         fabIsDragging = true;
     }, { passive: true });
 
-    fab.addEventListener('touchend', (e) => {
-        if (!fabIsDragging) return;
-        
-        const diffX = e.changedTouches[0].clientX - fabStartX;
-        const diffY = e.changedTouches[0].clientY - fabStartY;
-        const threshold = 30;
+fab.addEventListener('touchend', (e) => {
+    if (!fabIsDragging) return;
+    
+    const diffX = e.changedTouches[0].clientX - fabStartX;
+    const diffY = e.changedTouches[0].clientY - fabStartY;
+    const threshold = 30;
 
-        // Verificăm dacă există o listă filtrată validă (pentru siguranță)
-        if (currentFilteredList.length === 0) return;
+    if (currentFilteredList.length === 0) return;
 
-if (Math.abs(diffY) > Math.abs(diffX)) {
-    // 🔽 JOS → NEXT
-    if (diffY > threshold) {
-        next();
-        showFabFeedback('skip-forward');
-    }
-
-    // 🔼 SUS → PREVIOUS
-    if (diffY < -threshold) {
-        prev();
-        showFabFeedback('skip-back');
-    }
-} else {
-            // GEST: STÂNGA (Prev)
-            if (diffX < -threshold) {
-                if (audio.paused && !audio.src) {
-                    playStation();
-                } else {
-                    next();
-                }
-                showFabFeedback('skip-forward');
+    if (Math.abs(diffY) > Math.abs(diffX)) {
+        // 🔽 JOS → NEXT
+        if (diffY > threshold) {
+            if (audio.paused && !audio.src) {
+                playStation(); 
+            } else {
+                next();
             }
+            showFabFeedback('skip-forward');
         }
-        
-        fabIsDragging = false;
-    });
-}
+
+        // 🔼 SUS → PREVIOUS
+        if (diffY < -threshold) {
+            if (audio.paused && !audio.src) {
+                playStation();
+            } else {
+                prev();
+            }
+            showFabFeedback('skip-back');
+        }
+
+    } else {
+        // ⬅️ STÂNGA → NEXT
+        if (diffX < -threshold) {
+            if (audio.paused && !audio.src) {
+                playStation();
+            } else {
+                next();
+            }
+            showFabFeedback('skip-forward');
+        }
+    }
+    
+    fabIsDragging = false;
+});
 
 
 
