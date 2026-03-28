@@ -449,6 +449,7 @@ let fabStartX = 0;
 let fabStartY = 0;
 let fabIsDragging = false;
 
+
 function setupFabSwipe() {
     const fab = document.getElementById('fab-play-pause');
     
@@ -458,50 +459,42 @@ function setupFabSwipe() {
         fabIsDragging = true;
     }, { passive: true });
 
-fab.addEventListener('touchend', (e) => {
-    if (!fabIsDragging) return;
-    
-    const diffX = e.changedTouches[0].clientX - fabStartX;
-    const diffY = e.changedTouches[0].clientY - fabStartY;
-    const threshold = 30;
+    fab.addEventListener('touchend', (e) => {
+        if (!fabIsDragging) return;
+        
+        const diffX = e.changedTouches[0].clientX - fabStartX;
+        const diffY = e.changedTouches[0].clientY - fabStartY;
+        const threshold = 30;
 
-    if (currentFilteredList.length === 0) return;
+        // Verificăm dacă există o listă filtrată validă (pentru siguranță)
+        if (currentFilteredList.length === 0) return;
 
-    if (Math.abs(diffY) > Math.abs(diffX)) {
-        // 🔽 JOS → NEXT
-        if (diffY > threshold) {
-            if (audio.paused && !audio.src) {
-                playStation(); 
-            } else {
-                next();
+        if (Math.abs(diffY) > Math.abs(diffX)) {
+            // GEST: SUS (Next)
+            if (diffY < -threshold) {
+                // Dacă audio e oprit și nu avem post încărcat, activăm postul curent, altfel trecem la următorul
+                if (audio.paused && !audio.src) {
+                    playStation(); 
+                } else {
+                    next();
+                }
+                showFabFeedback('skip-forward');
             }
-            showFabFeedback('skip-forward');
-        }
-
-        // 🔼 SUS → PREVIOUS
-        if (diffY < -threshold) {
-            if (audio.paused && !audio.src) {
-                playStation();
-            } else {
-                prev();
+        } else {
+            // GEST: STÂNGA (Prev)
+            if (diffX < -threshold) {
+                if (audio.paused && !audio.src) {
+                    playStation();
+                } else {
+                    prev();
+                }
+                showFabFeedback('skip-back');
             }
-            showFabFeedback('skip-back');
         }
-
-    } else {
-        // ⬅️ STÂNGA → NEXT
-        if (diffX < -threshold) {
-            if (audio.paused && !audio.src) {
-                playStation();
-            } else {
-                next();
-            }
-            showFabFeedback('skip-forward');
-        }
-    }
-    
-    fabIsDragging = false;
-});
+        
+        fabIsDragging = false;
+    });
+}
 
 
 
