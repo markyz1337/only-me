@@ -422,38 +422,41 @@ const stations = [
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
 
 function init() {
-    // 1. Citim ce vine după "?"
-    const urlQuery = window.location.search.substring(1);
+    // 1. Încercăm să luăm numele stației din Query (?nume) sau din Path (/nume)
+    const urlQuery = window.location.search.substring(1); // Tot ce e după "?"
+    const urlPath = window.location.pathname.split('/').filter(s => s.length > 0).pop(); // Ultima parte din "/"
+    
+    // Prioritizăm Query-ul (venit din 404.html), apoi Path-ul direct
+    const rawTarget = urlQuery || urlPath;
     let autoStartStation = null;
 
-    if (urlQuery) {
-        const targetName = decodeURIComponent(urlQuery).toLowerCase().trim();
+    if (rawTarget) {
+        const targetName = decodeURIComponent(rawTarget).toLowerCase().trim();
         
-        // Căutare inteligentă în lista stations
+        // Căutare inteligentă (dacă numele conține fragmentul respectiv)
         autoStartStation = stations.find(s => 
+            s.name.toLowerCase().replace(/\s+/g, '').includes(targetName) ||
             s.name.toLowerCase().includes(targetName)
         );
 
         if (autoStartStation) {
-            // Numele curat pentru URL
+            // Curățăm URL-ul să fie mereu fără "?" și fără spații: sergiumusic.ro/nume
             const cleanName = autoStartStation.name.toLowerCase().replace(/\s+/g, '');
-            
-            // PE DOMENIU: Calea trebuie să fie doar "/" + numele stației
-            // Nu mai adăugăm /only-me/ deoarece domeniul punctează deja acolo
             const cleanPath = "/" + cleanName;
             
+            // Această linie elimină "?" și setează link-ul curat în browser
             window.history.replaceState({}, "", cleanPath);
         }
     }
 
-    // 2. Logică de pornire
+    // 2. Logică de pornire (Play dacă am găsit stația, altfel Default)
     if (autoStartStation) {
         renderList('all', document.getElementById('tab-all'));
         currentIdx = currentFilteredList.indexOf(autoStartStation);
         loadStationInfo(currentIdx, true, false); 
         switchTab('player');
     } else {
-        // Pornire normală (Heart 10s sau prima stație)
+        // Pornire normală (fără link direct)
         const heart10s = stations.find(s => s.name === "Heart 10s");
         if (heart10s) {
             heart10s.isInitialBgSource = true; 
@@ -463,17 +466,22 @@ function init() {
         loadStationInfo(0, false, true);
     }
 
-    // 3. Inițializări Standard
+    // 3. Componente UI & Gesturi
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
     scanAllStations();
 
-    // Audio Listeners
+    // Listeners Audio
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
+    audio.addEventListener('error', () => {
+        console.error("Stream indisponibil.");
+        updateUI(false);
+    });
 }
+
 
 
 
