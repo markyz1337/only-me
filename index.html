@@ -422,41 +422,45 @@ const stations = [
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
 
 function init() {
-    // 1. Încercăm să luăm numele stației din Query (?nume) sau din Path (/nume)
-    const urlQuery = window.location.search.substring(1); // Tot ce e după "?"
-    const urlPath = window.location.pathname.split('/').filter(s => s.length > 0).pop(); // Ultima parte din "/"
+    // 1. Preluăm datele din URL
+    const urlQuery = window.location.search.substring(1); 
+    const urlPath = window.location.pathname.split('/').filter(s => s.length > 0).pop(); 
     
-    // Prioritizăm Query-ul (venit din 404.html), apoi Path-ul direct
     const rawTarget = urlQuery || urlPath;
     let autoStartStation = null;
 
     if (rawTarget) {
-        const targetName = decodeURIComponent(rawTarget).toLowerCase().trim();
+        // Decodăm URL-ul (ex: %D0%BC%D0%B0%D1%80%D1%83%D1%81%D1%8F -> маруся)
+        let decodedTarget = decodeURIComponent(rawTarget).toLowerCase().trim();
         
-        // Căutare inteligentă (dacă numele conține fragmentul respectiv)
-        autoStartStation = stations.find(s => 
-            s.name.toLowerCase().replace(/\s+/g, '').includes(targetName) ||
-            s.name.toLowerCase().includes(targetName)
-        );
+        // Convertim Chirilic -> Latin (ex: маруся -> marusya)
+        let latinTarget = transliterate(decodedTarget);
+        
+        // Curățăm de spații pentru comparare
+        const searchSlug = latinTarget.replace(/\s+/g, '');
+
+        // Căutăm stația în lista de obiecte
+        autoStartStation = stations.find(s => {
+            const stationNameClean = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+            return stationNameClean.includes(searchSlug);
+        });
 
         if (autoStartStation) {
-            // Curățăm URL-ul să fie mereu fără "?" și fără spații: sergiumusic.ro/nume
-            const cleanName = autoStartStation.name.toLowerCase().replace(/\s+/g, '');
-            const cleanPath = "/" + cleanName;
-            
-            // Această linie elimină "?" și setează link-ul curat în browser
-            window.history.replaceState({}, "", cleanPath);
+            // Generăm noul path "curat" pentru browser
+            const cleanPathName = transliterate(autoStartStation.name).toLowerCase().replace(/\s+/g, '');
+            window.history.replaceState({}, "", "/" + cleanPathName);
         }
     }
 
-    // 2. Logică de pornire (Play dacă am găsit stația, altfel Default)
+    // 2. Logica de pornire / Afișare
     if (autoStartStation) {
         renderList('all', document.getElementById('tab-all'));
         currentIdx = currentFilteredList.indexOf(autoStartStation);
+        // Pornim direct stația găsită
         loadStationInfo(currentIdx, true, false); 
         switchTab('player');
     } else {
-        // Pornire normală (fără link direct)
+        // Default: Pornire pe lista "Owned" (sau ce preferi)
         const heart10s = stations.find(s => s.name === "Heart 10s");
         if (heart10s) {
             heart10s.isInitialBgSource = true; 
@@ -466,24 +470,33 @@ function init() {
         loadStationInfo(0, false, true);
     }
 
-    // 3. Componente UI & Gesturi
+    // 3. UI & Gesturi
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
     scanAllStations();
 
-    // Listeners Audio
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
-    audio.addEventListener('error', () => {
-        console.error("Stream indisponibil.");
-        updateUI(false);
-    });
 }
 
 
 
+
+function transliterate(text) {
+    const cyrillicToLatin = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh', 
+        'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 
+        'п': 'p', 'р': 'r', 'с': 's', 't': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 
+        'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+    };
+
+    return text.split('').map(char => {
+        const lowerChar = char.toLowerCase();
+        return cyrillicToLatin[lowerChar] !== undefined ? cyrillicToLatin[lowerChar] : char;
+    }).join('');
+}
 
 
 
