@@ -4,28 +4,27 @@
     <meta charset="utf-8">
     <title>Redirecționare Sergiu FM...</title>
     <script type="text/javascript">
-        // 1. Obținem calea URL-ului (ex: "/manele" sau "/hope/")
+        // 1. Obținem calea (ex: "/маруся%20фм")
         var path = window.location.pathname;
         
-        // 2. Curățăm calea: scoatem slash-urile de la început și final
-        // și păstrăm doar numele stației
+        // 2. Extragem ultimul segment și îl decodăm (Transformăm %20 în spațiu, etc.)
         var segments = path.split('/').filter(function(s) {
             return s.length > 0;
         });
         
-        var station = segments.length > 0 ? segments[segments.length - 1] : "";
+        var station = segments.length > 0 ? decodeURIComponent(segments[segments.length - 1]) : "";
 
-        // 3. Redirecționăm către pagina principală (index.html)
-        // transmitem stația după semnul "?"
-        // Rezultat final: https://sergiumusic.ro/?manele
+        // 3. Redirecționăm
+        // Dacă avem "Маруся ФМ", rezultatul va fi: sergiumusic.ro/?Маруся ФМ
+        // Scriptul din index.html va prelua acest text și va face transliterarea în "marusyafm"
         if (station) {
             window.location.replace(window.location.origin + '/?' + encodeURIComponent(station));
         } else {
-            // Dacă nu există niciun segment, mergem pur și simplu la home
             window.location.replace(window.location.origin);
         }
     </script>
 </head>
 <body>
-    </body>
+    <p>Se încarcă stația radio...</p>
+</body>
 </html>
