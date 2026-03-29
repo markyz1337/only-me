@@ -743,6 +743,11 @@ function init() {
         // Dacă am găsit un post valid în URL, intrăm direct în Player
         renderList('all', document.getElementById('tab-all'));
         currentIdx = currentFilteredList.indexOf(auto);
+        
+        // --- ACEASTA ESTE LINIA IMPORTANTĂ ---
+        updateSliderText(); 
+        // -------------------------------------
+
         loadStationInfo(currentIdx, true, false); 
         switchTab('player');
     } else {
@@ -755,10 +760,13 @@ function init() {
         
         renderList('mine', document.getElementById('tab-mine'));
         
-        // Încarcă datele primului post (index 0 din "Owned"), dar NU porni muzica și NU schimba URL-ul
+        // Încarcă datele primului post (index 0 din "Owned")
         loadStationInfo(0, false, true);
+        
+        // Actualizăm textul și pentru vizualizarea de bază a listei
+        updateSliderText();
 
-        // Forțăm URL-ul curat (fără slash-uri reziduale) la prima încărcare
+        // Forțăm URL-ul curat la prima încărcare dacă nu e valid
         if (ENABLE_DIRECT_LINKS && window.location.pathname !== "/") {
             window.history.replaceState({}, "", "/");
         }
