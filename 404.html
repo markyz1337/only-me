@@ -1,17 +1,31 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="ro">
+<head>
     <meta charset="utf-8">
-    <title>Sergiu FM</title>
+    <title>Redirecționare Sergiu FM...</title>
     <script type="text/javascript">
-      // Luăm ultima parte a link-ului (ex: "Hope")
-      var pathSegments = window.location.pathname.split('/');
-      var station = pathSegments[pathSegments.length - 1];
-      
-      // Redirecționăm către index.html și transmitem stația prin URL ascuns
-      window.location.replace(window.location.origin + '/only-me/?' + station);
+        // 1. Obținem calea URL-ului (ex: "/manele" sau "/hope/")
+        var path = window.location.pathname;
+        
+        // 2. Curățăm calea: scoatem slash-urile de la început și final
+        // și păstrăm doar numele stației
+        var segments = path.split('/').filter(function(s) {
+            return s.length > 0;
+        });
+        
+        var station = segments.length > 0 ? segments[segments.length - 1] : "";
+
+        // 3. Redirecționăm către pagina principală (index.html)
+        // transmitem stația după semnul "?"
+        // Rezultat final: https://sergiumusic.ro/?manele
+        if (station) {
+            window.location.replace(window.location.origin + '/?' + encodeURIComponent(station));
+        } else {
+            // Dacă nu există niciun segment, mergem pur și simplu la home
+            window.location.replace(window.location.origin);
+        }
     </script>
-  </head>
-  <body>
-  </body>
+</head>
+<body>
+    </body>
 </html>
