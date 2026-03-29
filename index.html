@@ -51,21 +51,21 @@
     user-select: none;
     line-height: 1;
     will-change: transform, opacity;
-    animation: floatHeartOut 17s ease-out forwards; /* Durată mai lungă: 6 secunde */
+    animation: floatHeartOut 15s ease-out forwards; /* Durată mai lungă: 6 secunde */
 }
 
 @keyframes floatHeartOut {
     0% {
-        transform: translate(0, 0) scale(0) rotate(0deg);
+        transform: translate(0, 30px) scale(0) rotate(0deg);
         opacity: 0;
     }
     15% {
         opacity: var(--target-opacity);
-        transform: translate(var(--move-x), var(--move-y-start)) scale(1.3);
+        transform: translate(var(--move-x), var(--move-y-start)) scale(1.1);
     }
     100% {
         /* Urcă mult mai sus și se împrăștie pe orizontală */
-        transform: translate(calc(var(--move-x) * 2.5), -500px) scale(0.4) rotate(var(--random-rot));
+        transform: translate(calc(var(--move-x) * 2.5), -220px) scale(0.4) rotate(var(--random-rot));
         opacity: 0;
     }
 }
