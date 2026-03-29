@@ -1067,14 +1067,19 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
     
-    // Dezactivăm starea de fundal inițială
     if (sp) {
         stations.forEach(st => st.isInitialBgSource = false);
     }
 
     activeStationObject = s;
 
-    // Actualizăm interfața (Copertă și Buton YouTube)
+    // --- COD NOU: Actualizare URL în timp real ---
+    // Generăm un nume curat (fără spații, litere mici)
+    const cleanName = s.name.toLowerCase().replace(/\s+/g, '');
+    // Actualizăm bara de adrese fără să reîncărcăm pagina
+    window.history.replaceState({ station: cleanName }, "", "/" + cleanName);
+    // ----------------------------------------------
+
     if (sp || !skipArt) {
         updateArtUI(s.img || FALLBACK_IMG);
     }
@@ -1087,7 +1092,6 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
         ytBtn.classList.add('yt-hidden'); 
     }
 
-    // Gestionare Metadate
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
     
@@ -1098,17 +1102,17 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
         metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
     }, 3000);
 
-    // Încercare redare cu gestionare eroare Autoplay
     if(sp) { 
         updateUI('loading'); 
         audio.play().catch(error => {
-            console.warn("Autoplay a fost blocat. Utilizatorul trebuie să apese Play manual.");
-            updateUI(false); // Oprește rotirea și arată butonul de Play
+            console.warn("Autoplay blocat.");
+            updateUI(false);
         }); 
     }
     
     updateMediaSession(s);
 }
+
 
 
 
