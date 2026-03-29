@@ -425,11 +425,9 @@ stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.curren
 function init() {
     let autoStartStation = null;
 
-    // Verificăm dacă funcția este activată din variabila globală
     if (ENABLE_DIRECT_LINKS) {
         const urlQuery = window.location.search.substring(1); 
         const urlPath = window.location.pathname.split('/').filter(s => s.length > 0).pop(); 
-        
         const rawTarget = urlQuery || urlPath;
 
         if (rawTarget) {
@@ -445,18 +443,22 @@ function init() {
             if (autoStartStation) {
                 const cleanPathName = transliterate(autoStartStation.name).toLowerCase().replace(/\s+/g, '');
                 window.history.replaceState({}, "", "/" + cleanPathName);
+                
+                // Setăm postul activ și pornim scanarea imediat
+                activeStationObject = autoStartStation;
+                fetchSilentMetadata(autoStartStation); 
+                
+                renderList('all', document.getElementById('tab-all'));
+                currentIdx = currentFilteredList.indexOf(autoStartStation);
+                
+                // Pornim redarea și forțăm afișarea metadatelor
+                loadStationInfo(currentIdx, true, false); 
+                switchTab('player');
             }
         }
     }
 
-    // Logica de pornire / Afișare
-    if (autoStartStation && ENABLE_DIRECT_LINKS) {
-        renderList('all', document.getElementById('tab-all'));
-        currentIdx = currentFilteredList.indexOf(autoStartStation);
-        loadStationInfo(currentIdx, true, false); 
-        switchTab('player');
-    } else {
-        // Pornire standard pe "Owned"
+    if (!autoStartStation) {
         const heart10s = stations.find(s => s.name === "Heart 10s");
         if (heart10s) {
             heart10s.isInitialBgSource = true; 
@@ -466,7 +468,6 @@ function init() {
         loadStationInfo(0, false, true);
     }
 
-    // UI & Gesturi
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
@@ -476,6 +477,7 @@ function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
@@ -625,32 +627,39 @@ async function fetchAlbumArt(title, stationRef) {
 
 // Funcție helper pentru a aplica imaginea peste tot unitar
 function applyImageToUI(imgUrl, stationRef, isFallback) {
+    const bg1 = document.getElementById('bg-layer-1');
+    const playerImg1 = document.getElementById('player-img-1');
+    
     const tempImg = new Image();
     tempImg.src = imgUrl;
     tempImg.onload = () => {
         stationRef.img = imgUrl;
 
-        // 1. Fundalul pentru Heart 10s (Prima pornire)
-        if (stationRef.isInitialBgSource && audio.paused) {
-            const bg1 = document.getElementById('bg-layer-1');
+        // 1. Fundalul inițial
+        if (stationRef.isInitialBgSource) {
             bg1.style.backgroundImage = `url(${imgUrl})`;
-            bg1.style.opacity = '1';
+            bg1.style.opacity = "1";
+            if (playerImg1) playerImg1.src = imgUrl;
         }
 
-        // 2. Coperta din Player (Dacă e postul activ)
+        // 2. DACĂ ACESTA ESTE POSTUL ACTIV -> Actualizăm tot Playerul
         if (activeStationObject && activeStationObject.name === stationRef.name) {
             updateArtUI(imgUrl);
+            updateSliderText(); // Forțează actualizarea titlului/artistului în player
         }
         
-        // 3. Miniaturile din listă
+        // 3. Update în listă
         document.querySelectorAll('.station-item').forEach(item => {
             if(item.getAttribute('data-name') === stationRef.name) {
                 const thumb = item.querySelector('.station-thumb');
                 if(thumb) thumb.src = imgUrl;
+                const desc = item.querySelector('.station-desc');
+                if(desc) desc.innerText = stationRef.desc;
             }
         });
     };
 }
+
 
 
 
@@ -832,7 +841,6 @@ async function fetchSilentMetadata(station) {
         const decoder = new TextDecoder("utf-8");
         let metaInt = parseInt(response.headers.get("icy-metaint"));
         
-        // Dacă nu avem metadate, punem măcar logo-ul pe fundal la început
         if (!metaInt && station.isInitialBgSource) {
             applyImageToUI(station.originalImg, station, true);
             return;
@@ -853,7 +861,12 @@ async function fetchSilentMetadata(station) {
                 
                 if (match && match[1]) {
                     station.desc = match[1].replace(/;/g, "").trim();
-                    // Căutăm coperta pe iTunes
+                    
+                    // DACĂ E POSTUL ACTIV, UPDATE TEXT IMEDIAT
+                    if (activeStationObject && activeStationObject.name === station.name) {
+                        updateSliderText();
+                    }
+                    
                     fetchAlbumArt(station.desc, station);
                     reader.cancel(); 
                     return;
@@ -862,10 +875,10 @@ async function fetchSilentMetadata(station) {
             }
         }
     } catch(e) {
-        // Dacă stream-ul e picat sau eroarea de rețea, punem logo-ul
         if (station.isInitialBgSource) applyImageToUI(station.originalImg, station, true);
     }
 }
+
 
 // 2. Funcția de căutare copertă cu cronometrul de 2 secunde fixat
 async function fetchAlbumArt(title, stationRef) {
@@ -1077,24 +1090,18 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
     
-    // Dezactivăm sursa de fundal inițială dacă începem redarea
     if (sp) {
         stations.forEach(st => st.isInitialBgSource = false);
     }
 
     activeStationObject = s;
 
-    // --- LOGICA DE REDIRECȚIONARE / ACTUALIZARE URL ---
-    // Verificăm dacă variabila globală este setată pe true înainte de a modifica URL-ul
     if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS) {
         try {
             const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
             window.history.replaceState({ station: cleanName }, "", "/" + cleanName);
-        } catch (e) {
-            console.warn("Nu s-a putut actualiza URL-ul:", e);
-        }
+        } catch (e) {}
     }
-    // -------------------------------------------------
 
     if (sp || !skipArt) {
         updateArtUI(s.img || FALLBACK_IMG);
@@ -1108,27 +1115,27 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
         ytBtn.classList.add('yt-hidden'); 
     }
 
-    // Gestionare Metadate
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
     
     audio.src = s.stream;
 
+    // Am redus de la 3000ms la 500ms pentru viteză
     setTimeout(() => { 
-        fetchMetadata(s.stream, s); 
-        metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
-    }, 3000);
+        fetchSilentMetadata(s); 
+        metadataInterval = setInterval(() => fetchSilentMetadata(s), 15000); 
+    }, 500);
 
     if(sp) { 
         updateUI('loading'); 
         audio.play().catch(error => {
-            console.warn("Autoplay blocat de browser.");
             updateUI(false);
         }); 
     }
     
     updateMediaSession(s);
 }
+
 
 
 
