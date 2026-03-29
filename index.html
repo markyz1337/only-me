@@ -29,6 +29,45 @@
     overscroll-behavior: none;
 }
 
+.typing-container {
+    display: inline; /* Schimbat din inline-flex în inline */
+    position: relative;
+    word-break: break-word; /* Previne ruperea urâtă a cuvintelor */
+}
+
+.visible-text {
+    display: inline;
+    white-space: pre-wrap; /* Păstrează spațiile corect */
+}
+
+.cursor-custom {
+    display: inline-block;
+    width: 2px;
+    height: 1.2em;
+    background: var(--accent);
+    margin-left: 2px;
+    vertical-align: middle;
+    /* Am crescut de la 0.8s la 1.2s pentru un ritm mai relaxat */
+    /* Am scos 'step-end' pentru a avea o tranziție mai fină (fade in/out) */
+    animation: blink 2.2s ease-in-out infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; } /* Nu dispare de tot, rămâne o urmă discretă */
+}
+
+
+
+
+
+
+.fade-text {
+    transition: opacity 0.5s ease-in-out;
+}
+
+
+
 /* Doar emoji-ul va face fade, textul "Hope" rămâne fix */
 #slide-current h2 span {
     transition: opacity 0.6s ease-in-out;
@@ -363,7 +402,7 @@ let activeStationObject = null;
 let isDragging = false;
 let metadataInterval = null;
 
-const ENABLE_DIRECT_LINKS = true; 
+const ENABLE_DIRECT_LINKS = false; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
@@ -391,7 +430,94 @@ const stations = [
 
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
 
-// --- LOGICA HOPE ---
+// --- LOGICA HOPE TEXT DINAMIC ---
+const hopeTexts = [
+    "De ce \"Hope\"?",
+    "Speranță cineva la fel ca mine.",
+    "Nu îmi e dragă frica și recunosc că o am",
+    "Dar promit...",
+    "Promit să fiu luna de pe cerul tău 🌙",
+    "Când simți întuneric să luminez eu ☀️",
+    "Să te iubesc la bine și rău",
+    "Să te ajut să ții drumul spre visul tău ✨",
+    "Promite-mi că îmi vei fi pe cer soarele",
+    "Să ștergi cu un zâmbet toate umbrele",
+    "Promit să te aleg. 💛",
+    "...",
+    "💛"
+];
+
+let hopeTextIdx = 0;
+let typingTimeout = null;
+
+function startHopeKaraoke() {
+    const descEl = document.querySelector('#slide-current p');
+    if (!descEl || !activeStationObject || activeStationObject.name !== "Hope") return;
+
+    descEl.classList.add('typing-text');
+    
+    typeWriter(hopeTexts[hopeTextIdx], descEl, () => {
+        // Verificăm dacă mai sunt texte de afișat
+        if (hopeTextIdx < hopeTexts.length - 1) {
+            let delay = hopeTextIdx === 0 ? 4000 : 2500;
+            typingTimeout = setTimeout(() => {
+                hopeTextIdx++; // Mergem la următorul text
+                startHopeKaraoke();
+            }, delay);
+        } else {
+            // S-a ajuns la ultimul text (indexul final). 
+            // Nu mai apelăm startHopeKaraoke, deci se oprește aici.
+            console.log("Karaoke finalizat.");
+        }
+    });
+}
+
+
+function typeWriter(text, element, callback) {
+    if (typingTimeout) cancelAnimationFrame(typingTimeout);
+    
+    // Injectăm structura inițială: text gol + cursor
+    element.innerHTML = `<span class="typing-container"><span class="visible-text"></span><span class="cursor-custom"></span></span>`;
+    const textSpan = element.querySelector('.visible-text');
+    
+    const duration = text.length * 70; 
+    const startTime = performance.now();
+
+    function animate(currentTime) {
+        if (!activeStationObject || activeStationObject.name !== "Hope" || audio.paused) return;
+
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        const currentLength = Math.floor(progress * text.length);
+        const currentText = text.substring(0, currentLength);
+        
+        // Update doar la text, cursorul rămâne în container și clipește prin CSS
+        textSpan.textContent = currentText;
+
+        if (progress < 1) {
+            typingTimeout = requestAnimationFrame(animate);
+        } else {
+            // Când termină de scris, așteaptă și apoi execută callback-ul pentru următorul text
+            if (callback) {
+                typingTimeout = setTimeout(callback, 2500);
+            }
+        }
+    }
+
+    typingTimeout = requestAnimationFrame(animate);
+}
+
+
+
+
+
+
+
+
+
+
+// --- LOGICA HOPE EMOJI & EFECTE ---
 const hopeEmojis = ["🌅", "🫵🏼🫶🏼", "💛", "🥰", "❤️‍🔥", "💗", "🏳️", "💞", "✨", "⭐️", "🌙", "🌕", "🌼", "🌸", "🥹"];
 let hopeInterval = null; 
 let emojiInterval = null; 
@@ -413,8 +539,13 @@ function rotateHopeEmoji() {
 function checkHopeEffect() {
     const isHope = activeStationObject && activeStationObject.name === "Hope";
     const isPlaying = !audio.paused;
+    
     if (isHope && isPlaying) {
         if (!hopeInterval) hopeInterval = setInterval(createHeart, 1100);
+        if (!typingTimeout) {
+            hopeTextIdx = 0;
+            startHopeKaraoke();
+        }
         if (!emojiInterval) {
             const titleEl = document.querySelector('#slide-current h2');
             if (titleEl && !titleEl.querySelector('span')) {
@@ -430,6 +561,13 @@ function checkHopeEffect() {
 function stopHopeEffect() {
     if (hopeInterval) { clearInterval(hopeInterval); hopeInterval = null; }
     if (emojiInterval) { clearInterval(emojiInterval); emojiInterval = null; }
+    if (typingTimeout) { clearTimeout(typingTimeout); typingTimeout = null; }
+    
+    const descEl = document.querySelector('#slide-current p');
+    if (descEl) {
+        descEl.classList.remove('typing-text');
+        if (activeStationObject) descEl.innerText = activeStationObject.desc;
+    }
 }
 
 function createHeart() {
@@ -520,9 +658,12 @@ async function fetchMetadata(url, station) {
                 if (match && match[1]) {
                     station.desc = match[1].replace(/;/g, "").trim();
                     fetchAlbumArt(station.desc, station);
+                    // Update text only if NOT Hope or if Hope is paused
                     if (activeStationObject && activeStationObject.name === station.name) {
-                         const slide = document.getElementById('slide-current');
-                         if(slide) slide.querySelector('p').innerText = station.desc;
+                         if (activeStationObject.name !== "Hope" || audio.paused) {
+                            const slide = document.getElementById('slide-current');
+                            if(slide) slide.querySelector('p').innerText = station.desc;
+                         }
                     }
                     reader.cancel(); return;
                 }
@@ -552,7 +693,6 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
-    // MODIFICARE: Schimbăm URL-ul doar dacă sp este true (adică dacă pornim activ un post)
     if (ENABLE_DIRECT_LINKS && sp) {
         const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
         window.history.replaceState({}, "", "/" + cleanName);
@@ -582,7 +722,6 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
     }
     updateMediaSession();
 }
-
 
 function togglePlay() { 
     if (audio.paused) loadStationInfo(currentIdx, true, false); 
@@ -622,7 +761,6 @@ function updateMediaSession() {
     }
 }
 
-// --- NAVIGATION & UI ---
 function switchTab(t) {
     const isPlayer = t === 'player';
     document.getElementById('list-view').style.display = isPlayer ? 'none' : 'flex';
@@ -684,7 +822,6 @@ function updateSliderText() {
     });
 }
 
-// --- UTIL ---
 function transliterate(t) {
     if (!t) return "";
     let r = t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -726,64 +863,38 @@ function setupFabSwipe() {
 
 function init() {
     let auto = null;
-    
-    // Verificăm dacă avem un post în URL (după / )
     if (ENABLE_DIRECT_LINKS) {
         const path = window.location.pathname.split('/').filter(s => s.length > 0).pop();
         const query = window.location.search.substring(1);
         const raw = path || query;
-
         if (raw) {
             const search = transliterate(decodeURIComponent(raw));
             auto = stations.find(s => transliterate(s.name).includes(search));
         }
     }
-
     if (auto) {
-        // Dacă am găsit un post valid în URL, intrăm direct în Player
         renderList('all', document.getElementById('tab-all'));
         currentIdx = currentFilteredList.indexOf(auto);
-        
-        // --- ACEASTA ESTE LINIA IMPORTANTĂ ---
         updateSliderText(); 
-        // -------------------------------------
-
         loadStationInfo(currentIdx, true, false); 
         switchTab('player');
     } else {
-        // Dacă suntem pe pagina principală (fără /post in URL)
         const h10 = stations.find(s => s.name === "Heart 10s");
-        if (h10) { 
-            h10.isInitialBgSource = true; 
-            fetchMetadata(h10.stream, h10); 
-        }
-        
+        if (h10) { h10.isInitialBgSource = true; fetchMetadata(h10.stream, h10); }
         renderList('mine', document.getElementById('tab-mine'));
-        
-        // Încarcă datele primului post (index 0 din "Owned")
         loadStationInfo(0, false, true);
-        
-        // Actualizăm textul și pentru vizualizarea de bază a listei
         updateSliderText();
-
-        // Forțăm URL-ul curat la prima încărcare dacă nu e valid
         if (ENABLE_DIRECT_LINKS && window.location.pathname !== "/") {
             window.history.replaceState({}, "", "/");
         }
     }
-
     setupSwipe();
     setupFabSwipe();
-    
-    // Pornim metadata în fundal pentru toate posturile
     stations.forEach(s => fetchMetadata(s.stream, s));
-    
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
-
-
 init();
 </script>
 </body>
