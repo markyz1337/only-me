@@ -432,10 +432,9 @@ let activeArtLayer = 1;
 let startX = 0;
 let activeStationObject = null;
 let isDragging = false;
-let currentMetadataRequestId = 0;
 let metadataInterval = null;
 
-const ENABLE_DIRECT_LINKS = true; 
+const ENABLE_DIRECT_LINKS = false; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
@@ -463,917 +462,262 @@ const stations = [
     { name: "Generated Music", stream: "https://sergiumusic.duckdns.org/aimusic", img: "https://i.pinimg.com/236x/fd/fc/82/fdfc82753e4f8cbdd49184e9dea43d06.jpg", desc: "Sergiu | AI POP", isMine: true, isAll: true, yt: "https://youtube.com/playlist?list=PLju_tYPLb12jv_iNgO8ApKgjIO-9NSg85&si=Qs6H1Iogrp47YRuX" }
 ];
 
-stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
+// Initializare prop-uri statii
+stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
+
+const hopeEmojis = ["🌅", "🫵🏼🫶🏼", "💛", "🥰", "❤️‍🔥", "💗", "🏳️", "💞", "✨", "⭐️", "🌙", "🌕", "🌼", "🌸", "🥹"];
+let hopeInterval = null; 
+let emojiInterval = null;
+
+// --- CORE FUNCTIONS ---
 
 function init() {
     let autoStartStation = null;
-
-    // Verificăm dacă funcția este activată din variabila globală
     if (ENABLE_DIRECT_LINKS) {
-        const urlQuery = window.location.search.substring(1); 
         const urlPath = window.location.pathname.split('/').filter(s => s.length > 0).pop(); 
-        
-        const rawTarget = urlQuery || urlPath;
-
-        if (rawTarget) {
-            let decodedTarget = decodeURIComponent(rawTarget).toLowerCase().trim();
-            let latinTarget = transliterate(decodedTarget);
-            const searchSlug = latinTarget.replace(/\s+/g, '');
-
-            autoStartStation = stations.find(s => {
-                const stationNameClean = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
-                return stationNameClean.includes(searchSlug);
-            });
-
-            if (autoStartStation) {
-                const cleanPathName = transliterate(autoStartStation.name).toLowerCase().replace(/\s+/g, '');
-                window.history.replaceState({}, "", "/" + cleanPathName);
-            }
+        if (urlPath) {
+            autoStartStation = stations.find(s => transliterate(s.name).toLowerCase().replace(/\s+/g, '').includes(transliterate(urlPath)));
         }
     }
 
-    // Logica de pornire / Afișare
-    if (autoStartStation && ENABLE_DIRECT_LINKS) {
+    if (autoStartStation) {
         renderList('all', document.getElementById('tab-all'));
         currentIdx = currentFilteredList.indexOf(autoStartStation);
-        loadStationInfo(currentIdx, true, false); 
+        loadStationInfo(currentIdx, true); 
         switchTab('player');
     } else {
-        // Pornire standard pe "Owned"
         const heart10s = stations.find(s => s.name === "Heart 10s");
-        if (heart10s) {
-            heart10s.isInitialBgSource = true; 
-            fetchSilentMetadata(heart10s); 
-        }
+        if (heart10s) { heart10s.isInitialBgSource = true; fetchSilentMetadata(heart10s); }
         renderList('mine', document.getElementById('tab-mine'));
         loadStationInfo(0, false, true);
     }
 
-    // UI & Gesturi
-    updateSliderText();
     setupSwipe();
     setupFabSwipe();
     scanAllStations();
 
-    audio.addEventListener('waiting', () => updateUI('loading'));
-    audio.addEventListener('playing', () => updateUI(true));
-    audio.addEventListener('pause', () => updateUI(false));
+    audio.onwaiting = () => updateUI('loading');
+    audio.onplaying = () => updateUI(true);
+    audio.onpause = () => updateUI(false);
 }
-
-
-// --- LOGICA SPECIALĂ PENTRU RADIO HOPE ---
-const hopeEmojis = ["🌅", "🫵🏼🫶🏼", "💛", "🥰", "❤️‍🔥", "💗", "🏳️", "💞", "✨", "⭐️", "🌙", "🌕", "🌼", "🌸", "🥹"];
-let hopeInterval = null; // Pentru inimi
-let emojiInterval = null; // Pentru schimbarea textului
-
-/**
- * Schimbă emoji-ul din titlu cu un efect fluid de fade
- */
-function rotateHopeEmoji() {
-    const isHope = activeStationObject && activeStationObject.name === "Hope";
-    const titleEl = document.querySelector('#slide-current h2');
-    
-    if (isHope && titleEl) {
-        // Căutăm span-ul cu emoji
-        const emojiSpan = titleEl.querySelector('span');
-        if (!emojiSpan) return;
-
-        // 1. Fade Out doar la emoji
-        emojiSpan.classList.add('fade-out-emoji');
-        
-        setTimeout(() => {
-            // 2. Schimbăm emoji-ul
-            const randomEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
-            emojiSpan.innerText = ` ${randomEmoji}`; // Păstrăm spațiul înainte
-            
-            // 3. Fade In
-            emojiSpan.classList.remove('fade-out-emoji');
-        }, 600); 
-    }
-}
-
-
-/**
- * Gestionează pornirea/oprirea efectelor speciale pentru postul "Hope"
- * (Inimile galbene și rotația fluentă a emoji-urilor)
- */
-function checkHopeEffect() {
-    const isHope = activeStationObject && activeStationObject.name === "Hope";
-    const isPlaying = !audio.paused;
-
-    if (isHope && isPlaying) {
-        // 1. PORNIRE INIMI (dacă nu rulează deja)
-        if (!hopeInterval) {
-            hopeInterval = setInterval(createHeart, 350);
-        }
-
-        // 2. PORNIRE EMOJI DINAMIC
-        if (!emojiInterval) {
-            const titleEl = document.querySelector('#slide-current h2');
-            
-            if (titleEl) {
-                // Verificăm dacă titlul are deja structura cu <span>
-                // Dacă nu are (e doar text "Hope"), îl pregătim
-                if (!titleEl.querySelector('span')) {
-                    const startEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
-                    // Structura: Textul "Hope" fix + span-ul pentru emoji-ul care face fade
-                    titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block;">${startEmoji}</span>`;
-                }
-            }
-
-            // Pornim intervalul de schimbare la fiecare 5 secunde
-            emojiInterval = setInterval(rotateHopeEmoji, 5000);
-        }
-    } else {
-        // Dacă am pus pauză sau am schimbat postul, oprim tot
-        stopHopeEffect();
-    }
-}
-
-/**
- * Schimbă doar emoji-ul din interiorul span-ului, păstrând textul "Hope" intact
- */
-function rotateHopeEmoji() {
-    const isHope = activeStationObject && activeStationObject.name === "Hope";
-    const titleEl = document.querySelector('#slide-current h2');
-    
-    if (isHope && titleEl) {
-        const emojiSpan = titleEl.querySelector('span');
-        if (!emojiSpan) return;
-
-        // Pasul 1: Fade Out doar la emoji (clasa CSS definită anterior)
-        emojiSpan.style.opacity = "0";
-        
-        setTimeout(() => {
-            // Pasul 2: Schimbăm emoji-ul în timp ce e invizibil
-            const randomEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
-            emojiSpan.innerText = randomEmoji;
-            
-            // Pasul 3: Fade In înapoi
-            emojiSpan.style.opacity = "1";
-        }, 650); // Așteptăm să se termine tranziția de dispariție
-    }
-}
-
-/**
- * Curăță intervalele pentru a elibera memoria telefonului
- */
-function stopHopeEffect() {
-    if (hopeInterval) {
-        clearInterval(hopeInterval);
-        hopeInterval = null;
-    }
-    if (emojiInterval) {
-        clearInterval(emojiInterval);
-        emojiInterval = null;
-    }
-}
-
-
-/**
- * Creează inimile care ies de sub copertă
- */
-function createHeart() {
-    const playerView = document.getElementById('player-view');
-    const artContainer = document.querySelector('.art-container');
-    
-    if (window.getComputedStyle(playerView).display === 'none' || !artContainer) return;
-
-    const heart = document.createElement('div');
-    heart.className = 'heart-particle';
-    heart.innerHTML = '💛';
-    
-    const rect = artContainer.getBoundingClientRect();
-    const startX = rect.left + (Math.random() * rect.width);
-    const startY = rect.top + (Math.random() * rect.height);
-
-    const moveX = (Math.random() - 0.5) * 150;
-    const moveYStart = (Math.random() - 0.5) * 50;
-    const randomRot = (Math.random() * 180 - 90) + "deg";
-    const size = Math.random() * 10 + 15;
-    const opacity = (Math.random() * 0.4 + 0.3).toFixed(2);
-
-    heart.style.left = `${startX}px`;
-    heart.style.top = `${startY}px`;
-    heart.style.fontSize = `${size}px`;
-    
-    heart.style.setProperty('--move-x', `${moveX}px`);
-    heart.style.setProperty('--move-y-start', `${moveYStart}px`);
-    heart.style.setProperty('--random-rot', randomRot);
-    heart.style.setProperty('--target-opacity', opacity);
-    
-    document.body.appendChild(heart);
-    
-    setTimeout(() => { if (heart.parentElement) heart.remove(); }, 6000);
-}
-// --- SFÂRȘIT LOGICĂ HOPE ---
-
-
-
-
-
 
 function transliterate(text) {
     if (!text) return "";
-
-    // 1. lowercase
-    let result = text.toLowerCase();
-
-    // 2. elimină diacritice (ă â î ș ț etc.)
-    result = result.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    // 3. transliterare chirilică → latină
-    const cyrillicMap = {
-        'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh',
-        'з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o',
-        'п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts',
-        'ч':'ch','ш':'sh','щ':'sch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'
-    };
-
-    result = result.split('').map(char => cyrillicMap[char] || char).join('');
-
-    // 4. elimină tot ce nu e literă sau cifră
-    result = result.replace(/[^a-z0-9]/g, '');
-
-    return result;
+    let result = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const cyrillicMap = {'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'sch','ы':'y','э':'e','ю':'yu','я':'ya'};
+    return result.split('').map(char => cyrillicMap[char] || char).join('').replace(/[^a-z0-9]/g, '');
 }
 
+// --- METADATA & IMAGES ---
 
-
-
-function getStationFromURL() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('station'); // caută valoarea după "?station="
-}
-
-
-let fabStartX = 0;
-let fabStartY = 0;
-let fabIsDragging = false;
-
-
-function setupFabSwipe() {
-    const fab = document.getElementById('fab-play-pause');
-    
-    fab.addEventListener('touchstart', (e) => {
-        fabStartX = e.touches[0].clientX;
-        fabStartY = e.touches[0].clientY;
-        fabIsDragging = true;
-    }, { passive: true });
-
-    fab.addEventListener('touchend', (e) => {
-        if (!fabIsDragging) return;
-        
-        const diffX = e.changedTouches[0].clientX - fabStartX;
-        const diffY = e.changedTouches[0].clientY - fabStartY;
-        const threshold = 30;
-
-        if (currentFilteredList.length === 0) return;
-
-        // 🔽 JOS → NEXT
-        if (diffY > threshold && Math.abs(diffY) > Math.abs(diffX)) {
-            if (audio.paused && !audio.src) {
-                playStation(); 
-            } else {
-                next();
-            }
-            showFabFeedback('skip-forward');
-        }
-
-        // 🔼 SUS → PREVIOUS
-        else if (diffY < -threshold && Math.abs(diffY) > Math.abs(diffX)) {
-            if (audio.paused && !audio.src) {
-                playStation();
-            } else {
-                prev();
-            }
-            showFabFeedback('skip-back');
-        }
-
-        // ⬅️ STÂNGA → NEXT
-        else if (diffX < -threshold) {
-            if (audio.paused && !audio.src) {
-                playStation();
-            } else {
-                next();
-            }
-            showFabFeedback('skip-forward');
-        }
-        
-        fabIsDragging = false;
-    });
-}
-
-
-
-function showFabFeedback(iconName) {
-    const fab = document.getElementById('fab-play-pause');
-    const iconEl = fab.querySelector('i');
-
-    if (iconEl) {
-        iconEl.setAttribute('data-lucide', iconName);
-        lucide.createIcons();
-        
-        setTimeout(() => {
-            // Revenim la iconița de Play/Pause în funcție de starea reală a sunetului
-            const stateIcon = audio.paused ? 'play' : 'pause';
-            iconEl.setAttribute('data-lucide', stateIcon);
-            lucide.createIcons();
-        }, 800);
-    }
-    if (navigator.vibrate) navigator.vibrate(30);
-}
-
-
-
-
-
-
-
-
-
-
-async function fetchAlbumArt(title, stationRef) {
-    if (!title || title.length < 3) return;
-
-    let fallbackTimeout = null;
-
-    // --- LOGICA TIMEOUT 2 SECUNDE PENTRU HEART 10S ---
-    if (stationRef.isInitialBgSource) {
-        fallbackTimeout = setTimeout(() => {
-            // Dacă au trecut 2 secunde și încă nu avem imagine de la iTunes
-            if (stationRef.img === stationRef.originalImg || !stationRef.img) {
-                console.log("iTunes prea lent, aplicăm logo-ul stației ca fundal.");
-                applyImageToUI(stationRef.originalImg, stationRef, true);
-            }
-        }, 2000); // 2000ms = 2 secunde
-    }
-
-    try {
-        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
-        const data = await res.json();
-        
-        if (data.results && data.results.length > 0) {
-            // Dacă iTunes a răspuns, curățăm timeout-ul să nu mai punem logo-ul vechi peste
-            if (fallbackTimeout) clearTimeout(fallbackTimeout);
-
-            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
-            applyImageToUI(newImg, stationRef, false);
-        }
-    } catch (e) {
-        // În caz de eroare (ex: offline), punem direct logo-ul
-        if (stationRef.isInitialBgSource) applyImageToUI(stationRef.originalImg, stationRef, true);
-    }
-}
-
-// Funcție helper pentru a aplica imaginea peste tot unitar
-function applyImageToUI(imgUrl, stationRef, isFallback) {
-    const tempImg = new Image();
-    tempImg.src = imgUrl;
-    tempImg.onload = () => {
-        stationRef.img = imgUrl;
-
-        // 1. Fundalul pentru Heart 10s (Prima pornire)
-        if (stationRef.isInitialBgSource && audio.paused) {
-            const bg1 = document.getElementById('bg-layer-1');
-            bg1.style.backgroundImage = `url(${imgUrl})`;
-            bg1.style.opacity = '1';
-        }
-
-        // 2. Coperta din Player (Dacă e postul activ)
-        if (activeStationObject && activeStationObject.name === stationRef.name) {
-            updateArtUI(imgUrl);
-        }
-        
-        // 3. Miniaturile din listă
-        document.querySelectorAll('.station-item').forEach(item => {
-            if(item.getAttribute('data-name') === stationRef.name) {
-                const thumb = item.querySelector('.station-thumb');
-                if(thumb) thumb.src = imgUrl;
-            }
-        });
-    };
-}
-
-
-
-
-
-
-
-function updateMediaSession(station) {
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title: station.desc,
-            artist: station.name,
-            album: "Sergiu FM",
-            artwork: [{ src: station.img || FALLBACK_IMG, sizes: '512x512', type: 'image/png' }]
-        });
-        navigator.mediaSession.setActionHandler('play', () => audio.play());
-        navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-        navigator.mediaSession.setActionHandler('previoustrack', () => prev());
-        navigator.mediaSession.setActionHandler('nexttrack', () => next());
-    }
-}
-
-function renderList(mode, el) {
-    const list = document.getElementById('stations-list');
-    const fab = document.getElementById('fab-play-pause');
-    
-    // 1. Resetăm scroll-ul la 0 (SUS) imediat ce schimbăm categoria
-    // Folosim elementul cu clasa .content deoarece acesta are overflow-y: auto
-    const scrollContainer = document.querySelector('.content');
-    if (scrollContainer) {
-        scrollContainer.scrollTop = 0;
-    }
-
-    // 2. Curățăm lista existentă
-    list.innerHTML = "";
-    
-    // 3. Gestionăm starea vizuală a tab-urilor
-    if(el) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-    }
-    
-    // Ne asigurăm că butonul plutitor (FAB) este vizibil în modul listă
-    fab.style.display = 'flex';
-
-    // 4. Filtrăm stațiile pe baza modului selectat
-    currentFilteredList = stations.filter(s => {
-        if (mode === 'all') return s.isAll === true; 
-        if (mode === 'fav') return s.isFav;
-        if (mode === 'russian') return s.isRussian;
-        if (mode === 'mine') return s.isMine;
-        return false;
-    });
-
-    // 5. Generăm elementele în DOM
-    currentFilteredList.forEach((s) => {
-        const item = document.createElement('div');
-        
-        // Verificăm dacă stația curentă este cea care rulează acum pentru a activa egalizatorul
-        const isCurrent = (!audio.paused && activeStationObject && activeStationObject.name === s.name);
-        
-        item.className = `station-item ${isCurrent ? 'is-playing' : ''}`;
-        item.setAttribute('data-name', s.name); 
-        
-        item.innerHTML = `
-            <img src="${s.img || FALLBACK_IMG}" class="station-thumb">
-            <div style="flex:1">
-                <div class="station-name">${s.name}</div>
-                <div class="station-desc">${s.desc}</div>
-            </div>
-            <div class="playing-icon">
-                <span></span><span></span><span></span>
-            </div>
-        `;
-        
-        // La click, setăm indexul și pornim playerul
-        item.onclick = () => { 
-            currentIdx = currentFilteredList.indexOf(s); 
-            playStation(); 
-        };
-        list.appendChild(item);
-    });
-    
-    // 6. Reinițializăm iconițele Lucide și starea UI
-    lucide.createIcons();
-    updateUI(!audio.paused);
-}
-
-
-
-
-
-
-
-
-
-function switchTab(t) {
-    const nav = document.getElementById('main-nav');
-    const fab = document.getElementById('fab-play-pause');
-    const listView = document.getElementById('list-view');
-    const playerView = document.getElementById('player-view');
-    const navList = document.getElementById('nav-list');
-    const navPlayer = document.getElementById('nav-player');
-    
-    if(t === 'list'){ 
-        // Afișăm Lista
-        listView.style.display = 'flex'; 
-        playerView.style.display = 'none';
-        
-        // Actualizăm Navigația
-        navList.classList.add('active'); 
-        navPlayer.classList.remove('active'); 
-        nav.className = 'nav-bar on-radio';
-        
-        // Afișăm butonul plutitor (FAB)
-        fab.style.display = 'flex';
-        
-    } else { 
-        // Afișăm Player-ul
-        listView.style.display = 'none'; 
-        playerView.style.display = 'flex';
-        
-        // Actualizăm Navigația
-        navList.classList.remove('active'); 
-        navPlayer.classList.add('active'); 
-        nav.className = 'nav-bar on-player';
-        
-        // Ascundem FAB în Player-ul mare
-        fab.style.display = 'none';
-    }
-
-    // LOGICĂ SPECIALĂ: Verificăm inimile Hope la schimbarea tab-ului
-    // (Inimile se creează doar dacă player-ul este vizibil)
-    if (typeof checkHopeEffect === "function") {
-        checkHopeEffect();
-    }
-}
-
-
-
-
-
-
-function updateUI(state) { 
-    const b = document.getElementById('play-trigger');
-    const f = document.getElementById('fab-play-pause');
-    if(!b && !f) return;
-    
-    let iconPlay = '<i data-lucide="play" fill="currentColor"></i>';
-    let iconPause = '<i data-lucide="pause" fill="currentColor"></i>';
-    let iconLoad = '<i data-lucide="loader-2" class="spin"></i>';
-
-    // 1. Resetăm starea vizuală în listă
-    const allItems = document.querySelectorAll('.station-item');
-    allItems.forEach(item => item.classList.remove('is-playing'));
-
-    // 2. Activăm egalizatorul pe rândul activ dacă muzica rulează/se încarcă
-    if ((state === true || state === 'loading') && activeStationObject) {
-        const activeItem = document.querySelector(`.station-item[data-name="${activeStationObject.name}"]`);
-        if (activeItem) {
-            activeItem.classList.add('is-playing');
-        }
-    }
-
-    // 3. Actualizăm iconițele butoanelor (Player și FAB)
-    if (state === 'loading') { 
-        if(b) { b.innerHTML = iconLoad; b.classList.remove('playing'); }
-        if(f) { f.innerHTML = iconLoad; f.classList.remove('playing'); }
-    }
-    else if (state === true) { 
-        if(b) { b.innerHTML = iconPause; b.classList.add('playing'); }
-        if(f) { f.innerHTML = iconPause; f.classList.add('playing'); }
-    }
-    else { 
-        if(b) { b.innerHTML = iconPlay; b.classList.remove('playing'); }
-        if(f) { f.innerHTML = iconPlay; f.classList.remove('playing'); }
-    }
-    
-    // 4. LOGICĂ SPECIALĂ: Inimile pentru Hope
-    // Verificăm dacă trebuie să pornim sau să oprim inimile galbene
-    if (typeof checkHopeEffect === "function") {
-        checkHopeEffect();
-    }
-
-    // 5. Re-randăm iconițele Lucide
-    lucide.createIcons();
-}
-
-
-
-
-
-
-
-function scanAllStations() { stations.forEach(s => { if (!s.stream.includes('.m3u8')) fetchSilentMetadata(s); }); }
-
-// 1. Modificăm fetchSilentMetadata să asigure afișarea fundalului
 async function fetchSilentMetadata(station) {
     try {
         const response = await fetch(station.stream, { headers: { "Icy-MetaData": "1" } });
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let metaInt = parseInt(response.headers.get("icy-metaint"));
-        
-        // Dacă nu avem metadate, punem măcar logo-ul pe fundal la început
-        if (!metaInt && station.isInitialBgSource) {
-            applyImageToUI(station.originalImg, station, true);
-            return;
-        }
+        if (!metaInt) { if(station.isInitialBgSource) applyImageToUI(station.originalImg, station); return; }
 
         let buffer = new Uint8Array();
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            let temp = new Uint8Array(buffer.length + value.length); 
-            temp.set(buffer); temp.set(value, buffer.length); buffer = temp;
-
-            while (buffer.length >= metaInt + 1) {
-                let metaLength = buffer[metaInt] * 16;
-                if (buffer.length < metaInt + 1 + metaLength) break;
-                let metaString = decoder.decode(buffer.slice(metaInt + 1, metaInt + 1 + metaLength));
-                let match = metaString.match(/StreamTitle='([^']*)'/);
-                
-                if (match && match[1]) {
-                    station.desc = match[1].replace(/;/g, "").trim();
-                    // Căutăm coperta pe iTunes
-                    fetchAlbumArt(station.desc, station);
-                    reader.cancel(); 
-                    return;
-                }
-                buffer = buffer.slice(metaInt + 1 + metaLength);
-            }
-        }
-    } catch(e) {
-        // Dacă stream-ul e picat sau eroarea de rețea, punem logo-ul
-        if (station.isInitialBgSource) applyImageToUI(station.originalImg, station, true);
-    }
+        const { value } = await reader.read();
+        let metaString = decoder.decode(value);
+        let match = metaString.match(/StreamTitle='([^']*)'/);
+        if (match && match[1]) {
+            station.desc = match[1].replace(/;/g, "").trim();
+            fetchAlbumArt(station.desc, station);
+        } else if(station.isInitialBgSource) applyImageToUI(station.originalImg, station);
+        reader.cancel();
+    } catch(e) { if(station.isInitialBgSource) applyImageToUI(station.originalImg, station); }
 }
 
-// 2. Funcția de căutare copertă cu cronometrul de 2 secunde fixat
 async function fetchAlbumArt(title, stationRef) {
-    if (!title || title.length < 3) {
-        if (stationRef.isInitialBgSource) applyImageToUI(stationRef.originalImg, stationRef, true);
-        return;
-    }
-
+    if (!title || title.length < 3) { applyImageToUI(stationRef.originalImg, stationRef); return; }
     let itunesFinished = false;
 
-    // Timer de 2 secunde: dacă iTunes nu termină, punem logo-ul
     if (stationRef.isInitialBgSource) {
-        setTimeout(() => {
-            if (!itunesFinished) {
-                console.log("iTunes prea lent, aplicăm logo-ul.");
-                applyImageToUI(stationRef.originalImg, stationRef, true);
-            }
-        }, 2000);
+        setTimeout(() => { if (!itunesFinished) applyImageToUI(stationRef.originalImg, stationRef); }, 2000);
     }
 
     try {
         const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
         const data = await res.json();
-        itunesFinished = true; // iTunes a răspuns (chiar și cu 0 rezultate)
-        
-        if (data.results && data.results.length > 0) {
-            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
-            applyImageToUI(newImg, stationRef, false);
-        } else {
-            // iTunes a răspuns dar nu a găsit nimic
-            applyImageToUI(stationRef.originalImg, stationRef, true);
-        }
-    } catch (e) {
         itunesFinished = true;
-        applyImageToUI(stationRef.originalImg, stationRef, true);
+        if (data.results?.length > 0) {
+            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
+            applyImageToUI(newImg, stationRef);
+        } else applyImageToUI(stationRef.originalImg, stationRef);
+    } catch (e) { itunesFinished = true; applyImageToUI(stationRef.originalImg, stationRef); }
+}
+
+function applyImageToUI(imgUrl, stationRef) {
+    stationRef.img = imgUrl;
+    if (stationRef.isInitialBgSource && audio.paused) {
+        const bg1 = document.getElementById('bg-layer-1');
+        bg1.style.backgroundImage = `url(${imgUrl})`;
+        bg1.style.opacity = "1";
     }
-}
-
-// 3. Funcția care "aprinde" fundalul (CSS opacity 1)
-function applyImageToUI(imgUrl, stationRef, isFallback) {
-    const bg1 = document.getElementById('bg-layer-1');
-    const playerImg1 = document.getElementById('player-img-1');
+    if (activeStationObject?.name === stationRef.name) updateArtUI(imgUrl);
     
-    const tempImg = new Image();
-    tempImg.src = imgUrl;
-    tempImg.onload = () => {
-        stationRef.img = imgUrl;
-
-        // Dacă e Heart 10s la pornire, forțăm fundalul să fie vizibil
-        if (stationRef.isInitialBgSource) {
-            bg1.style.backgroundImage = `url(${imgUrl})`;
-            bg1.style.opacity = "1"; // <--- Aici facem fundalul vizibil
-            if (playerImg1) playerImg1.src = imgUrl;
-        }
-
-        // Dacă stația e cea activă (se ascultă acum)
-        if (activeStationObject && activeStationObject.name === stationRef.name) {
-            updateArtUI(imgUrl);
-        }
-        
-        // Update miniaturi în listă
-        document.querySelectorAll('.station-item').forEach(item => {
-            if(item.getAttribute('data-name') === stationRef.name) {
-                const thumb = item.querySelector('.station-thumb');
-                if(thumb) thumb.src = imgUrl;
-            }
-        });
-    };
+    document.querySelectorAll(`.station-item[data-name="${stationRef.name}"]`).forEach(item => {
+        item.querySelector('.station-thumb').src = imgUrl;
+        item.querySelector('.station-desc').innerText = stationRef.desc;
+    });
 }
-
 
 function updateArtUI(newImg) {
-    const art1 = document.getElementById('player-img-1'); const art2 = document.getElementById('player-img-2');
-    const bg1 = document.getElementById('bg-layer-1'); const bg2 = document.getElementById('bg-layer-2');
-    const nextArt = activeArtLayer === 1 ? art2 : art1; const currentArt = activeArtLayer === 1 ? art1 : art2;
-    const nextBG = activeBGLayer === 1 ? bg2 : bg1; const currentBG = activeBGLayer === 1 ? bg1 : bg2;
+    const art = [document.getElementById('player-img-1'), document.getElementById('player-img-2')];
+    const bg = [document.getElementById('bg-layer-1'), document.getElementById('bg-layer-2')];
     
-    nextArt.src = newImg; nextBG.style.backgroundImage = `url(${newImg})`;
-    nextArt.classList.replace('art-hidden', 'art-visible'); currentArt.classList.replace('art-visible', 'art-hidden');
-    nextBG.style.opacity = '1'; currentBG.style.opacity = '0';
-    activeArtLayer = activeArtLayer === 1 ? 2 : 1; activeBGLayer = activeBGLayer === 1 ? 2 : 1;
-    updateMediaSession(currentFilteredList[currentIdx]);
+    let nextIdx = activeArtLayer === 1 ? 1 : 0;
+    let currIdx = activeArtLayer === 1 ? 0 : 1;
+
+    art[nextIdx].src = newImg;
+    bg[nextIdx].style.backgroundImage = `url(${newImg})`;
+    art[nextIdx].classList.replace('art-hidden', 'art-visible');
+    art[currIdx].classList.replace('art-visible', 'art-hidden');
+    bg[nextIdx].style.opacity = '1';
+    bg[currIdx].style.opacity = '0';
+    
+    activeArtLayer = activeArtLayer === 1 ? 2 : 1;
+    activeBGLayer = activeArtLayer;
 }
 
-async function fetchAlbumArt(title, stationRef) {
-    if (!title || title.length < 3) return;
-    try {
-        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
-        const data = await res.json();
-        if (data.results && data.results.length > 0) {
-            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
-            stationRef.img = newImg;
-            if (currentFilteredList[currentIdx] === stationRef) updateArtUI(newImg);
-            const listItems = document.querySelectorAll('.station-item');
-            listItems.forEach(item => {
-                if(item.getAttribute('data-name') === stationRef.name) {
-                    const thumb = item.querySelector('.station-thumb');
-                    const desc = item.querySelector('.station-desc');
-                    thumb.style.opacity = '0';
-                    setTimeout(() => {
-                        thumb.src = newImg;
-                        thumb.style.opacity = '1';
-                        if(desc) desc.innerText = stationRef.desc;
-                    }, 400);
-                }
-            });
-        }
-    } catch (e) {}
-}
+// --- UI CONTROL ---
 
-function updateUIMetadata(station) {
-    fetchAlbumArt(station.desc, station);
-    if (currentFilteredList[currentIdx] === station) {
-        const slide = document.getElementById('slide-current');
-        if(slide) slide.querySelector('p').innerText = station.desc;
-        updateMediaSession(station);
-    }
-}
-
-async function fetchAlbumArt(title, stationRef) {
-    if (!title || title.length < 3) return;
-
-    let fallbackTimeout = null;
-
-    // DOAR LA PORNIRE: Setăm cronometrul de 2 secunde pentru Heart 10s
-    if (stationRef.isInitialBgSource) {
-        fallbackTimeout = setTimeout(() => {
-            console.log("Prima pornire: iTunes lent. Punem logo Heart 10s.");
-            applyImageToUI(stationRef.originalImg, stationRef, true);
-        }, 2000);
+function renderList(mode, el) {
+    const list = document.getElementById('stations-list');
+    document.querySelector('.content').scrollTop = 0;
+    list.innerHTML = "";
+    
+    if(el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
     }
 
-    try {
-        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
-        const data = await res.json();
-        
-        if (data.results && data.results.length > 0) {
-            // Dacă iTunes a răspuns, anulăm cronometrul (dacă există)
-            if (fallbackTimeout) clearTimeout(fallbackTimeout);
+    currentFilteredList = stations.filter(s => s[`is${mode.charAt(0).toUpperCase() + mode.slice(1)}`] || mode === 'all');
 
-            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
-            applyImageToUI(newImg, stationRef, false);
-        }
-    } catch (e) {
-        // În caz de eroare rețea, forțăm imaginea originală dacă e la pornire
-        if (stationRef.isInitialBgSource) applyImageToUI(stationRef.originalImg, stationRef, true);
-    }
+    currentFilteredList.forEach((s) => {
+        const isCurrent = (!audio.paused && activeStationObject?.name === s.name);
+        const item = document.createElement('div');
+        item.className = `station-item ${isCurrent ? 'is-playing' : ''}`;
+        item.setAttribute('data-name', s.name); 
+        item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div><div class="playing-icon"><span></span><span></span><span></span></div>`;
+        item.onclick = () => { currentIdx = currentFilteredList.indexOf(s); playStation(); };
+        list.appendChild(item);
+    });
+    lucide.createIcons();
 }
-
-function applyImageToUI(imgUrl, stationRef, isFallback) {
-    const tempImg = new Image();
-    tempImg.src = imgUrl;
-    tempImg.onload = () => {
-        stationRef.img = imgUrl;
-
-        // 1. Gestionare Fundal Inițial (Heart 10s)
-        if (stationRef.isInitialBgSource && audio.paused && (!activeStationObject || !activeStationObject.isPlayingNow)) {
-            const bg1 = document.getElementById('bg-layer-1');
-            bg1.style.backgroundImage = `url(${imgUrl})`;
-            
-            // Forțăm vizibilitatea fluidă
-            setTimeout(() => { bg1.style.opacity = '1'; }, 50);
-            
-            // Dacă am aplicat deja o imagine (fie ea metadata sau fallback), 
-            // marcăm că nu mai avem nevoie de sursa inițială
-            if (!isFallback || imgUrl === stationRef.originalImg) {
-                // Opțional: putem lăsa isInitialBgSource true până la primul Play
-            }
-        }
-
-        // 2. Gestionare Player Activ (Schimbare radio/Play)
-        // Dacă stația care tocmai a primit imaginea este cea selectată în Player
-        if (activeStationObject && activeStationObject.name === stationRef.name) {
-            updateArtUI(imgUrl);
-        }
-        
-        // 3. Update Miniaturi Listă
-        document.querySelectorAll('.station-item').forEach(item => {
-            if(item.getAttribute('data-name') === stationRef.name) {
-                const thumb = item.querySelector('.station-thumb');
-                if(thumb) thumb.src = imgUrl;
-            }
-        });
-    };
-}
-
-
-
-
-function updateSliderText() {
-    if (currentFilteredList.length === 0) return;
-    const pIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length;
-    const nIdx = (currentIdx + 1) % currentFilteredList.length;
-    updateSlide('slide-prev', currentFilteredList[pIdx]);
-    updateSlide('slide-current', currentFilteredList[currentIdx]);
-    updateSlide('slide-next', currentFilteredList[nIdx]);
-}
-
-function updateSlide(id, data) { 
-    const el = document.getElementById(id); 
-    if(!el) return;
-    
-    const titleEl = el.querySelector('h2');
-    
-    if (data.name === "Hope" && id === "slide-current") {
-        const randomEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
-        titleEl.innerHTML = `Hope <span> ${randomEmoji}</span>`;
-    } else {
-        titleEl.innerText = data.name;
-    }
-    
-    el.querySelector('p').innerText = data.desc; 
-}
-
-
-
-
-// În interiorul funcției loadStationInfo(idx, sp = true)
 
 function loadStationInfo(idx, sp = true, skipArt = false) {
-    if (currentFilteredList.length === 0) return;
+    if (!currentFilteredList[idx]) return;
     const s = currentFilteredList[idx];
-    
-    // Dezactivăm sursa de fundal inițială dacă începem redarea
-    if (sp) {
-        stations.forEach(st => st.isInitialBgSource = false);
-    }
-
+    if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
-    // --- LOGICA DE REDIRECȚIONARE / ACTUALIZARE URL ---
-    // Verificăm dacă variabila globală este setată pe true înainte de a modifica URL-ul
-    if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS) {
-        try {
-            const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
-            window.history.replaceState({ station: cleanName }, "", "/" + cleanName);
-        } catch (e) {
-            console.warn("Nu s-a putut actualiza URL-ul:", e);
-        }
-    }
-    // -------------------------------------------------
-
-    if (sp || !skipArt) {
-        updateArtUI(s.img || FALLBACK_IMG);
+    if (ENABLE_DIRECT_LINKS) {
+        const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+        window.history.replaceState({}, "", "/" + cleanName);
     }
 
+    if (!skipArt) updateArtUI(s.img || FALLBACK_IMG);
+    
     const ytBtn = document.getElementById('player-yt-btn');
-    if (s.yt) { 
-        ytBtn.href = s.yt; 
-        ytBtn.classList.remove('yt-hidden'); 
-    } else { 
-        ytBtn.classList.add('yt-hidden'); 
-    }
+    s.yt ? (ytBtn.href = s.yt, ytBtn.classList.remove('yt-hidden')) : ytBtn.classList.add('yt-hidden');
 
-    // Gestionare Metadate
     if (metadataInterval) clearInterval(metadataInterval);
-    currentMetadataRequestId++; 
-    
     audio.src = s.stream;
-
-    setTimeout(() => { 
-        fetchMetadata(s.stream, s); 
-        metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
-    }, 3000);
-
-    if(sp) { 
-        updateUI('loading'); 
-        audio.play().catch(error => {
-            console.warn("Autoplay blocat de browser.");
-            updateUI(false);
-        }); 
-    }
+    if(sp) audio.play().catch(() => updateUI(false));
     
+    updateSliderText();
     updateMediaSession(s);
+    metadataInterval = setInterval(() => fetchSilentMetadata(s), 15000);
 }
 
+function updateUI(state) {
+    const b = document.getElementById('play-trigger'), f = document.getElementById('fab-play-pause');
+    const icons = { play: '<i data-lucide="play" fill="currentColor"></i>', pause: '<i data-lucide="pause" fill="currentColor"></i>', load: '<i data-lucide="loader-2" class="spin"></i>' };
 
+    document.querySelectorAll('.station-item').forEach(i => i.classList.remove('is-playing'));
+    if (state && activeStationObject) document.querySelector(`.station-item[data-name="${activeStationObject.name}"]`)?.classList.add('is-playing');
 
+    const icon = state === 'loading' ? icons.load : (state === true ? icons.pause : icons.play);
+    if(b) { b.innerHTML = icon; state === true ? b.classList.add('playing') : b.classList.remove('playing'); }
+    if(f) { f.innerHTML = icon; state === true ? f.classList.add('playing') : f.classList.remove('playing'); }
+    
+    lucide.createIcons();
+    checkHopeEffect();
+}
 
+// --- HOPE SPECIAL EFFECTS ---
 
+function checkHopeEffect() {
+    const isHope = activeStationObject?.name === "Hope" && !audio.paused;
+    if (isHope) {
+        if (!hopeInterval) hopeInterval = setInterval(createHeart, 350);
+        if (!emojiInterval) {
+            const titleEl = document.querySelector('#slide-current h2');
+            if (titleEl && !titleEl.querySelector('span')) titleEl.innerHTML = `Hope <span>${hopeEmojis[0]}</span>`;
+            emojiInterval = setInterval(rotateHopeEmoji, 5000);
+        }
+    } else {
+        clearInterval(hopeInterval); hopeInterval = null;
+        clearInterval(emojiInterval); emojiInterval = null;
+    }
+}
 
+function rotateHopeEmoji() {
+    const span = document.querySelector('#slide-current h2 span');
+    if (span) {
+        span.style.opacity = "0";
+        setTimeout(() => {
+            span.innerText = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
+            span.style.opacity = "1";
+        }, 650);
+    }
+}
 
+function createHeart() {
+    if (document.getElementById('player-view').style.display === 'none') return;
+    const heart = document.createElement('div');
+    heart.className = 'heart-particle'; heart.innerHTML = '💛';
+    const rect = document.querySelector('.art-container').getBoundingClientRect();
+    heart.style.left = `${rect.left + Math.random() * rect.width}px`;
+    heart.style.top = `${rect.top + Math.random() * rect.height}px`;
+    heart.style.setProperty('--move-x', `${(Math.random() - 0.5) * 150}px`);
+    heart.style.setProperty('--move-y-start', `${(Math.random() - 0.5) * 50}px`);
+    heart.style.setProperty('--random-rot', `${Math.random() * 180 - 90}deg`);
+    heart.style.setProperty('--target-opacity', Math.random() * 0.4 + 0.3);
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 6000);
+}
+
+// --- NAVIGATION & SWIPE ---
+
+function switchTab(t) {
+    const isList = t === 'list';
+    document.getElementById('list-view').style.display = isList ? 'flex' : 'none';
+    document.getElementById('player-view').style.display = isList ? 'none' : 'flex';
+    document.getElementById('nav-list').classList.toggle('active', isList);
+    document.getElementById('nav-player').classList.toggle('active', !isList);
+    document.getElementById('main-nav').className = isList ? 'nav-bar on-radio' : 'nav-bar on-player';
+    document.getElementById('fab-play-pause').style.display = isList ? 'flex' : 'none';
+    checkHopeEffect();
+}
+
+function updateSliderText() {
+    const getIdx = (off) => (currentIdx + off + currentFilteredList.length) % currentFilteredList.length;
+    const update = (id, idx) => {
+        const s = currentFilteredList[idx];
+        const el = document.getElementById(id);
+        const title = el.querySelector('h2');
+        if (id === 'slide-current' && s.name === "Hope") title.innerHTML = `Hope <span>${hopeEmojis[0]}</span>`;
+        else title.innerText = s.name;
+        el.querySelector('p').innerText = s.desc;
+    };
+    update('slide-prev', getIdx(-1));
+    update('slide-current', currentIdx);
+    update('slide-next', getIdx(1));
+}
 
 function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
 function next() { currentIdx = (currentIdx + 1) % currentFilteredList.length; animateTransition('next'); }
@@ -1382,36 +726,56 @@ function prev() { currentIdx = (currentIdx - 1 + currentFilteredList.length) % c
 function animateTransition(dir) {
     wrapper.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
     wrapper.style.transform = dir==='next' ? 'translateX(-66.666%)' : 'translateX(0)';
-    setTimeout(()=>{ wrapper.style.transition='none'; loadStationInfo(currentIdx, true); updateSliderText(); wrapper.style.transform = 'translateX(-33.333%)'; }, 600);
+    setTimeout(()=>{ wrapper.style.transition='none'; loadStationInfo(currentIdx, true); wrapper.style.transform = 'translateX(-33.333%)'; }, 600);
 }
 
 function setupSwipe() {
-    const zones = [document.getElementById('swipe-zone-art'), document.getElementById('swipe-zone-text')];
-    zones.forEach(z => {
-        z.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; isDragging=true; wrapper.style.transition='none'; }, {passive: true});
-        z.addEventListener('touchmove', e=>{ if(!isDragging) return; const d = e.touches[0].clientX-startX; wrapper.style.transform = `translateX(calc(-33.333% + ${(d/window.innerWidth)*33}%))`; }, {passive: true});
-        z.addEventListener('touchend', e=>{ 
-            if(!isDragging) return; const d = e.changedTouches[0].clientX - startX;
-            if(d>60) prev(); else if(d<-60) next(); else { wrapper.style.transition = 'transform 0.4s ease'; wrapper.style.transform='translateX(-33.333%)'; }
-            isDragging=false;
-        });
+    [document.getElementById('swipe-zone-art'), document.getElementById('swipe-zone-text')].forEach(z => {
+        z.ontouchstart = e => { startX = e.touches[0].clientX; isDragging = true; wrapper.style.transition = 'none'; };
+        z.ontouchmove = e => { if(!isDragging) return; wrapper.style.transform = `translateX(calc(-33.333% + ${((e.touches[0].clientX - startX) / window.innerWidth) * 33}%))`; };
+        z.ontouchend = e => { 
+            const d = e.changedTouches[0].clientX - startX;
+            if(d > 60) prev(); else if(d < -60) next(); else { wrapper.style.transition = 'transform 0.4s ease'; wrapper.style.transform = 'translateX(-33.333%)'; }
+            isDragging = false;
+        };
     });
 }
 
-function togglePlay() { 
-    if (audio.paused) {
-        // Dacă nu cântă nimic, forțăm încărcarea stației curente din listă (cu tot cu artă)
-        // Folosim parametrul false la final pentru skipArt, ca să AFIDEZE coperta
-        loadStationInfo(currentIdx, true, false); 
-    } else {
-        audio.pause(); 
+function setupFabSwipe() {
+    const fab = document.getElementById('fab-play-pause');
+    let fX, fY;
+    fab.ontouchstart = e => { fX = e.touches[0].clientX; fY = e.touches[0].clientY; };
+    fab.ontouchend = e => {
+        const dX = e.changedTouches[0].clientX - fX, dY = e.changedTouches[0].clientY - fY;
+        if (Math.abs(dX) > 30 || Math.abs(dY) > 30) {
+            dY > 30 || dX < -30 ? next() : prev();
+            showFabFeedback(dY > 30 || dX < -30 ? 'skip-forward' : 'skip-back');
+        }
+    };
+}
+
+function showFabFeedback(icon) {
+    const iEl = document.querySelector('#fab-play-pause i');
+    iEl.setAttribute('data-lucide', icon); lucide.createIcons();
+    setTimeout(() => { iEl.setAttribute('data-lucide', audio.paused ? 'play' : 'pause'); lucide.createIcons(); }, 800);
+}
+
+function togglePlay() { audio.paused ? loadStationInfo(currentIdx, true) : audio.pause(); }
+
+function scanAllStations() { stations.forEach(s => fetchSilentMetadata(s)); }
+
+function updateMediaSession(s) {
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({ title: s.desc, artist: s.name, album: "Sergiu FM", artwork: [{ src: s.img || FALLBACK_IMG, sizes: '512x512', type: 'image/png' }] });
+        navigator.mediaSession.setActionHandler('play', () => audio.play());
+        navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+        navigator.mediaSession.setActionHandler('previoustrack', prev);
+        navigator.mediaSession.setActionHandler('nexttrack', next);
     }
 }
 
-
-
-
 init();
+
 </script>
 </body>
 </html>
