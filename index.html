@@ -29,6 +29,49 @@
     overscroll-behavior: none;
 }
 
+/* Doar emoji-ul va face fade, textul "Hope" rămâne fix */
+#slide-current h2 span {
+    transition: opacity 0.6s ease-in-out;
+    display: inline-block;
+    will-change: opacity;
+}
+
+.fade-out-emoji {
+    opacity: 0 !important;
+}
+
+
+
+
+/* Stiluri pentru inimi care ies organic de sub copertă */
+.heart-particle {
+    position: fixed; /* Folosim fixed pentru a nu fi influențate de scroll */
+    pointer-events: none;
+    z-index: 5; 
+    user-select: none;
+    line-height: 1;
+    will-change: transform, opacity;
+    animation: floatHeartOut 17s ease-out forwards; /* Durată mai lungă: 6 secunde */
+}
+
+@keyframes floatHeartOut {
+    0% {
+        transform: translate(0, 0) scale(0) rotate(0deg);
+        opacity: 0;
+    }
+    15% {
+        opacity: var(--target-opacity);
+        transform: translate(var(--move-x), var(--move-y-start)) scale(1.3);
+    }
+    100% {
+        /* Urcă mult mai sus și se împrăștie pe orizontală */
+        transform: translate(calc(var(--move-x) * 2.5), -500px) scale(0.4) rotate(var(--random-rot));
+        opacity: 0;
+    }
+}
+
+
+
 
 
 
@@ -478,6 +521,155 @@ function init() {
 }
 
 
+// --- LOGICA SPECIALĂ PENTRU RADIO HOPE ---
+const hopeEmojis = ["🌅", "🫵🏼🫶🏼", "💛", "🥰", "❤️‍🔥", "💗", "🏳️", "💞", "✨", "⭐️", "🌙", "🌕", "🌼", "🌸", "🥹"];
+let hopeInterval = null; // Pentru inimi
+let emojiInterval = null; // Pentru schimbarea textului
+
+/**
+ * Schimbă emoji-ul din titlu cu un efect fluid de fade
+ */
+function rotateHopeEmoji() {
+    const isHope = activeStationObject && activeStationObject.name === "Hope";
+    const titleEl = document.querySelector('#slide-current h2');
+    
+    if (isHope && titleEl) {
+        // Căutăm span-ul cu emoji
+        const emojiSpan = titleEl.querySelector('span');
+        if (!emojiSpan) return;
+
+        // 1. Fade Out doar la emoji
+        emojiSpan.classList.add('fade-out-emoji');
+        
+        setTimeout(() => {
+            // 2. Schimbăm emoji-ul
+            const randomEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
+            emojiSpan.innerText = ` ${randomEmoji}`; // Păstrăm spațiul înainte
+            
+            // 3. Fade In
+            emojiSpan.classList.remove('fade-out-emoji');
+        }, 600); 
+    }
+}
+
+
+/**
+ * Gestionează pornirea/oprirea efectelor speciale pentru postul "Hope"
+ * (Inimile galbene și rotația fluentă a emoji-urilor)
+ */
+function checkHopeEffect() {
+    const isHope = activeStationObject && activeStationObject.name === "Hope";
+    const isPlaying = !audio.paused;
+
+    if (isHope && isPlaying) {
+        // 1. PORNIRE INIMI (dacă nu rulează deja)
+        if (!hopeInterval) {
+            hopeInterval = setInterval(createHeart, 350);
+        }
+
+        // 2. PORNIRE EMOJI DINAMIC
+        if (!emojiInterval) {
+            const titleEl = document.querySelector('#slide-current h2');
+            
+            if (titleEl) {
+                // Verificăm dacă titlul are deja structura cu <span>
+                // Dacă nu are (e doar text "Hope"), îl pregătim
+                if (!titleEl.querySelector('span')) {
+                    const startEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
+                    // Structura: Textul "Hope" fix + span-ul pentru emoji-ul care face fade
+                    titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block;">${startEmoji}</span>`;
+                }
+            }
+
+            // Pornim intervalul de schimbare la fiecare 5 secunde
+            emojiInterval = setInterval(rotateHopeEmoji, 5000);
+        }
+    } else {
+        // Dacă am pus pauză sau am schimbat postul, oprim tot
+        stopHopeEffect();
+    }
+}
+
+/**
+ * Schimbă doar emoji-ul din interiorul span-ului, păstrând textul "Hope" intact
+ */
+function rotateHopeEmoji() {
+    const isHope = activeStationObject && activeStationObject.name === "Hope";
+    const titleEl = document.querySelector('#slide-current h2');
+    
+    if (isHope && titleEl) {
+        const emojiSpan = titleEl.querySelector('span');
+        if (!emojiSpan) return;
+
+        // Pasul 1: Fade Out doar la emoji (clasa CSS definită anterior)
+        emojiSpan.style.opacity = "0";
+        
+        setTimeout(() => {
+            // Pasul 2: Schimbăm emoji-ul în timp ce e invizibil
+            const randomEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
+            emojiSpan.innerText = randomEmoji;
+            
+            // Pasul 3: Fade In înapoi
+            emojiSpan.style.opacity = "1";
+        }, 650); // Așteptăm să se termine tranziția de dispariție
+    }
+}
+
+/**
+ * Curăță intervalele pentru a elibera memoria telefonului
+ */
+function stopHopeEffect() {
+    if (hopeInterval) {
+        clearInterval(hopeInterval);
+        hopeInterval = null;
+    }
+    if (emojiInterval) {
+        clearInterval(emojiInterval);
+        emojiInterval = null;
+    }
+}
+
+
+/**
+ * Creează inimile care ies de sub copertă
+ */
+function createHeart() {
+    const playerView = document.getElementById('player-view');
+    const artContainer = document.querySelector('.art-container');
+    
+    if (window.getComputedStyle(playerView).display === 'none' || !artContainer) return;
+
+    const heart = document.createElement('div');
+    heart.className = 'heart-particle';
+    heart.innerHTML = '💛';
+    
+    const rect = artContainer.getBoundingClientRect();
+    const startX = rect.left + (Math.random() * rect.width);
+    const startY = rect.top + (Math.random() * rect.height);
+
+    const moveX = (Math.random() - 0.5) * 150;
+    const moveYStart = (Math.random() - 0.5) * 50;
+    const randomRot = (Math.random() * 180 - 90) + "deg";
+    const size = Math.random() * 10 + 15;
+    const opacity = (Math.random() * 0.4 + 0.3).toFixed(2);
+
+    heart.style.left = `${startX}px`;
+    heart.style.top = `${startY}px`;
+    heart.style.fontSize = `${size}px`;
+    
+    heart.style.setProperty('--move-x', `${moveX}px`);
+    heart.style.setProperty('--move-y-start', `${moveYStart}px`);
+    heart.style.setProperty('--random-rot', randomRot);
+    heart.style.setProperty('--target-opacity', opacity);
+    
+    document.body.appendChild(heart);
+    
+    setTimeout(() => { if (heart.parentElement) heart.remove(); }, 6000);
+}
+// --- SFÂRȘIT LOGICĂ HOPE ---
+
+
+
 
 
 
@@ -761,28 +953,45 @@ function renderList(mode, el) {
 function switchTab(t) {
     const nav = document.getElementById('main-nav');
     const fab = document.getElementById('fab-play-pause');
+    const listView = document.getElementById('list-view');
+    const playerView = document.getElementById('player-view');
+    const navList = document.getElementById('nav-list');
+    const navPlayer = document.getElementById('nav-player');
     
     if(t === 'list'){ 
-        document.getElementById('list-view').style.display = 'flex'; 
-        document.getElementById('player-view').style.display = 'none';
-        document.getElementById('nav-list').classList.add('active'); 
-        document.getElementById('nav-player').classList.remove('active'); 
+        // Afișăm Lista
+        listView.style.display = 'flex'; 
+        playerView.style.display = 'none';
+        
+        // Actualizăm Navigația
+        navList.classList.add('active'); 
+        navPlayer.classList.remove('active'); 
         nav.className = 'nav-bar on-radio';
         
-        // Afișăm butonul mereu când suntem în modul listă
+        // Afișăm butonul plutitor (FAB)
         fab.style.display = 'flex';
         
     } else { 
-        document.getElementById('list-view').style.display = 'none'; 
-        document.getElementById('player-view').style.display = 'flex';
-        document.getElementById('nav-list').classList.remove('active'); 
-        document.getElementById('nav-player').classList.add('active'); 
+        // Afișăm Player-ul
+        listView.style.display = 'none'; 
+        playerView.style.display = 'flex';
+        
+        // Actualizăm Navigația
+        navList.classList.remove('active'); 
+        navPlayer.classList.add('active'); 
         nav.className = 'nav-bar on-player';
         
-        // Ascundem FAB doar când intrăm în Player-ul mare
+        // Ascundem FAB în Player-ul mare
         fab.style.display = 'none';
     }
+
+    // LOGICĂ SPECIALĂ: Verificăm inimile Hope la schimbarea tab-ului
+    // (Inimile se creează doar dacă player-ul este vizibil)
+    if (typeof checkHopeEffect === "function") {
+        checkHopeEffect();
+    }
 }
+
 
 
 
@@ -797,20 +1006,19 @@ function updateUI(state) {
     let iconPause = '<i data-lucide="pause" fill="currentColor"></i>';
     let iconLoad = '<i data-lucide="loader-2" class="spin"></i>';
 
-    // 1. Curățăm starea vizuală: eliminăm clasa "is-playing" de pe toate rândurile din listă
+    // 1. Resetăm starea vizuală în listă
     const allItems = document.querySelectorAll('.station-item');
     allItems.forEach(item => item.classList.remove('is-playing'));
 
-    // 2. Dacă radio-ul cântă sau se încarcă, activăm egalizatorul doar pe rândul corect
-    if ((state === true || state === 'loading') && typeof activeStationObject !== 'undefined' && activeStationObject) {
-        // Căutăm în DOM rândul care are atributul data-name egal cu numele stației active
+    // 2. Activăm egalizatorul pe rândul activ dacă muzica rulează/se încarcă
+    if ((state === true || state === 'loading') && activeStationObject) {
         const activeItem = document.querySelector(`.station-item[data-name="${activeStationObject.name}"]`);
         if (activeItem) {
             activeItem.classList.add('is-playing');
         }
     }
 
-    // 3. Actualizăm iconițele pentru Butonul din Player și pentru butonul plutitor (FAB)
+    // 3. Actualizăm iconițele butoanelor (Player și FAB)
     if (state === 'loading') { 
         if(b) { b.innerHTML = iconLoad; b.classList.remove('playing'); }
         if(f) { f.innerHTML = iconLoad; f.classList.remove('playing'); }
@@ -824,9 +1032,16 @@ function updateUI(state) {
         if(f) { f.innerHTML = iconPlay; f.classList.remove('playing'); }
     }
     
-    // 4. Re-randăm iconițele Lucide pentru a afișa noile SVG-uri
+    // 4. LOGICĂ SPECIALĂ: Inimile pentru Hope
+    // Verificăm dacă trebuie să pornim sau să oprim inimile galbene
+    if (typeof checkHopeEffect === "function") {
+        checkHopeEffect();
+    }
+
+    // 5. Re-randăm iconițele Lucide
     lucide.createIcons();
 }
+
 
 
 
@@ -1078,9 +1293,21 @@ function updateSliderText() {
 function updateSlide(id, data) { 
     const el = document.getElementById(id); 
     if(!el) return;
-    el.querySelector('h2').innerText = data.name; 
+    
+    const titleEl = el.querySelector('h2');
+    
+    if (data.name === "Hope" && id === "slide-current") {
+        const randomEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
+        titleEl.innerHTML = `Hope <span> ${randomEmoji}</span>`;
+    } else {
+        titleEl.innerText = data.name;
+    }
+    
     el.querySelector('p').innerText = data.desc; 
 }
+
+
+
 
 // În interiorul funcției loadStationInfo(idx, sp = true)
 
