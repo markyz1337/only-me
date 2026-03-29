@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Sergiu FM</title>
+    <script type="text/javascript">
+      // Luăm ultima parte a link-ului (ex: "Hope")
+      var pathSegments = window.location.pathname.split('/');
+      var station = pathSegments[pathSegments.length - 1];
+      
+      // Redirecționăm către index.html și transmitem stația prin URL ascuns
+      window.location.replace(window.location.origin + '/only-me/?' + station);
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
