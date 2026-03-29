@@ -115,8 +115,8 @@ body {
 
 /* LIMITAREA ICONIȚEI - Aceasta este partea care rezolvă problema "gigantului" */
 .player-yt-link img {
-    width: 36px;  /* Dimensiune mică, controlată */
-    height: 36px;
+    width: 30px;  /* Dimensiune mică, controlată */
+    height: 30px;
     display: block;
     object-fit: contain;
 }
@@ -392,6 +392,7 @@ let isDragging = false;
 let currentMetadataRequestId = 0;
 let metadataInterval = null;
 
+const ENABLE_DIRECT_LINKS = true; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
@@ -422,45 +423,40 @@ const stations = [
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; s.currentTrack = ""; });
 
 function init() {
-    // 1. Preluăm datele din URL
-    const urlQuery = window.location.search.substring(1); 
-    const urlPath = window.location.pathname.split('/').filter(s => s.length > 0).pop(); 
-    
-    const rawTarget = urlQuery || urlPath;
     let autoStartStation = null;
 
-    if (rawTarget) {
-        // Decodăm URL-ul (ex: %D0%BC%D0%B0%D1%80%D1%83%D1%81%D1%8F -> маруся)
-        let decodedTarget = decodeURIComponent(rawTarget).toLowerCase().trim();
+    // Verificăm dacă funcția este activată din variabila globală
+    if (ENABLE_DIRECT_LINKS) {
+        const urlQuery = window.location.search.substring(1); 
+        const urlPath = window.location.pathname.split('/').filter(s => s.length > 0).pop(); 
         
-        // Convertim Chirilic -> Latin (ex: маруся -> marusya)
-        let latinTarget = transliterate(decodedTarget);
-        
-        // Curățăm de spații pentru comparare
-        const searchSlug = latinTarget.replace(/\s+/g, '');
+        const rawTarget = urlQuery || urlPath;
 
-        // Căutăm stația în lista de obiecte
-        autoStartStation = stations.find(s => {
-            const stationNameClean = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
-            return stationNameClean.includes(searchSlug);
-        });
+        if (rawTarget) {
+            let decodedTarget = decodeURIComponent(rawTarget).toLowerCase().trim();
+            let latinTarget = transliterate(decodedTarget);
+            const searchSlug = latinTarget.replace(/\s+/g, '');
 
-        if (autoStartStation) {
-            // Generăm noul path "curat" pentru browser
-            const cleanPathName = transliterate(autoStartStation.name).toLowerCase().replace(/\s+/g, '');
-            window.history.replaceState({}, "", "/" + cleanPathName);
+            autoStartStation = stations.find(s => {
+                const stationNameClean = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+                return stationNameClean.includes(searchSlug);
+            });
+
+            if (autoStartStation) {
+                const cleanPathName = transliterate(autoStartStation.name).toLowerCase().replace(/\s+/g, '');
+                window.history.replaceState({}, "", "/" + cleanPathName);
+            }
         }
     }
 
-    // 2. Logica de pornire / Afișare
-    if (autoStartStation) {
+    // Logica de pornire / Afișare
+    if (autoStartStation && ENABLE_DIRECT_LINKS) {
         renderList('all', document.getElementById('tab-all'));
         currentIdx = currentFilteredList.indexOf(autoStartStation);
-        // Pornim direct stația găsită
         loadStationInfo(currentIdx, true, false); 
         switchTab('player');
     } else {
-        // Default: Pornire pe lista "Owned" (sau ce preferi)
+        // Pornire standard pe "Owned"
         const heart10s = stations.find(s => s.name === "Heart 10s");
         if (heart10s) {
             heart10s.isInitialBgSource = true; 
@@ -470,7 +466,7 @@ function init() {
         loadStationInfo(0, false, true);
     }
 
-    // 3. UI & Gesturi
+    // UI & Gesturi
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
@@ -480,6 +476,7 @@ function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
@@ -1080,18 +1077,24 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
     if (currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
     
+    // Dezactivăm sursa de fundal inițială dacă începem redarea
     if (sp) {
         stations.forEach(st => st.isInitialBgSource = false);
     }
 
     activeStationObject = s;
 
-    // --- COD NOU: Actualizare URL în timp real ---
-    // Generăm un nume curat (fără spații, litere mici)
-    const cleanName = s.name.toLowerCase().replace(/\s+/g, '');
-    // Actualizăm bara de adrese fără să reîncărcăm pagina
-    window.history.replaceState({ station: cleanName }, "", "/" + cleanName);
-    // ----------------------------------------------
+    // --- LOGICA DE REDIRECȚIONARE / ACTUALIZARE URL ---
+    // Verificăm dacă variabila globală este setată pe true înainte de a modifica URL-ul
+    if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS) {
+        try {
+            const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+            window.history.replaceState({ station: cleanName }, "", "/" + cleanName);
+        } catch (e) {
+            console.warn("Nu s-a putut actualiza URL-ul:", e);
+        }
+    }
+    // -------------------------------------------------
 
     if (sp || !skipArt) {
         updateArtUI(s.img || FALLBACK_IMG);
@@ -1105,6 +1108,7 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
         ytBtn.classList.add('yt-hidden'); 
     }
 
+    // Gestionare Metadate
     if (metadataInterval) clearInterval(metadataInterval);
     currentMetadataRequestId++; 
     
@@ -1118,13 +1122,14 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
     if(sp) { 
         updateUI('loading'); 
         audio.play().catch(error => {
-            console.warn("Autoplay blocat.");
+            console.warn("Autoplay blocat de browser.");
             updateUI(false);
         }); 
     }
     
     updateMediaSession(s);
 }
+
 
 
 
