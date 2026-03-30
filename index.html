@@ -53,7 +53,7 @@
     display: inline-block;
     filter: blur(8px);
     opacity: 0;
-    animation: blurClear 0.8s ease-out forwards;
+    animation: blurClear 0.7s ease-out forwards;
     /* Eliminăm white-space: pre de aici pentru a lăsa browserul să decidă wrapping-ul */
 }
 
@@ -79,12 +79,12 @@
 
 .cursor-custom {
     display: inline-block;
-    width: 2px;
+    width: 1.8px;
     height: 1.2em;
     background: var(--accent);
-    margin-left: 2px;
+    margin-left: 2.2px;
     vertical-align: middle;
-    animation: blink 1.2s ease-in-out infinite;
+    animation: blink 1.8s ease-in-out infinite;
 }
 
 
@@ -532,10 +532,10 @@ function typeWriter(text, element, callback) {
     }
     
     // --- SETĂRI PAUZE ---
-    const vitezaScriere = 60;    // Viteza între litere (puțin mai rapid pt fluiditate)
+    const vitezaScriere = 65;    // Viteza între litere (puțin mai rapid pt fluiditate)
     const pauzaVirgula = 400;    // Pauza la virgulă
     const pauzaPunct = 800;      // Pauza la punct
-    const pauzaRandNou = 1000;   // CÂT DE RAPID APARE RÂNDUL URMĂTOR (Pauza de final)
+    const pauzaRandNou = 1100;   // CÂT DE RAPID APARE RÂNDUL URMĂTOR (Pauza de final)
 
     element.innerHTML = `<span class="typing-container"><span class="visible-text"></span><span class="cursor-custom"></span></span>`;
     const textSpan = element.querySelector('.visible-text');
