@@ -30,74 +30,6 @@
 }
 
 
-/* Această regulă elimină majusculele DOAR când se activează karaoke-ul (stația Hope) */
-.typing-text {
-    text-transform: none !important;
-}
-
-
-/* --- EFECTUL 4: CLARIFICARE (BLUR TO CLEAR) --- */
-.typing-container {
-    display: inline;
-    position: relative;
-    word-break: break-word;
-}
-
-.visible-text {
-    display: inline;
-    white-space: normal; /* Permite browserului să spargă rândul normal la spații */
-    word-wrap: break-word;
-}
-
-.char-blur {
-    display: inline-block;
-    filter: blur(8px);
-    opacity: 0;
-    animation: blurClear 0.7s ease-out forwards;
-    /* Eliminăm white-space: pre de aici pentru a lăsa browserul să decidă wrapping-ul */
-}
-
-/* Stil special pentru spații ca să nu fie colapsate */
-.char-space {
-    display: inline;
-    white-space: pre;
-}
-
-
-@keyframes blurClear {
-    0% {
-        filter: blur(8px);
-        opacity: 0;
-        transform: scale(1.1);
-    }
-    100% {
-        filter: blur(0);
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-.cursor-custom {
-    display: inline-block;
-    width: 1.8px;
-    height: 1.2em;
-    background: var(--accent);
-    margin-left: 2.2px;
-    vertical-align: middle;
-    animation: blink 1.8s ease-in-out infinite;
-}
-
-
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; } /* Nu dispare de tot, rămâne o urmă discretă */
-}
-
-
-
-
-
-
 .fade-text {
     transition: opacity 0.5s ease-in-out;
 }
@@ -115,31 +47,6 @@
     opacity: 0 !important;
 }
 
-/* Stiluri pentru inimi care ies organic de sub copertă */
-.heart-particle {
-    position: fixed;
-    pointer-events: none;
-    z-index: 5; 
-    user-select: none;
-    line-height: 1;
-    will-change: transform, opacity;
-    animation: floatHeartOut 25s ease-out forwards;
-}
-
-@keyframes floatHeartOut {
-    0% {
-        transform: translate(0, 30px) scale(0) rotate(0deg);
-        opacity: 0;
-    }
-    15% {
-        opacity: var(--target-opacity);
-        transform: translate(var(--move-x), var(--move-y-start)) scale(0.8);
-    }
-    100% {
-        transform: translate(calc(var(--move-x) * 2.5),-400px) scale(0.4) rotate(var(--random-rot));
-        opacity: 0;
-    }
-}
 
 /* Stiluri pentru Egalizatorul din Listă */
 .playing-icon {
@@ -438,7 +345,7 @@ let activeStationObject = null;
 let isDragging = false;
 let metadataInterval = null;
 
-const ENABLE_DIRECT_LINKS = false; 
+const ENABLE_DIRECT_LINKS = true; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
@@ -466,12 +373,9 @@ const stations = [
 
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
 
-const hopeTexts = [
-    "• ON AIR"
-];
 
 
-/** --- ENGINE DE CURĂȚARE TEXT (SCRUBBER v8) --- **/
+/** --- ENGINE DE CURĂȚARE TEXT (ULTRA SCRUBBER v8 COMPLET) --- **/
 function fixEncoding(str) {
     if (!str) return "";
     try { return decodeURIComponent(escape(str)); } catch (e) { return str; }
@@ -484,114 +388,58 @@ function decodeEntities(str) {
     return txt.value;
 }
 
+function fixCase(str) {
+    if (str.length > 2 && str === str.toUpperCase()) {
+        return str.charAt(0) + str.slice(1).toLowerCase();
+    }
+    return str;
+}
+
+function removeDuplicateNames(text) {
+    let parts = text.split(/[,，|\-\u2013\u2014\/]|feat\.|ft\.|&| x /gi);
+    let cleanParts = [];
+    let seenNormalized = [];
+
+    parts.forEach(p => {
+        let original = fixCase(p.trim().replace(/\s+/g, ' '));
+        let norm = original.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+        if (norm.length < 2) return;
+        let isDuplicate = seenNormalized.some(prev => norm.includes(prev) || prev.includes(norm));
+        if (!isDuplicate) {
+            seenNormalized.push(norm);
+            cleanParts.push(original);
+        }
+    });
+    return cleanParts.join(' - ');
+}
+
 function analyticalClean(artist, title) {
     let a = decodeEntities(fixEncoding(artist || "")).trim();
     let t = decodeEntities(fixEncoding(title || "")).trim();
-    const garbage = [/Official\s*Video/gi, /Official\s*Audio/gi, /Cat\s*Music/gi, /Roton\s*Music/gi, /Global\s*Records/gi, /Lyrics/gi, /Video/gi, /Audio/gi, /HD/gi];
-    
-    let cleanA = a.replace(/\(.*?\)|\[.*?\]/g, "");
-    let cleanT = t.replace(/\(.*?\)|\[.*?\]/g, "");
+
+    const garbage = [/Official\s*Video/gi, /Official\s*Audio/gi, /Cat\s*Music/gi, /Roton\s*Music/gi, /Global\s*Records/gi, /Premiere/gi, /Lyrics/gi, /Video/gi, /Audio/gi, /Muzica/gi, /HD/gi, /Radio\s*Edit/gi];
+
+    // Elimină tot ce e între paranteze ( ) [ ] { }
+    let cleanA = a.replace(/\(.*?\)|\[.*?\]|\{.*?\}/g, "");
+    let cleanT = t.replace(/\(.*?\)|\[.*?\]|\{.*?\}/g, "");
     
     garbage.forEach(word => {
         cleanA = cleanA.replace(word, "");
         cleanT = cleanT.replace(word, "");
     });
 
-    let combined = (cleanA && cleanT) ? `${cleanA} - ${cleanT}` : (cleanA || cleanT);
-    return combined.replace(/\s+/g, ' ').replace(/-+/g, '-').trim() || "Live Stream";
-}
-
-
-let hopeTextIdx = 0;
-let typingTimeout = null;
-
-function startHopeKaraoke() {
-    const descEl = document.querySelector('#slide-current p');
-    if (!descEl || !activeStationObject || activeStationObject.name !== "Hope") return;
-
-    descEl.classList.add('typing-text');
+    let rawCombined = (cleanA && cleanT) ? `${cleanA} - ${cleanT}` : (cleanA || cleanT);
     
-    typeWriter(hopeTexts[hopeTextIdx], descEl, () => {
-        // Verificăm dacă mai sunt texte de afișat
-        if (hopeTextIdx < hopeTexts.length - 1) {
-            let delay = hopeTextIdx === 0 ? 4000 : 2500;
-            typingTimeout = setTimeout(() => {
-                hopeTextIdx++; // Mergem la următorul text
-                startHopeKaraoke();
-            }, delay);
-        } else {
-            // S-a ajuns la ultimul text (indexul final). 
-            // Nu mai apelăm startHopeKaraoke, deci se oprește aici.
-            console.log("Karaoke finalizat.");
-        }
-    });
+    // Elimină numele duplicat (ex: "Inna - Inna - Rock My Body" devine "Inna - Rock My Body")
+    let final = removeDuplicateNames(rawCombined);
+
+    // Curățenie finală pentru spații și liniuțe aiurea
+    return final.replace(/\s+/g, ' ')
+                .replace(/\s*-\s*-+\s*/g, ' - ')
+                .replace(/-+/g, '-')
+                .replace(/^[\s\-\.\/]+|[\s\-\.\/]+$/g, "")
+                .trim() || "Live Stream";
 }
-
-
-function typeWriter(text, element, callback) {
-    if (typingTimeout) {
-        clearTimeout(typingTimeout);
-        if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(typingTimeout);
-    }
-    
-    // --- SETĂRI PAUZE ---
-    const vitezaScriere = 65;    // Viteza între litere (puțin mai rapid pt fluiditate)
-    const pauzaVirgula = 400;    // Pauza la virgulă
-    const pauzaPunct = 800;      // Pauza la punct
-    const pauzaRandNou = 1100;   // CÂT DE RAPID APARE RÂNDUL URMĂTOR (Pauza de final)
-
-    element.innerHTML = `<span class="typing-container"><span class="visible-text"></span><span class="cursor-custom"></span></span>`;
-    const textSpan = element.querySelector('.visible-text');
-    let charIndex = 0;
-
-    function typeNextChar() {
-        if (!activeStationObject || activeStationObject.name !== "Hope" || audio.paused) return;
-
-        if (charIndex < text.length) {
-            const char = text[charIndex];
-            let delayActual = vitezaScriere;
-
-            if (char === ' ') {
-                // Creăm un span special pentru spațiu care permite wrapping
-                const spaceSpan = document.createElement('span');
-                spaceSpan.className = 'char-space';
-                spaceSpan.innerHTML = ' ';
-                textSpan.appendChild(spaceSpan);
-            } else if (char === '\n') {
-                textSpan.appendChild(document.createElement('br'));
-            } else {
-                const span = document.createElement('span');
-                span.className = 'char-blur';
-                span.textContent = char;
-                textSpan.appendChild(span);
-            }
-
-            // Logica pentru pauze la punctuație
-            if (char === ',') {
-                delayActual = pauzaVirgula;
-            } else if (char === '.' || char === '?' || char === '!') {
-                delayActual = pauzaPunct;
-            }
-
-            charIndex++;
-            typingTimeout = setTimeout(typeNextChar, delayActual);
-        } else if (callback) {
-            // Aici setezi viteza cu care trece la următoarea strofă
-            typingTimeout = setTimeout(callback, pauzaRandNou);
-        }
-    }
-
-    typeNextChar();
-}
-
-
-
-
-
-
-
-
-
 
 
 
@@ -647,18 +495,9 @@ function checkHopeEffect() {
     const isPlaying = !audio.paused;
     
     if (isHope && isPlaying) {
-        // Pornim intervalul pentru inimi
-        if (!hopeInterval) hopeInterval = setInterval(createHeart, 1100);
-        
-        // Pornim scrierea textului (Karaoke)
-        if (!typingTimeout) {
-            hopeTextIdx = 0;
-            startHopeKaraoke();
-        }
-        
-        // Pornim rotația emoji-urilor (Player + Listă)
+        // Păstrăm doar rotația emoji-urilor în titlu
         if (!emojiInterval) {
-            rotateHopeEmoji(); // Prima rulare instantă
+            rotateHopeEmoji(); 
             emojiInterval = setInterval(rotateHopeEmoji, 5000);
         }
     } else {
@@ -667,52 +506,23 @@ function checkHopeEffect() {
 }
 
 function stopHopeEffect() {
-    // Oprim inimile și karaoke
-    if (hopeInterval) { clearInterval(hopeInterval); hopeInterval = null; }
-    if (typingTimeout) { clearTimeout(typingTimeout); typingTimeout = null; }
+    if (emojiInterval) { 
+        clearInterval(emojiInterval); 
+        emojiInterval = null; 
+    }
 
-    // Resetăm doar titlul din PLAYER la "Hope" simplu dacă nu mai cântă
     const titleEl = document.querySelector('#slide-current h2');
     if (titleEl && activeStationObject && activeStationObject.name === "Hope" && audio.paused) {
         titleEl.innerHTML = "Hope";
     }
 
-    // Resetăm descrierea (eliminăm clasa de karaoke)
     const descEl = document.querySelector('#slide-current p');
-    if (descEl) {
-        descEl.classList.remove('typing-text');
-        if (activeStationObject) descEl.innerText = activeStationObject.desc;
+    if (descEl && activeStationObject) {
+        descEl.innerText = activeStationObject.desc;
     }
-    
-    // NOTĂ: Nu mai resetăm listItemName.innerHTML aici, 
-    // pentru a lăsa emoji-urile să se schimbe în listă în continuare.
 }
 
 
-
-
-function createHeart() {
-    const playerView = document.getElementById('player-view');
-    const artContainer = document.querySelector('.art-container');
-    if (window.getComputedStyle(playerView).display === 'none' || !artContainer) return;
-    const heart = document.createElement('div');
-    heart.className = 'heart-particle';
-    heart.innerHTML = '💛';
-    const rect = artContainer.getBoundingClientRect();
-    const sX = rect.left + (Math.random() * rect.width);
-    const sY = rect.top + (Math.random() * rect.height);
-    const mX = (Math.random() - 0.5) * 150;
-    const mY = (Math.random() - 0.5) * 50;
-    heart.style.left = `${sX}px`;
-    heart.style.top = `${sY}px`;
-    heart.style.fontSize = `${Math.random() * 10 + 15}px`;
-    heart.style.setProperty('--move-x', `${mX}px`);
-    heart.style.setProperty('--move-y-start', `${mY}px`);
-    heart.style.setProperty('--random-rot', (Math.random() * 180 - 90) + "deg");
-    heart.style.setProperty('--target-opacity', (Math.random() * 0.4 + 0.3).toFixed(2));
-    document.body.appendChild(heart);
-    setTimeout(() => heart.remove(), 6000);
-}
 
 // --- LOGICA IMAGINI ȘI METADATA ---
 function applyImageToUI(imgUrl, stationRef, isFallback) {
@@ -776,9 +586,10 @@ async function fetchMetadata(url, station) {
                     // ACTUALIZARE ÎN PLAYER (Dacă este postul activ)
                     if (activeStationObject && activeStationObject.name === station.name) {
                         const descEl = document.querySelector('#slide-current p');
-                        if (descEl && (activeStationObject.name !== "Hope" || audio.paused)) {
-                            descEl.innerText = cleanTitle;
+                        if (descEl) {
+                       descEl.innerText = cleanTitle;
                         }
+
                     }
 
                     // ACTUALIZARE ÎN LISTĂ (Căutăm elementul după data-name)
@@ -940,15 +751,6 @@ function switchTab(t) {
     document.getElementById('main-nav').className = isPlayer ? 'nav-bar on-player' : 'nav-bar on-radio';
     document.getElementById('fab-play-pause').style.display = isPlayer ? 'none' : 'flex';
 
-    // Dacă intrăm în Player, resetăm indexul karaoke-ului pentru a începe de la prima strofă
-    if (isPlayer && activeStationObject && activeStationObject.name === "Hope") {
-        hopeTextIdx = 0; // Resetăm la prima strofă
-        if (typingTimeout) {
-            clearTimeout(typingTimeout);
-            typingTimeout = null;
-        }
-    }
-
     checkHopeEffect();
 }
 
@@ -997,7 +799,7 @@ function updateSliderText() {
         const el = document.getElementById(id);
         const data = currentFilteredList[indices[i]];
         const h2 = el.querySelector('h2');
-        if (data.name === "Hope" && id === "slide-current") h2.innerHTML = `Hope <span> ${hopeEmojis[0]}</span>`;
+        if (data.name === "Hope" && id === "slide-current") h2.innerText = "Hope";
         else h2.innerText = data.name;
         el.querySelector('p').innerText = data.desc;
     });
