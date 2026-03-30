@@ -402,7 +402,7 @@ let activeStationObject = null;
 let isDragging = false;
 let metadataInterval = null;
 
-const ENABLE_DIRECT_LINKS = true; 
+const ENABLE_DIRECT_LINKS = false; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
@@ -430,14 +430,13 @@ const stations = [
 
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
 
-// --- LOGICA HOPE TEXT DINAMIC ---
+// --- LOGICA HOPE TEXT DINAMIC (VERSIUNEA FINALĂ) ---
 const hopeTexts = [
-    "Citește dacă vrei, cineva o s-o facă,",
+    "Cineva o s-o facă,",
     "Sufletul să mi-l înțeleagă...",
-    "...",
-    "Ce pot să spun?",
+    "",
     "Da.. din speranță poți trăi,",
-    "Dar și viața nu ți-o nărui..",
+    "Viața nu ți-o nărui..",
     "Aleg să simt, aleg să sper,",
     "Cu așteptări să mă înec.. dar nu.",
     "Nu am să pier!",
@@ -452,7 +451,7 @@ const hopeTexts = [
     "",
     "Pe cer sunt foarte multe stele,",
     "Tu fii cea din visurile mele.",
-    "Mă ascund de lume și știu că-i firesc,",
+    "Mă ascund de lume, știu că-i firesc,",
     "Să ai parte de mine într-un mod ceresc.",
     "",
     "Nu vreau să doară, de aia te-am inventat,",
@@ -472,6 +471,7 @@ const hopeTexts = [
     "Dar dacă-n tine aprinzi un strop viu,",
     "Nici noaptea nu mai pare așa pustiu."
 ];
+
 
 
 let hopeTextIdx = 0;
