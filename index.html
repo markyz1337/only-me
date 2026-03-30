@@ -123,7 +123,7 @@
     user-select: none;
     line-height: 1;
     will-change: transform, opacity;
-    animation: floatHeartOut 16s ease-out forwards;
+    animation: floatHeartOut 25s ease-out forwards;
 }
 
 @keyframes floatHeartOut {
@@ -133,10 +133,10 @@
     }
     15% {
         opacity: var(--target-opacity);
-        transform: translate(var(--move-x), var(--move-y-start)) scale(1.1);
+        transform: translate(var(--move-x), var(--move-y-start)) scale(0.8);
     }
     100% {
-        transform: translate(calc(var(--move-x) * 2.5), -220px) scale(0.4) rotate(var(--random-rot));
+        transform: translate(calc(var(--move-x) * 2.5),-400px) scale(0.4) rotate(var(--random-rot));
         opacity: 0;
     }
 }
