@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<hta lang="ro">
+<html lang="ro">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -29,15 +29,52 @@
     overscroll-behavior: none;
 }
 
+
+/* Această regulă elimină majusculele DOAR când se activează karaoke-ul (stația Hope) */
+.typing-text {
+    text-transform: none !important;
+}
+
+
+/* --- EFECTUL 4: CLARIFICARE (BLUR TO CLEAR) --- */
 .typing-container {
-    display: inline; /* Schimbat din inline-flex în inline */
+    display: inline;
     position: relative;
-    word-break: break-word; /* Previne ruperea urâtă a cuvintelor */
+    word-break: break-word;
 }
 
 .visible-text {
     display: inline;
-    white-space: pre-wrap; /* Păstrează spațiile corect */
+    white-space: normal; /* Permite browserului să spargă rândul normal la spații */
+    word-wrap: break-word;
+}
+
+.char-blur {
+    display: inline-block;
+    filter: blur(8px);
+    opacity: 0;
+    animation: blurClear 0.8s ease-out forwards;
+    /* Eliminăm white-space: pre de aici pentru a lăsa browserul să decidă wrapping-ul */
+}
+
+/* Stil special pentru spații ca să nu fie colapsate */
+.char-space {
+    display: inline;
+    white-space: pre;
+}
+
+
+@keyframes blurClear {
+    0% {
+        filter: blur(8px);
+        opacity: 0;
+        transform: scale(1.1);
+    }
+    100% {
+        filter: blur(0);
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .cursor-custom {
@@ -47,10 +84,9 @@
     background: var(--accent);
     margin-left: 2px;
     vertical-align: middle;
-    /* Am crescut de la 0.8s la 1.2s pentru un ritm mai relaxat */
-    /* Am scos 'step-end' pentru a avea o tranziție mai fină (fade in/out) */
-    animation: blink 2.2s ease-in-out infinite;
+    animation: blink 1.2s ease-in-out infinite;
 }
+
 
 @keyframes blink {
     0%, 100% { opacity: 1; }
@@ -402,7 +438,7 @@ let activeStationObject = null;
 let isDragging = false;
 let metadataInterval = null;
 
-const ENABLE_DIRECT_LINKS = false; 
+const ENABLE_DIRECT_LINKS = true; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
@@ -430,47 +466,38 @@ const stations = [
 
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
 
-// --- LOGICA HOPE TEXT DINAMIC (VERSIUNEA FINALĂ) ---
 const hopeTexts = [
-    "Cineva o s-o facă,",
-    "Sufletul să mi-l înțeleagă...",
-    "",
-    "Da.. din speranță poți trăi,",
-    "Viața nu ți-o nărui..",
+    "Va fi cineva, și știu, va veni,",
+    "Sufletul tot să mi-l poată citi,",
+    "Dar acum, din speranță.. să trăiesc,",
+    "Viața să nu mi-o năruiesc.",
     "Aleg să simt, aleg să sper,",
-    "Cu așteptări să mă înec.. dar nu.",
-    "Nu am să pier!",
-    "",
-    "Trecând prin toate nuanțele de gri,",
+    "Cu așteptări, să mă înec.. dar nu... nu am să mă pierd.",
+    "Chiar și prin toate nuanțele de gri,",
     "O să învăț ce înseamnă a trăi.",
-    "",
-    "Cine ești? Eu chiar nu știu..",
-    "Spune-mi că nu-i doar un vis.. un vis pustiu.",
-    "Aștept să vii, să te cunosc..",
-    "Să-mi spui că dorul nu-i de prisos.",
-    "",
-    "Pe cer sunt foarte multe stele,",
-    "Tu fii cea din visurile mele.",
-    "Mă ascund de lume, știu că-i firesc,",
-    "Să ai parte de mine într-un mod ceresc.",
-    "",
-    "Nu vreau să doară, de aia te-am inventat,",
-    "Așteptând mâinile tale de griji să mă desparți,",
-    "Iar eu să-ți dau totul ce ai meritat.",
-    "",
+    "Cine ești? nu-ți știu eu nume.",
+    "Spune-mi că nu ești un vis.. că exiști, pe bune.",
+    "Fă-mă parte din tine",
+    "Aștept să vii, să te înfășor..",
+    "Să nu mor de al tău dor.",
+    "Pe cer știu că sunt stele",
+    "Dar, haiii... fii tu cea din visurile mele",
+    "Mă ascund de lume, sunt obișnuit.. ceva firesc,",
+    "Vreau să ai parte de mine într-un mod ceresc.",
+    "Nu vreau să doară, de aia te-am inventat..",
+    "Așteptând cu mâinile tale de griji să mă desparți.",
     "Dacă am să cad și-o să mă doară, ai să-mi fii sprijin, ai să rămâi?",
     "Când o să mă pierd în ceață, cu glasul tău de mână să mă ții..",
     "",
-    "Știi ce-i frumos? Să crezi în speranță,",
+    "Știi ce-i frumos? să crezi în speranță,",
     "Chiar dacă drumul te pierde în ceață.",
-    "Că poți merge înainte, chiar și cu ochii închiși,",
-    "Fără să simți că pașii ți-s greșiți.",
-    "",
-    "Întunericul nu-i de vină, nici el nu știe ce-i lumină,",
-    "Doar rătăcește-n tăceri… fără drum și fără țintă.",
-    "Dar dacă-n tine aprinzi un strop viu,",
+    "Faptul că poți merge înainte, chiar și cu ochii închiși.. fără să simți că pașii ți-s greșiți.",
+    "Întunericul nu-i de vină, nici el nu are parte de al lui lumină,",
+    "Doar rătăcește-n tăceri.",
+    "Dar dacă-n mine țin aprins un strop viu,",
     "Nici noaptea nu mai pare așa pustiu."
 ];
+
 
 
 
@@ -501,38 +528,59 @@ function startHopeKaraoke() {
 
 
 function typeWriter(text, element, callback) {
-    if (typingTimeout) cancelAnimationFrame(typingTimeout);
+    if (typingTimeout) {
+        clearTimeout(typingTimeout);
+        if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(typingTimeout);
+    }
     
-    // Injectăm structura inițială: text gol + cursor
+    // --- SETĂRI PAUZE ---
+    const vitezaScriere = 60;    // Viteza între litere (puțin mai rapid pt fluiditate)
+    const pauzaVirgula = 400;    // Pauza la virgulă
+    const pauzaPunct = 800;      // Pauza la punct
+    const pauzaRandNou = 1000;   // CÂT DE RAPID APARE RÂNDUL URMĂTOR (Pauza de final)
+
     element.innerHTML = `<span class="typing-container"><span class="visible-text"></span><span class="cursor-custom"></span></span>`;
     const textSpan = element.querySelector('.visible-text');
-    
-    const duration = text.length * 70; 
-    const startTime = performance.now();
+    let charIndex = 0;
 
-    function animate(currentTime) {
+    function typeNextChar() {
         if (!activeStationObject || activeStationObject.name !== "Hope" || audio.paused) return;
 
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        
-        const currentLength = Math.floor(progress * text.length);
-        const currentText = text.substring(0, currentLength);
-        
-        // Update doar la text, cursorul rămâne în container și clipește prin CSS
-        textSpan.textContent = currentText;
+        if (charIndex < text.length) {
+            const char = text[charIndex];
+            let delayActual = vitezaScriere;
 
-        if (progress < 1) {
-            typingTimeout = requestAnimationFrame(animate);
-        } else {
-            // Când termină de scris, așteaptă și apoi execută callback-ul pentru următorul text
-            if (callback) {
-                typingTimeout = setTimeout(callback, 2500);
+            if (char === ' ') {
+                // Creăm un span special pentru spațiu care permite wrapping
+                const spaceSpan = document.createElement('span');
+                spaceSpan.className = 'char-space';
+                spaceSpan.innerHTML = ' ';
+                textSpan.appendChild(spaceSpan);
+            } else if (char === '\n') {
+                textSpan.appendChild(document.createElement('br'));
+            } else {
+                const span = document.createElement('span');
+                span.className = 'char-blur';
+                span.textContent = char;
+                textSpan.appendChild(span);
             }
+
+            // Logica pentru pauze la punctuație
+            if (char === ',') {
+                delayActual = pauzaVirgula;
+            } else if (char === '.' || char === '?' || char === '!') {
+                delayActual = pauzaPunct;
+            }
+
+            charIndex++;
+            typingTimeout = setTimeout(typeNextChar, delayActual);
+        } else if (callback) {
+            // Aici setezi viteza cu care trece la următoarea strofă
+            typingTimeout = setTimeout(callback, pauzaRandNou);
         }
     }
 
-    typingTimeout = requestAnimationFrame(animate);
+    typeNextChar();
 }
 
 
@@ -544,40 +592,72 @@ function typeWriter(text, element, callback) {
 
 
 
-// --- LOGICA HOPE EMOJI & EFECTE ---
+
+
+
+// --- LOGICA HOPE EMOJI & EFECTE ACTUALIZATĂ ---
 const hopeEmojis = ["🌅", "🫵🏼🫶🏼", "💛", "🥰", "❤️‍🔥", "💗", "🏳️", "💞", "✨", "⭐️", "🌙", "🌕", "🌼", "🌸", "🥹"];
 let hopeInterval = null; 
 let emojiInterval = null; 
 
 function rotateHopeEmoji() {
-    const isHope = activeStationObject && activeStationObject.name === "Hope";
-    const titleEl = document.querySelector('#slide-current h2');
-    if (isHope && titleEl) {
-        const emojiSpan = titleEl.querySelector('span');
-        if (!emojiSpan) return;
-        emojiSpan.style.opacity = "0";
-        setTimeout(() => {
-            emojiSpan.innerText = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
-            emojiSpan.style.opacity = "1";
-        }, 650);
+    const newEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
+
+    // 1. Actualizare în LISTĂ (Indiferent dacă e activ sau nu)
+const listItemName = document.querySelector(`.station-item[data-name="Hope"] .station-name`);
+if (listItemName) {
+    let listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
+    if (!listEmojiSpan) {
+        // AICI MODIFICI: am adăugat font-size: 2px (poti pune orice valoare, ex: 1.2rem)
+        listItemName.innerHTML = `Hope <span class="list-hope-emoji" style="transition: opacity 0.6s; display: inline-block; margin-left: 5px; font-size: 13px;">${newEmoji}</span>`;
+        listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
+    }
+    
+    listEmojiSpan.style.opacity = "0";
+    setTimeout(() => {
+        listEmojiSpan.innerText = newEmoji;
+        listEmojiSpan.style.opacity = "1";
+    }, 650);
+}
+
+
+    // 2. Actualizare în PLAYER (Doar dacă Hope este postul selectat curent)
+    const isHopeActive = activeStationObject && activeStationObject.name === "Hope";
+    if (isHopeActive) {
+        const titleEl = document.querySelector('#slide-current h2');
+        if (titleEl) {
+            let playerEmojiSpan = titleEl.querySelector('span');
+            if (!playerEmojiSpan) {
+                titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block;">${newEmoji}</span>`;
+                playerEmojiSpan = titleEl.querySelector('span');
+            }
+            playerEmojiSpan.style.opacity = "0";
+            setTimeout(() => {
+                playerEmojiSpan.innerText = newEmoji;
+                playerEmojiSpan.style.opacity = "1";
+            }, 650);
+        }
     }
 }
+
 
 function checkHopeEffect() {
     const isHope = activeStationObject && activeStationObject.name === "Hope";
     const isPlaying = !audio.paused;
     
     if (isHope && isPlaying) {
+        // Pornim intervalul pentru inimi
         if (!hopeInterval) hopeInterval = setInterval(createHeart, 1100);
+        
+        // Pornim scrierea textului (Karaoke)
         if (!typingTimeout) {
             hopeTextIdx = 0;
             startHopeKaraoke();
         }
+        
+        // Pornim rotația emoji-urilor (Player + Listă)
         if (!emojiInterval) {
-            const titleEl = document.querySelector('#slide-current h2');
-            if (titleEl && !titleEl.querySelector('span')) {
-                titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block;">${hopeEmojis[0]}</span>`;
-            }
+            rotateHopeEmoji(); // Prima rulare instantă
             emojiInterval = setInterval(rotateHopeEmoji, 5000);
         }
     } else {
@@ -586,16 +666,29 @@ function checkHopeEffect() {
 }
 
 function stopHopeEffect() {
+    // Oprim inimile și karaoke
     if (hopeInterval) { clearInterval(hopeInterval); hopeInterval = null; }
-    if (emojiInterval) { clearInterval(emojiInterval); emojiInterval = null; }
     if (typingTimeout) { clearTimeout(typingTimeout); typingTimeout = null; }
-    
+
+    // Resetăm doar titlul din PLAYER la "Hope" simplu dacă nu mai cântă
+    const titleEl = document.querySelector('#slide-current h2');
+    if (titleEl && activeStationObject && activeStationObject.name === "Hope" && audio.paused) {
+        titleEl.innerHTML = "Hope";
+    }
+
+    // Resetăm descrierea (eliminăm clasa de karaoke)
     const descEl = document.querySelector('#slide-current p');
     if (descEl) {
         descEl.classList.remove('typing-text');
         if (activeStationObject) descEl.innerText = activeStationObject.desc;
     }
+    
+    // NOTĂ: Nu mai resetăm listItemName.innerHTML aici, 
+    // pentru a lăsa emoji-urile să se schimbe în listă în continuare.
 }
+
+
+
 
 function createHeart() {
     const playerView = document.getElementById('player-view');
@@ -796,8 +889,19 @@ function switchTab(t) {
     document.getElementById('nav-player').classList.toggle('active', isPlayer);
     document.getElementById('main-nav').className = isPlayer ? 'nav-bar on-player' : 'nav-bar on-radio';
     document.getElementById('fab-play-pause').style.display = isPlayer ? 'none' : 'flex';
+
+    // Dacă intrăm în Player, resetăm indexul karaoke-ului pentru a începe de la prima strofă
+    if (isPlayer && activeStationObject && activeStationObject.name === "Hope") {
+        hopeTextIdx = 0; // Resetăm la prima strofă
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+            typingTimeout = null;
+        }
+    }
+
     checkHopeEffect();
 }
+
 
 function renderList(mode, el) {
     const list = document.getElementById('stations-list');
