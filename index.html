@@ -1003,9 +1003,24 @@ function init() {
             auto = stations.find(s => transliterate(s.name).includes(search));
         }
     }
+
     if (auto) {
-        renderList('all', document.getElementById('tab-all'));
-        currentIdx = currentFilteredList.indexOf(auto);
+        // 1. Randăm lista 'mine' (Owned) implicit, așa cum dorești
+        renderList('mine', document.getElementById('tab-mine'));
+        
+        // 2. Verificăm dacă stația din link-ul direct se află în lista 'mine'
+        let foundIdx = currentFilteredList.indexOf(auto);
+        
+        if (foundIdx !== -1) {
+            // Dacă stația e în 'mine', o selectăm normal
+            currentIdx = foundIdx;
+        } else {
+            // Dacă stația NU e în 'mine' (e din All sau Russian), 
+            // o adăugăm temporar în listă sau forțăm lista 'all'
+            renderList('all', document.getElementById('tab-all'));
+            currentIdx = currentFilteredList.indexOf(auto);
+        }
+
         updateSliderText(); 
         loadStationInfo(currentIdx, true, false); 
         switchTab('player');
@@ -1026,6 +1041,7 @@ function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 init();
 </script>
 </body>
