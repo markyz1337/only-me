@@ -402,7 +402,7 @@ let activeStationObject = null;
 let isDragging = false;
 let metadataInterval = null;
 
-const ENABLE_DIRECT_LINKS = false; 
+const ENABLE_DIRECT_LINKS = true; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
@@ -432,11 +432,47 @@ stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
 
 // --- LOGICA HOPE TEXT DINAMIC ---
 const hopeTexts = [
-    "Din speranță poți trăi,",
-"Dar și viața nu ți-o nărui..",
-"Aleg să simt, aleg să sper,",
-"Cu așteptări să mă înec.. dar nu pier."
+    "Citește dacă vrei, cineva o s-o facă,",
+    "Sufletul să mi-l înțeleagă...",
+    "...",
+    "Ce pot să spun?",
+    "Da.. din speranță poți trăi,",
+    "Dar și viața nu ți-o nărui..",
+    "Aleg să simt, aleg să sper,",
+    "Cu așteptări să mă înec.. dar nu.",
+    "Nu am să pier!",
+    "",
+    "Trecând prin toate nuanțele de gri,",
+    "O să învăț ce înseamnă a trăi.",
+    "",
+    "Cine ești? Eu chiar nu știu..",
+    "Spune-mi că nu-i doar un vis.. un vis pustiu.",
+    "Aștept să vii, să te cunosc..",
+    "Să-mi spui că dorul nu-i de prisos.",
+    "",
+    "Pe cer sunt foarte multe stele,",
+    "Tu fii cea din visurile mele.",
+    "Mă ascund de lume și știu că-i firesc,",
+    "Să ai parte de mine într-un mod ceresc.",
+    "",
+    "Nu vreau să doară, de aia te-am inventat,",
+    "Așteptând mâinile tale de griji să mă desparți,",
+    "Iar eu să-ți dau totul ce ai meritat.",
+    "",
+    "Dacă am să cad și-o să mă doară, ai să-mi fii sprijin, ai să rămâi?",
+    "Când o să mă pierd în ceață, cu glasul tău de mână să mă ții..",
+    "",
+    "Știi ce-i frumos? Să crezi în speranță,",
+    "Chiar dacă drumul te pierde în ceață.",
+    "Că poți merge înainte, chiar și cu ochii închiși,",
+    "Fără să simți că pașii ți-s greșiți.",
+    "",
+    "Întunericul nu-i de vină, nici el nu știe ce-i lumină,",
+    "Doar rătăcește-n tăceri… fără drum și fără țintă.",
+    "Dar dacă-n tine aprinzi un strop viu,",
+    "Nici noaptea nu mai pare așa pustiu."
 ];
+
 
 let hopeTextIdx = 0;
 let typingTimeout = null;
