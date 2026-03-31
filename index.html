@@ -997,57 +997,60 @@ async function applyRandomItunesCover() {
 
 
 async function init() {
-    // 1. Aplicăm imediat o copertă random de pe iTunes pentru fundalul blurat
+    // 1. Fundal random la pornire
     await applyRandomItunesCover();
 
-    // 2. Primul update pentru posturile proprii (JSON rapid)
+    // 2. Update metadata posturi proprii
     await updateAllOwnedStations(); 
 
-    // 3. Scanare silențioasă pentru TOATE stațiile externe
-    stations.forEach((s, index) => {
-        if (!s.stream.includes("sergiumusic.duckdns.org")) {
-            // Le pornim cu un mic delay de 150ms între ele
-            setTimeout(() => fetchMetadata(s.stream, s), index * 150);
-        }
-    });
+    // 3. LOGICA DE SEARCH PENTRU DIRECT LINK
+    let autoFound = null;
+    const path = window.location.pathname.split('/').filter(s => s.length > 0).pop();
 
-    let auto = null;
-    if (ENABLE_DIRECT_LINKS) {
-        const path = window.location.pathname.split('/').filter(s => s.length > 0).pop();
-        if (path) {
-            const search = transliterate(decodeURIComponent(path));
-            auto = stations.find(s => transliterate(s.name).includes(search));
-        }
+    if (path && ENABLE_DIRECT_LINKS) {
+        // Normalizăm calea din URL pentru comparare
+        const cleanPath = path.toLowerCase().trim();
+        
+        autoFound = stations.find(s => {
+            const cleanStationName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+            return cleanStationName === cleanPath;
+        });
     }
 
-    if (auto) {
-        // 1. Forțăm randarea listei care conține postul (All)
+    // 4. RANDARE ȘI SELECȚIE
+    if (autoFound) {
+        // IMPORTANT: Randăm 'all' pentru a asigura că postul e în lista activă
         renderList('all', document.getElementById('tab-all'));
         
-        // 2. Găsim indexul corect în lista filtrată curentă
-        const foundIdx = currentFilteredList.findIndex(s => s.name === auto.name);
+        // Găsim indexul în lista filtrată
+        const foundIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
         
         if (foundIdx !== -1) {
             currentIdx = foundIdx;
-            // 3. Actualizăm textul slider-ului înainte de a comuta
             updateSliderText(); 
-            // 4. Încărcăm și pornim stația
+            // Pornim radio-ul și mutăm vizual pe Player
             loadStationInfo(currentIdx, true, false); 
-            // 5. Comutăm vizual pe tab-ul de player
             switchTab('player');
         }
     } else {
-        // Logică default...
+        // Comportament default (Owned)
         renderList('mine', document.getElementById('tab-mine'));
         loadStationInfo(0, false, true); 
         updateSliderText();
     }
-
     
+    // 5. Setup restul interfeței
     setupSwipe();
     setupFabSwipe();
 
-    // Update periodic la fiecare 20 secunde pentru toată lista
+    // Pornire scanare metadata silențioasă pentru restul listei
+    stations.forEach((s, i) => {
+        if (!s.stream.includes("sergiumusic.duckdns.org")) {
+            setTimeout(() => fetchMetadata(s.stream, s), i * 150);
+        }
+    });
+
+    // Intervale de refresh
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1066,6 +1069,7 @@ async function init() {
         if (fab) fab.classList.add('visible');
     }, 800); 
 }
+
 
 
 
