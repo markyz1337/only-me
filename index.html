@@ -813,23 +813,59 @@ function switchTab(t) {
 function renderList(mode, el) {
     const list = document.getElementById('stations-list');
     const scrollContainer = document.querySelector('.content');
-    if (scrollContainer) scrollContainer.scrollTop = 0;
-    list.innerHTML = "";
-    if(el) {
+
+    // 1. Gestionăm starea vizuală a tab-urilor și scroll-ul
+    // Resetăm scroll-ul la început DOAR dacă funcția a fost apelată prin click (el != null)
+    if (el) {
+        if (scrollContainer) scrollContainer.scrollTop = 0;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
-    currentFilteredList = stations.filter(s => s[`is${mode.charAt(0).toUpperCase() + mode.slice(1)}`] || (mode === 'all' && s.isAll));
+
+    // 2. Curățăm lista actuală pentru a o reconstrui
+    list.innerHTML = "";
+
+    // 3. Filtrăm stațiile în funcție de tab-ul selectat
+    // Folosim o logică flexibilă pentru a găsi proprietățile isFav, isMine, isRussian etc.
+    const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
+    currentFilteredList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
+
+    // 4. Generăm elementele din listă
     currentFilteredList.forEach((s) => {
         const item = document.createElement('div');
-        item.className = 'station-item';
+        
+        // Adăugăm clasa 'is-playing' dacă acest post este cel care rulează acum
+        const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
+        
+        item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
-        item.innerHTML = `<img src="${s.img || FALLBACK_IMG}" class="station-thumb"><div style="flex:1"><div class="station-name">${s.name}</div><div class="station-desc">${s.desc}</div></div><div class="playing-icon"><span></span><span></span><span></span></div>`;
-        item.onclick = () => { currentIdx = currentFilteredList.indexOf(s); playStation(); };
+
+        item.innerHTML = `
+            <img src="${s.img || FALLBACK_IMG}" class="station-thumb" onerror="this.src=FALLBACK_IMG">
+            <div style="flex:1">
+                <div class="station-name">${s.name}</div>
+                <div class="station-desc">${s.desc}</div>
+            </div>
+            <div class="playing-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        `;
+
+        // Event listener pentru click pe stație
+        item.onclick = () => { 
+            currentIdx = currentFilteredList.indexOf(s); 
+            playStation(); 
+        };
+
         list.appendChild(item);
     });
+
+    // 5. Actualizăm iconițele (Play/Pause/Loading) folosind Lucide
     updateUI(!audio.paused);
 }
+
 
 function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
 function next() { currentIdx = (currentIdx + 1) % currentFilteredList.length; animateTransition('next'); }
@@ -914,19 +950,28 @@ async function updateAllOwnedStations() {
 
                 if (sData) {
                     const cleanTitle = analyticalClean(sData.artist, sData.title);
-                    station.desc = cleanTitle; // Actualizăm sursa de date imediat
+                    station.desc = cleanTitle; 
+
+                    // --- ACTUALIZARE LIVE ÎN LISTĂ FĂRĂ REFRESH ---
+                    // Căutăm elementul în DOM după atributul data-name
+                    const stationItem = document.querySelector(`.station-item[data-name="${station.name}"]`);
+                    if (stationItem) {
+                        const descEl = stationItem.querySelector('.station-desc');
+                        // Actualizăm doar dacă textul s-a schimbat, pentru a evita clipirea
+                        if (descEl && descEl.innerText !== cleanTitle) {
+                            descEl.innerText = cleanTitle;
+                        }
+                    }
                 }
             }
         });
         
-        // După ce am actualizat obiectele 'stations', re-randăm lista și slider-ul
-        const activeTab = document.querySelector('.tab.active');
-        const mode = activeTab ? activeTab.id.replace('tab-', '') : 'mine';
-        renderList(mode); 
+        // Actualizăm și slider-ul din Player dacă suntem acolo
         updateSliderText();
         
     } catch (e) { console.error("Update Error:", e); }
 }
+
 
 
 
