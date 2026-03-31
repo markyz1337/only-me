@@ -375,10 +375,15 @@ stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
 
 
 
-/** --- ENGINE DE CURĂȚARE TEXT (ULTRA SCRUBBER v8 COMPLET) --- **/
+/** --- ENGINE DE CURĂȚARE TEXT (ULTRA SCRUBBER v8.1) --- **/
 function fixEncoding(str) {
     if (!str) return "";
-    try { return decodeURIComponent(escape(str)); } catch (e) { return str; }
+    try {
+        // Dacă conține deja caractere chirilice, nu forțăm re-encodarea (evităm distrugerea textului)
+        if (/[а-яА-ЯёЁ]/.test(str)) return str;
+        // Altfel, încercăm să reparăm diacriticele românești (mojibake)
+        return decodeURIComponent(escape(str));
+    } catch (e) { return str; }
 }
 
 function decodeEntities(str) {
@@ -389,6 +394,7 @@ function decodeEntities(str) {
 }
 
 function fixCase(str) {
+    // Dacă tot textul e CAPS, îl facem Sentence case pentru aspect premium
     if (str.length > 2 && str === str.toUpperCase()) {
         return str.charAt(0) + str.slice(1).toLowerCase();
     }
@@ -402,7 +408,12 @@ function removeDuplicateNames(text) {
 
     parts.forEach(p => {
         let original = fixCase(p.trim().replace(/\s+/g, ' '));
-        let norm = original.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+        // Normalizăm păstrând caracterele alfanumerice chirilice și latine
+        let norm = original.toLowerCase()
+                           .normalize("NFD")
+                           .replace(/[\u0300-\u036f]/g, "")
+                           .replace(/[^a-z0-9а-яё]/gi, "");
+
         if (norm.length < 2) return;
         let isDuplicate = seenNormalized.some(prev => norm.includes(prev) || prev.includes(norm));
         if (!isDuplicate) {
@@ -419,7 +430,7 @@ function analyticalClean(artist, title) {
 
     const garbage = [/Official\s*Video/gi, /Official\s*Audio/gi, /Cat\s*Music/gi, /Roton\s*Music/gi, /Global\s*Records/gi, /Premiere/gi, /Lyrics/gi, /Video/gi, /Audio/gi, /Muzica/gi, /HD/gi, /Radio\s*Edit/gi];
 
-    // Elimină tot ce e între paranteze ( ) [ ] { }
+    // Elimină parantezele ( ) [ ] { }
     let cleanA = a.replace(/\(.*?\)|\[.*?\]|\{.*?\}/g, "");
     let cleanT = t.replace(/\(.*?\)|\[.*?\]|\{.*?\}/g, "");
     
@@ -429,17 +440,15 @@ function analyticalClean(artist, title) {
     });
 
     let rawCombined = (cleanA && cleanT) ? `${cleanA} - ${cleanT}` : (cleanA || cleanT);
-    
-    // Elimină numele duplicat (ex: "Inna - Inna - Rock My Body" devine "Inna - Rock My Body")
     let final = removeDuplicateNames(rawCombined);
 
-    // Curățenie finală pentru spații și liniuțe aiurea
     return final.replace(/\s+/g, ' ')
                 .replace(/\s*-\s*-+\s*/g, ' - ')
                 .replace(/-+/g, '-')
                 .replace(/^[\s\-\.\/]+|[\s\-\.\/]+$/g, "")
                 .trim() || "Live Stream";
 }
+
 
 
 
@@ -852,23 +861,21 @@ async function updateAllOwnedStations() {
         if (!data.icestats || !data.icestats.source) return;
         let sources = Array.isArray(data.icestats.source) ? data.icestats.source : [data.icestats.source];
 
-        // Trecem prin toate stațiile din codul nostru
         stations.forEach(station => {
             if (station.stream.includes("sergiumusic.duckdns.org")) {
                 const mountPoint = station.stream.split('/').pop();
                 const sData = sources.find(s => s.listenurl.includes(mountPoint));
 
                 if (sData) {
+                    // AICI FOLOSIM NOUL ANALYTICALCLEAN
                     const cleanTitle = analyticalClean(sData.artist, sData.title);
-                    station.desc = cleanTitle; // Actualizăm datele interne
+                    station.desc = cleanTitle; 
 
-                    // 1. Actualizăm în LISTĂ (dacă elementul există pe ecran)
+                    // Update în Listă
                     const listItem = document.querySelector(`.station-item[data-name="${station.name}"] .station-desc`);
-                    if (listItem) {
-                        listItem.innerText = cleanTitle;
-                    }
+                    if (listItem) listItem.innerText = cleanTitle;
 
-                    // 2. Actualizăm în PLAYER (doar dacă acesta este postul care cântă acum)
+                    // Update în Player
                     if (activeStationObject && activeStationObject.name === station.name) {
                         const descEl = document.querySelector('#slide-current p');
                         if (descEl && (activeStationObject.name !== "Hope" || audio.paused)) {
@@ -876,16 +883,11 @@ async function updateAllOwnedStations() {
                         }
                     }
                 }
-            } else {
-                // Pentru posturile externe care nu sunt pe serverul tău, 
-                // apelăm fetchMetadata individual (dacă dorești să se actualizeze și ele în listă)
-                // fetchMetadata(station.stream, station); 
             }
         });
-    } catch (e) {
-        console.error("Global Update Error:", e);
-    }
+    } catch (e) { console.error("Update Error:", e); }
 }
+
 
 
 
