@@ -604,7 +604,7 @@ async function fetchAlbumArt(title, stationRef) {
 }
 
 async function fetchMetadata(url, station) {
-    // 1. LOGICĂ PENTRU SERVERUL TĂU (OWNED) - EXTRACT DIN JSON
+    // 1. LOGICĂ PENTRU SERVERUL TĂU (OWNED)
     if (url.includes("sergiumusic.duckdns.org")) {
         try {
             const mountPoint = url.split('/').pop();
@@ -618,26 +618,14 @@ async function fetchMetadata(url, station) {
                 if (sData) {
                     const cleanTitle = analyticalClean(sData.artist, sData.title);
                     station.desc = cleanTitle; 
-
-                    // Actualizăm UI-ul Player-ului dacă postul e activ
-                    if (activeStationObject && activeStationObject.name === station.name) {
-                        const descEl = document.querySelector('#slide-current p');
-                        if (descEl) descEl.innerText = cleanTitle;
-                        
-                        // CRITICAL: Update Lockscreen
-                        updateMediaSession();
-                    }
-
-                    // Actualizăm descrierea în listă
-                    const listItem = document.querySelector(`.station-item[data-name="${station.name}"] .station-desc`);
-                    if (listItem) listItem.innerText = cleanTitle;
+                    updateStationUI(station.name, cleanTitle);
                 }
             }
         } catch (e) { console.error("Scrubber Error:", e); }
         return; 
     }
 
-    // 2. LOGICĂ STANDARD PENTRU RADIOURI EXTERNE (ICY METADATA)
+    // 2. LOGICĂ PENTRU RADIOURI EXTERNE (ICY METADATA)
     if (url.includes('.m3u8')) return;
     try {
         const response = await fetch(url, { headers: { "Icy-MetaData": "1" } });
@@ -647,41 +635,49 @@ async function fetchMetadata(url, station) {
         if (!metaInt) return;
 
         let buffer = new Uint8Array();
-        while (true) {
+        let bytesRead = 0;
+
+        while (bytesRead < metaInt + 500) { // Citim doar începutul stream-ului pentru metadata
             const { done, value } = await reader.read();
             if (done) break;
             let temp = new Uint8Array(buffer.length + value.length);
             temp.set(buffer); temp.set(value, buffer.length); buffer = temp;
+            bytesRead += value.length;
             
-            while (buffer.length >= metaInt + 1) {
+            if (buffer.length >= metaInt + 1) {
                 let mLen = buffer[metaInt] * 16;
-                if (buffer.length < metaInt + 1 + mLen) break;
+                if (buffer.length < metaInt + 1 + mLen) continue;
                 let mStr = decoder.decode(buffer.slice(metaInt + 1, metaInt + 1 + mLen));
                 let match = mStr.match(/StreamTitle='([^']*)'/);
                 
                 if (match && match[1]) {
                     const rawTitle = match[1].replace(/;/g, "").trim();
                     station.desc = rawTitle;
-
-                    if (activeStationObject && activeStationObject.name === station.name) {
-                        const slide = document.getElementById('slide-current');
-                        if(slide) slide.querySelector('p').innerText = rawTitle;
-                        
-                        // CRITICAL: Update Lockscreen
-                        updateMediaSession();
-                    }
-
-                    const listItem = document.querySelector(`.station-item[data-name="${station.name}"] .station-desc`);
-                    if (listItem) listItem.innerText = rawTitle;
-
+                    updateStationUI(station.name, rawTitle);
                     fetchAlbumArt(rawTitle, station);
-                    reader.cancel(); return;
+                    reader.cancel(); 
+                    return;
                 }
-                buffer = buffer.slice(metaInt + 1 + mLen);
             }
         }
-    } catch(e) {}
+        reader.cancel();
+    } catch(e) { console.log("Metadata fetch failed for", station.name); }
 }
+
+// Funcție helper pentru a actualiza UI-ul instant
+function updateStationUI(name, title) {
+    // Update în Listă
+    const listItem = document.querySelector(`.station-item[data-name="${name}"] .station-desc`);
+    if (listItem) listItem.innerText = title;
+
+    // Update în Player (dacă e activ)
+    if (activeStationObject && activeStationObject.name === name) {
+        const slideDesc = document.querySelector('#slide-current p');
+        if (slideDesc) slideDesc.innerText = title;
+        updateMediaSession();
+    }
+}
+
 
 
 
@@ -814,37 +810,31 @@ function renderList(mode, el) {
     const list = document.getElementById('stations-list');
     const scrollContainer = document.querySelector('.content');
 
-    // 1. Gestionăm starea vizuală a tab-urilor și scroll-ul
-    // Resetăm scroll-ul la început DOAR dacă funcția a fost apelată prin click (el != null)
     if (el) {
         if (scrollContainer) scrollContainer.scrollTop = 0;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
 
-    // 2. Curățăm lista actuală pentru a o reconstrui
     list.innerHTML = "";
-
-    // 3. Filtrăm stațiile în funcție de tab-ul selectat
-    // Folosim o logică flexibilă pentru a găsi proprietățile isFav, isMine, isRussian etc.
     const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
     currentFilteredList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
 
-    // 4. Generăm elementele din listă
     currentFilteredList.forEach((s) => {
         const item = document.createElement('div');
-        
-        // Adăugăm clasa 'is-playing' dacă acest post este cel care rulează acum
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
         
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
 
+        // Folosim descrierea curentă (care poate fi piesa live) sau cea originală
+        const displayDesc = s.desc || s.originalDesc;
+
         item.innerHTML = `
             <img src="${s.img || FALLBACK_IMG}" class="station-thumb" onerror="this.src=FALLBACK_IMG">
             <div style="flex:1">
                 <div class="station-name">${s.name}</div>
-                <div class="station-desc">${s.desc}</div>
+                <div class="station-desc">${displayDesc}</div>
             </div>
             <div class="playing-icon">
                 <span></span>
@@ -853,7 +843,6 @@ function renderList(mode, el) {
             </div>
         `;
 
-        // Event listener pentru click pe stație
         item.onclick = () => { 
             currentIdx = currentFilteredList.indexOf(s); 
             playStation(); 
@@ -862,9 +851,9 @@ function renderList(mode, el) {
         list.appendChild(item);
     });
 
-    // 5. Actualizăm iconițele (Play/Pause/Loading) folosind Lucide
     updateUI(!audio.paused);
 }
+
 
 
 function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
@@ -974,67 +963,105 @@ async function updateAllOwnedStations() {
 
 
 
+/** --- FUNCȚIE PENTRU FUNDAL RANDOM LA PORNIRE --- **/
+async function applyRandomItunesCover() {
+    const keywords = ["Hits 2024", "Dance Music", "Pop Hits", "Top Charts", "Summer Vibes"];
+    const randomKey = keywords[Math.floor(Math.random() * keywords.length)];
+    
+    try {
+        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(randomKey)}&entity=song&limit=20`);
+        const data = await res.json();
+        if (data.results && data.results.length > 0) {
+            const randomTrack = data.results[Math.floor(Math.random() * data.results.length)];
+            const highResImg = randomTrack.artworkUrl100.replace('100x100bb.jpg', '1000x1000bb.jpg');
+            
+            // Aplicăm pe primul strat de fundal
+            const bg1 = document.getElementById('bg-layer-1');
+            const art1 = document.getElementById('player-img-1');
+            
+            if (bg1) {
+                bg1.style.backgroundImage = `url(${highResImg})`;
+                bg1.style.opacity = "1";
+            }
+            if (art1) {
+                art1.src = highResImg;
+            }
+        }
+    } catch (e) {
+        console.log("Eroare la încărcarea cover-ului random:", e);
+        // Fallback în caz de eroare: arătăm fundalul negru default sau o imagine fixă
+        document.getElementById('bg-layer-1').style.opacity = "1";
+    }
+}
 
 
 
 async function init() {
-    // 1. Actualizăm metadatele pentru posturile proprii înainte de afișare
+    // 1. Aplicăm imediat o copertă random de pe iTunes pentru fundalul blurat
+    await applyRandomItunesCover();
+
+    // 2. Primul update pentru posturile proprii (JSON rapid)
     await updateAllOwnedStations(); 
 
+    // 3. Scanare silențioasă pentru TOATE stațiile externe
+    stations.forEach((s, index) => {
+        if (!s.stream.includes("sergiumusic.duckdns.org")) {
+            // Le pornim cu un mic delay de 150ms între ele
+            setTimeout(() => fetchMetadata(s.stream, s), index * 150);
+        }
+    });
+
     let auto = null;
-    // 2. Logică pentru link-uri directe (dacă sunt activate)
     if (ENABLE_DIRECT_LINKS) {
         const path = window.location.pathname.split('/').filter(s => s.length > 0).pop();
-        const query = window.location.search.substring(1);
-        const raw = path || query;
-        if (raw) {
-            const search = transliterate(decodeURIComponent(raw));
+        if (path) {
+            const search = transliterate(decodeURIComponent(path));
             auto = stations.find(s => transliterate(s.name).includes(search));
         }
     }
 
     if (auto) {
-        // Dacă am găsit un post în URL, îl încărcăm direct
-        renderList('mine', document.getElementById('tab-mine'));
-        let foundIdx = currentFilteredList.indexOf(auto);
-        if (foundIdx !== -1) currentIdx = foundIdx;
-        else {
-            renderList('all', document.getElementById('tab-all'));
-            currentIdx = currentFilteredList.indexOf(auto);
-        }
+        renderList('all', document.getElementById('tab-all'));
+        currentIdx = currentFilteredList.indexOf(auto);
         updateSliderText(); 
+        // Dacă intrăm direct pe un post, lăsăm engine-ul să încarce arta lui
         loadStationInfo(currentIdx, true, false); 
         switchTab('player');
     } else {
-        // Altfel, setăm Heart 10s ca fundal și încărcăm primul post din listă fără să-l pornim
-        const h10 = stations.find(s => s.name === "Heart 10s");
-        if (h10) { h10.isInitialBgSource = true; fetchMetadata(h10.stream, h10); }
-        
+        // Default: Arată lista "Owned"
         renderList('mine', document.getElementById('tab-mine'));
-        loadStationInfo(0, false, true);
+        
+        // IMPORTANT: Setăm skipArt pe 'true' aici pentru a NU suprascrie 
+        // coperta random iTunes cu imaginea default a primului post la pornire.
+        loadStationInfo(0, false, true); 
+        
         updateSliderText();
     }
     
-    // 3. Activăm gesturile de swipe
     setupSwipe();
     setupFabSwipe();
 
-    // 4. Pornim intervalul de verificare a metadatelor la fiecare 15 secunde
-    setInterval(updateAllOwnedStations, 15000);
+    // Update periodic la fiecare 20 secunde pentru toată lista
+    setInterval(() => {
+        updateAllOwnedStations();
+        stations.forEach((s, i) => {
+            if (!s.stream.includes("sergiumusic.duckdns.org")) {
+                setTimeout(() => fetchMetadata(s.stream, s), i * 200);
+            }
+        });
+    }, 20000);
 
-    // 5. Event listeners pentru starea audio
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 
-    /** --- EFECT APARIȚIE FLUIDĂ FAB --- **/
     setTimeout(() => {
         const fab = document.getElementById('fab-play-pause');
-        if (fab) {
-            fab.classList.add('visible');
-        }
+        if (fab) fab.classList.add('visible');
     }, 800); 
 }
+
+
 
 
 
