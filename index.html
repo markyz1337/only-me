@@ -1021,22 +1021,28 @@ async function init() {
     }
 
     if (auto) {
+        // 1. Forțăm randarea listei care conține postul (All)
         renderList('all', document.getElementById('tab-all'));
-        currentIdx = currentFilteredList.indexOf(auto);
-        updateSliderText(); 
-        // Dacă intrăm direct pe un post, lăsăm engine-ul să încarce arta lui
-        loadStationInfo(currentIdx, true, false); 
-        switchTab('player');
+        
+        // 2. Găsim indexul corect în lista filtrată curentă
+        const foundIdx = currentFilteredList.findIndex(s => s.name === auto.name);
+        
+        if (foundIdx !== -1) {
+            currentIdx = foundIdx;
+            // 3. Actualizăm textul slider-ului înainte de a comuta
+            updateSliderText(); 
+            // 4. Încărcăm și pornim stația
+            loadStationInfo(currentIdx, true, false); 
+            // 5. Comutăm vizual pe tab-ul de player
+            switchTab('player');
+        }
     } else {
-        // Default: Arată lista "Owned"
+        // Logică default...
         renderList('mine', document.getElementById('tab-mine'));
-        
-        // IMPORTANT: Setăm skipArt pe 'true' aici pentru a NU suprascrie 
-        // coperta random iTunes cu imaginea default a primului post la pornire.
         loadStationInfo(0, false, true); 
-        
         updateSliderText();
     }
+
     
     setupSwipe();
     setupFabSwipe();
