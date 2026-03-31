@@ -226,7 +226,23 @@ body {
 .track-viewport { width: 100%; overflow: hidden; margin-bottom: 30px; position: relative; }
 .track-slider-wrapper { display: flex; width: 300%; transform: translateX(-33.333%); will-change: transform; }
 .track-info-slide { width: 33.333%; text-align: center; padding: 0 45px; flex-shrink: 0; }
-.track-info-slide h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track-info-slide h2 { 
+    font-size: 24px; 
+    font-weight: 600; 
+    margin-bottom: 8px; 
+    
+    /* Permite maximum 2 rânduri */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+    
+    /* Centrare și spațiere */
+    line-height: 1.2;
+    max-height: 2.4em; /* 1.2 x 2 rânduri */
+    white-space: normal; /* Permite wrap-ul textului */
+    text-overflow: ellipsis;
+}
 .track-info-slide p { color: #b3b3b3; font-size: 13px; text-transform: uppercase; line-height: 1.5; min-height: 3em; }
 
 .main-controls { display: flex; align-items: center; gap: 35px; margin-bottom: 20px; }
@@ -429,16 +445,42 @@ const stations = [
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
 
 function next() { 
-    if (isTransitioning) return; // ACESTA ESTE BLOCAJUL
-    currentIdx = (currentIdx + 1) % currentFilteredList.length; 
-    animateTransition('next'); 
+    if (!currentFilteredList || currentFilteredList.length === 0) return;
+
+    // VERIFICARE: Suntem în Player?
+    const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
+
+    if (isPlayerVisible) {
+        // În Player: Respectăm animația pentru a evita bug-ul vizual
+        if (isTransitioning) return; 
+        currentIdx = (currentIdx + 1) % currentFilteredList.length; 
+        animateTransition('next'); 
+    } else {
+        // În Listă (FAB): Schimbăm instant, fără animație
+        currentIdx = (currentIdx + 1) % currentFilteredList.length; 
+        loadStationInfo(currentIdx, true, false);
+        updateSliderText();
+    }
 }
 
 function prev() { 
-    if (isTransitioning) return; // ACESTA ESTE BLOCAJUL
-    currentIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length; 
-    animateTransition('prev'); 
+    if (!currentFilteredList || currentFilteredList.length === 0) return;
+
+    const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
+
+    if (isPlayerVisible) {
+        if (isTransitioning) return; 
+        currentIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length; 
+        animateTransition('prev'); 
+    } else {
+        currentIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length; 
+        loadStationInfo(currentIdx, true, false);
+        updateSliderText();
+    }
 }
+
+
+
 
 
 
@@ -914,7 +956,7 @@ function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); 
 
 function animateTransition(dir) {
     if (isTransitioning) return;
-    isTransitioning = true; // Închidem lacătul
+    isTransitioning = true; 
     
     wrapper.style.transition = 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
     wrapper.style.transform = dir === 'next' ? 'translateX(-66.666%)' : 'translateX(0)';
@@ -923,14 +965,14 @@ function animateTransition(dir) {
         wrapper.removeEventListener('transitionend', onEnd);
         wrapper.style.transition = 'none'; 
         
-        // Actualizăm datele postului
+        // Actualizăm datele postului (sunet + text)
         loadStationInfo(currentIdx, true, false); 
         updateSliderText(); 
         
-        // Resetăm slider-ul pe centrul invizibil
+        // Resetăm slider-ul pe centru
         wrapper.style.transform = 'translateX(-33.333%)'; 
         
-        // Deblocăm după un mic timeout de siguranță pentru randare
+        // Deblocăm după o mică pauză pentru a preveni suprapunerea evenimentelor
         setTimeout(() => { 
             isTransitioning = false; 
         }, 50);
@@ -938,6 +980,7 @@ function animateTransition(dir) {
 
     wrapper.addEventListener('transitionend', onEnd);
 }
+
 
 
 
@@ -998,20 +1041,59 @@ function setupSwipe() {
 function setupFabSwipe() {
     const fab = document.getElementById('fab-play-pause');
     let fSX, fSY;
-    fab.addEventListener('touchstart', e => { fSX = e.touches[0].clientX; fSY = e.touches[0].clientY; }, {passive: true});
+    
+    fab.addEventListener('touchstart', e => { 
+        fSX = e.touches[0].clientX; 
+        fSY = e.touches[0].clientY; 
+    }, {passive: true});
+
     fab.addEventListener('touchend', e => {
         const dX = e.changedTouches[0].clientX - fSX;
         const dY = e.changedTouches[0].clientY - fSY;
+        
+        // Prag minim de 30px pentru a ignora atingerile accidentale
         if (Math.abs(dX) > 30 || Math.abs(dY) > 30) {
-            if (dY > 30 || dX < -30) next(); else if (dY < -30) prev();
-            const icon = (dY > 30 || dX < -30) ? 'skip-forward' : 'skip-back';
-            const iconEl = fab.querySelector('i');
-            iconEl.setAttribute('data-lucide', icon); lucide.createIcons();
-            setTimeout(() => { iconEl.setAttribute('data-lucide', audio.paused ? 'play' : 'pause'); lucide.createIcons(); }, 800);
-            if (navigator.vibrate) navigator.vibrate(30);
+            let direction = '';
+            
+            // Swipe JOS sau STÂNGA = NEXT
+            if (dY > 30 || dX < -30) {
+                next();
+                direction = 'skip-forward';
+            } 
+            // Swipe SUS sau DREAPTA = PREV
+            else if (dY < -30 || dX > 30) {
+                prev();
+                direction = 'skip-back';
+            }
+
+            if (direction) {
+                updateFabVisuals(direction);
+                if (navigator.vibrate) navigator.vibrate(40);
+            }
         }
-    });
+    }, {passive: true});
 }
+
+function updateFabVisuals(iconName) {
+    const fab = document.getElementById('fab-play-pause');
+    
+    // 1. Schimbăm iconița imediat (Skip)
+    fab.innerHTML = `<i data-lucide="${iconName}"></i>`;
+    lucide.createIcons();
+    
+    // 2. Adăugăm un efect vizual de feedback (opțional, dar ajută)
+    fab.style.transform = 'scale(0.85)';
+    
+    // 3. Revenim la starea normală (Play/Pause) după 800ms
+    setTimeout(() => {
+        const stateIcon = !audio.paused ? 'pause' : 'play';
+        fab.innerHTML = `<i data-lucide="${stateIcon}" fill="currentColor"></i>`;
+        lucide.createIcons();
+        fab.style.transform = ''; // Revenim la scara normală (sau cea de puls)
+    }, 800);
+}
+
+
 
 async function updateAllOwnedStations() {
     try {
