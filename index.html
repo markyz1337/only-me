@@ -604,7 +604,7 @@ async function fetchAlbumArt(title, stationRef) {
 }
 
 async function fetchMetadata(url, station) {
-    // 1. LOGICĂ SPECIALĂ PENTRU SERVERUL TĂU (OWNED) - EXTRACT DIN JSON
+    // 1. LOGICĂ PENTRU SERVERUL TĂU (OWNED) - EXTRACT DIN JSON
     if (url.includes("sergiumusic.duckdns.org")) {
         try {
             const mountPoint = url.split('/').pop();
@@ -617,22 +617,20 @@ async function fetchMetadata(url, station) {
                 
                 if (sData) {
                     const cleanTitle = analyticalClean(sData.artist, sData.title);
-                    station.desc = cleanTitle; // Actualizăm obiectul intern
-                    
-                    // ACTUALIZARE ÎN PLAYER (Dacă este postul activ)
+                    station.desc = cleanTitle; 
+
+                    // Actualizăm UI-ul Player-ului dacă postul e activ
                     if (activeStationObject && activeStationObject.name === station.name) {
                         const descEl = document.querySelector('#slide-current p');
-                        if (descEl) {
-                       descEl.innerText = cleanTitle;
-                        }
-
+                        if (descEl) descEl.innerText = cleanTitle;
+                        
+                        // CRITICAL: Update Lockscreen
+                        updateMediaSession();
                     }
 
-                    // ACTUALIZARE ÎN LISTĂ (Căutăm elementul după data-name)
+                    // Actualizăm descrierea în listă
                     const listItem = document.querySelector(`.station-item[data-name="${station.name}"] .station-desc`);
-                    if (listItem) {
-                        listItem.innerText = cleanTitle;
-                    }
+                    if (listItem) listItem.innerText = cleanTitle;
                 }
             }
         } catch (e) { console.error("Scrubber Error:", e); }
@@ -665,21 +663,18 @@ async function fetchMetadata(url, station) {
                     const rawTitle = match[1].replace(/;/g, "").trim();
                     station.desc = rawTitle;
 
-                    // Update Player
                     if (activeStationObject && activeStationObject.name === station.name) {
                         const slide = document.getElementById('slide-current');
                         if(slide) slide.querySelector('p').innerText = rawTitle;
+                        
+                        // CRITICAL: Update Lockscreen
+                        updateMediaSession();
                     }
 
-                    // Update Listă
                     const listItem = document.querySelector(`.station-item[data-name="${station.name}"] .station-desc`);
-                    if (listItem) {
-                        listItem.innerText = rawTitle;
-                    }
+                    if (listItem) listItem.innerText = rawTitle;
 
-                    // Căutăm copertă doar pentru radiourile externe
                     fetchAlbumArt(rawTitle, station);
-                    
                     reader.cancel(); return;
                 }
                 buffer = buffer.slice(metaInt + 1 + mLen);
@@ -687,6 +682,7 @@ async function fetchMetadata(url, station) {
         }
     } catch(e) {}
 }
+
 
 
 
@@ -765,18 +761,28 @@ function updateUI(state) {
 
 function updateMediaSession() {
     if ('mediaSession' in navigator && activeStationObject) {
+        // Creăm un obiect nou pentru a forța refresh-ul pe ecranul de blocare
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: activeStationObject.desc,
-            artist: activeStationObject.name,
+            title: activeStationObject.desc, // Titlul piesei curente
+            artist: activeStationObject.name, // Numele postului de radio
             album: "Sergiu FM",
-            artwork: [{ src: activeStationObject.img || FALLBACK_IMG, sizes: '512x512', type: 'image/png' }]
+            artwork: [
+                { 
+                    src: activeStationObject.img || FALLBACK_IMG, 
+                    sizes: '512x512', 
+                    type: 'image/png' 
+                }
+            ]
         });
+
+        // Re-atașăm controllerele (opțional, dar recomandat pentru stabilitate)
         navigator.mediaSession.setActionHandler('play', () => audio.play());
         navigator.mediaSession.setActionHandler('pause', () => audio.pause());
         navigator.mediaSession.setActionHandler('previoustrack', () => prev());
         navigator.mediaSession.setActionHandler('nexttrack', () => next());
     }
 }
+
 
 function switchTab(t) {
     const isPlayer = t === 'player';
