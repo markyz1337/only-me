@@ -30,6 +30,7 @@
 }
 
 
+
 .fade-text {
     transition: opacity 0.5s ease-in-out;
 }
@@ -274,8 +275,28 @@ body {
     justify-content: center; 
     box-shadow: 0 8px 25px rgba(0,0,0,0.3); 
     z-index: 15; 
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    
+    /* Starea inițială pentru animație */
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                opacity 0.8s ease-out, 
+                transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
 }
+
+/* Clasa care va declanșa apariția */
+.fab.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Păstrăm efectul de puls neschimbat, dar adăugăm .visible pentru siguranță */
+.fab.playing.visible {
+    background: var(--accent); 
+    color: #fff;               
+    transform: scale(1.1);
+}
+
 
 .fab.playing {
     background: var(--accent); 
@@ -327,8 +348,14 @@ body {
     </div>
 
     <div class="nav-bar on-radio" id="main-nav">
-        <div class="nav-link" id="nav-player" onclick="switchTab('player')"><i data-lucide="play-circle"></i><span>Player</span></div>
-        <div class="nav-link active" id="nav-list" onclick="switchTab('list')"><i data-lucide="radio"></i><span>Radio</span></div>
+<div class="nav-link" id="nav-player" onclick="switchTab('player')">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-circle"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+    <span>Player</span>
+</div>
+<div class="nav-link active" id="nav-list" onclick="switchTab('list')">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-radio"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/></svg>
+    <span>Radio</span>
+</div>
     </div>
 </div>
 
@@ -900,10 +927,11 @@ async function updateAllOwnedStations() {
 
 
 async function init() {
-    // 1. Încercăm să luăm metadatele IMEDIAT înainte de orice randare vizuală
+    // 1. Actualizăm metadatele pentru posturile proprii înainte de afișare
     await updateAllOwnedStations(); 
 
     let auto = null;
+    // 2. Logică pentru link-uri directe (dacă sunt activate)
     if (ENABLE_DIRECT_LINKS) {
         const path = window.location.pathname.split('/').filter(s => s.length > 0).pop();
         const query = window.location.search.substring(1);
@@ -915,6 +943,7 @@ async function init() {
     }
 
     if (auto) {
+        // Dacă am găsit un post în URL, îl încărcăm direct
         renderList('mine', document.getElementById('tab-mine'));
         let foundIdx = currentFilteredList.indexOf(auto);
         if (foundIdx !== -1) currentIdx = foundIdx;
@@ -926,26 +955,36 @@ async function init() {
         loadStationInfo(currentIdx, true, false); 
         switchTab('player');
     } else {
-        // Configurăm Heart 10s ca fundal inițial
+        // Altfel, setăm Heart 10s ca fundal și încărcăm primul post din listă fără să-l pornim
         const h10 = stations.find(s => s.name === "Heart 10s");
         if (h10) { h10.isInitialBgSource = true; fetchMetadata(h10.stream, h10); }
         
-        // Randăm lista cu datele deja actualizate din updateAllOwnedStations
         renderList('mine', document.getElementById('tab-mine'));
         loadStationInfo(0, false, true);
         updateSliderText();
     }
     
+    // 3. Activăm gesturile de swipe
     setupSwipe();
     setupFabSwipe();
 
-    // Continuăm poll-ul la 15 secunde
+    // 4. Pornim intervalul de verificare a metadatelor la fiecare 15 secunde
     setInterval(updateAllOwnedStations, 15000);
 
+    // 5. Event listeners pentru starea audio
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
+
+    /** --- EFECT APARIȚIE FLUIDĂ FAB --- **/
+    setTimeout(() => {
+        const fab = document.getElementById('fab-play-pause');
+        if (fab) {
+            fab.classList.add('visible');
+        }
+    }, 800); 
 }
+
 
 
 
