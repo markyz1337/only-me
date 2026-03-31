@@ -506,26 +506,23 @@ function analyticalClean(artist, title) {
 
 
 
-// --- LOGICA HOPE EMOJI & EFECTE ACTUALIZATĂ ---
+// --- LOGICA HOPE EMOJI ÎMBUNĂTĂȚITĂ (ANTI-REPETARE ȘI FIX DISPARIȚIE) ---
 const hopeEmojis = ["🌅", "🫵🏼🫶🏼", "💛", "🥰", "❤️‍🔥", "💗", "💞", "✨", "⭐️", "🌙", "🌕", "🌼", "🌸", "🐝", "🌷", "🪐", "💫", "🌠", "🌌", "🌇", "🌃", "🌆", "💒"];
-let hopeInterval = null; 
+let lastHopeEmoji = ""; 
 let emojiInterval = null; 
 
-/** --- LOGICA HOPE EMOJI ÎMBUNĂTĂȚITĂ (FĂRĂ REPETARE) --- **/
-let lastHopeEmoji = ""; // Memorează ultimul emoji pentru a evita repetiția
-
 function rotateHopeEmoji() {
-    // 1. Alegem un emoji nou care să fie diferit de ultimul
+    // 1. Alegem un emoji diferit de ultimul
     let availableEmojis = hopeEmojis.filter(e => e !== lastHopeEmoji);
     const newEmoji = availableEmojis[Math.floor(Math.random() * availableEmojis.length)];
     lastHopeEmoji = newEmoji;
 
-    // 2. Actualizare în LISTĂ
+    // 2. Actualizare în LISTĂ (căutăm elementul după data-name)
     const listItemName = document.querySelector(`.station-item[data-name="Hope"] .station-name`);
     if (listItemName) {
         let listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
         if (!listEmojiSpan) {
-            listItemName.innerHTML = `Hope <span class="list-hope-emoji" style="transition: opacity 0.6s; display: inline-block; margin-left: 5px; font-size: 13px;">${newEmoji}</span>`;
+            listItemName.innerHTML = `Hope <span class="list-hope-emoji" style="transition: opacity 0.6s ease-in-out; display: inline-block; margin-left: 5px; font-size: 13px;">${newEmoji}</span>`;
             listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
         }
         
@@ -533,16 +530,16 @@ function rotateHopeEmoji() {
         setTimeout(() => {
             listEmojiSpan.innerText = newEmoji;
             listEmojiSpan.style.opacity = "1";
-        }, 600); // Sincronizat cu tranziția de 0.6s
+        }, 650); 
     }
 
-    // 3. Actualizare în PLAYER (Doar dacă Hope este activ)
+    // 3. Actualizare în PLAYER (doar dacă e selectat Hope)
     const isHopeActive = activeStationObject && activeStationObject.name === "Hope";
     if (isHopeActive) {
         const titleEl = document.querySelector('#slide-current h2');
         if (titleEl) {
             let playerEmojiSpan = titleEl.querySelector('span');
-            // Dacă span-ul nu există (e doar textul "Hope"), îl creăm
+            // Dacă am dat swipe și span-ul a dispărut, îl reconstruim
             if (!playerEmojiSpan) {
                 titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block; margin-left: 5px;">${newEmoji}</span>`;
                 playerEmojiSpan = titleEl.querySelector('span');
@@ -550,22 +547,22 @@ function rotateHopeEmoji() {
             
             playerEmojiSpan.style.opacity = "0";
             setTimeout(() => {
-                playerEmojiSpan.innerText = newEmoji;
-                playerEmojiSpan.style.opacity = "1";
-            }, 600);
+                if(playerEmojiSpan) {
+                    playerEmojiSpan.innerText = newEmoji;
+                    playerEmojiSpan.style.opacity = "1";
+                }
+            }, 650);
         }
     }
 }
-
-
 
 function checkHopeEffect() {
     const isHope = activeStationObject && activeStationObject.name === "Hope";
     const isPlaying = !audio.paused;
     
     if (isHope && isPlaying) {
-        // Păstrăm doar rotația emoji-urilor în titlu
         if (!emojiInterval) {
+            // Pornim imediat primul emoji, apoi setăm intervalul
             rotateHopeEmoji(); 
             emojiInterval = setInterval(rotateHopeEmoji, 5000);
         }
@@ -579,17 +576,13 @@ function stopHopeEffect() {
         clearInterval(emojiInterval); 
         emojiInterval = null; 
     }
-
+    // Revenire la text simplu când se oprește sau se schimbă postul
     const titleEl = document.querySelector('#slide-current h2');
-    if (titleEl && activeStationObject && activeStationObject.name === "Hope" && audio.paused) {
+    if (titleEl && activeStationObject && activeStationObject.name === "Hope") {
         titleEl.innerHTML = "Hope";
     }
-
-    const descEl = document.querySelector('#slide-current p');
-    if (descEl && activeStationObject) {
-        descEl.innerText = activeStationObject.desc;
-    }
 }
+
 
 
 
