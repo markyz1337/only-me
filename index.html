@@ -809,6 +809,7 @@ function updateMediaSession() {
 function switchTab(t) {
     const isPlayer = t === 'player';
     const navBar = document.getElementById('main-nav');
+    const fab = document.getElementById('fab-play-pause');
     
     document.getElementById('list-view').style.display = isPlayer ? 'none' : 'flex';
     document.getElementById('player-view').style.display = isPlayer ? 'flex' : 'none';
@@ -816,10 +817,18 @@ function switchTab(t) {
     document.getElementById('nav-list').classList.toggle('active', !isPlayer);
     document.getElementById('nav-player').classList.toggle('active', isPlayer);
     
-    // Actualizăm clasa de poziționare și NE ASIGURĂM că păstrăm clasa visible
     navBar.className = isPlayer ? 'nav-bar on-player visible' : 'nav-bar on-radio visible';
     
-    document.getElementById('fab-play-pause').style.display = isPlayer ? 'none' : 'flex';
+    if (isPlayer) {
+        fab.style.display = 'none';
+        fab.classList.remove('visible'); // Resetăm clasa pentru animație
+    } else {
+        fab.style.display = 'flex';
+        // Folosim un mic timeout pentru a permite browserului să proceseze display: flex înainte de animație
+        setTimeout(() => {
+            fab.classList.add('visible');
+        }, 50);
+    }
 
     if (ENABLE_DIRECT_LINKS) {
         if (isPlayer && activeStationObject) {
@@ -829,9 +838,9 @@ function switchTab(t) {
             window.history.replaceState({}, "", "/");
         }
     }
-
     checkHopeEffect();
 }
+
 
 
 
