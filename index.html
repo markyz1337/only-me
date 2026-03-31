@@ -760,8 +760,21 @@ function switchTab(t) {
     document.getElementById('main-nav').className = isPlayer ? 'nav-bar on-player' : 'nav-bar on-radio';
     document.getElementById('fab-play-pause').style.display = isPlayer ? 'none' : 'flex';
 
+    // --- LOGICA PENTRU URL DINAMIC ---
+    if (ENABLE_DIRECT_LINKS) {
+        if (isPlayer && activeStationObject) {
+            // Când trecem pe Player, punem numele postului în URL
+            const cleanName = transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
+            window.history.replaceState({}, "", "/" + cleanName);
+        } else {
+            // Când trecem pe Radio (listă), curățăm URL-ul la rădăcină
+            window.history.replaceState({}, "", "/");
+        }
+    }
+
     checkHopeEffect();
 }
+
 
 
 function renderList(mode, el) {
