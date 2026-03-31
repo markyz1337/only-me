@@ -397,6 +397,8 @@ let startX = 0;
 let activeStationObject = null;
 let isDragging = false;
 let metadataInterval = null;
+let isTransitioning = false;
+
 
 const ENABLE_DIRECT_LINKS = true; 
 const audio = document.getElementById('audio-engine');
@@ -425,6 +427,19 @@ const stations = [
 ];
 
 stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
+
+function next() { 
+    if (isTransitioning) return; // ACESTA ESTE BLOCAJUL
+    currentIdx = (currentIdx + 1) % currentFilteredList.length; 
+    animateTransition('next'); 
+}
+
+function prev() { 
+    if (isTransitioning) return; // ACESTA ESTE BLOCAJUL
+    currentIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length; 
+    animateTransition('prev'); 
+}
+
 
 
 
@@ -896,19 +911,36 @@ function renderList(mode, el) {
 
 
 function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
-function next() { currentIdx = (currentIdx + 1) % currentFilteredList.length; animateTransition('next'); }
-function prev() { currentIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length; animateTransition('prev'); }
 
 function animateTransition(dir) {
-    wrapper.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
-    wrapper.style.transform = dir==='next' ? 'translateX(-66.666%)' : 'translateX(0)';
-    setTimeout(()=>{ 
-        wrapper.style.transition='none'; 
-        loadStationInfo(currentIdx, true); 
+    if (isTransitioning) return;
+    isTransitioning = true; // Închidem lacătul
+    
+    wrapper.style.transition = 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
+    wrapper.style.transform = dir === 'next' ? 'translateX(-66.666%)' : 'translateX(0)';
+
+    const onEnd = () => {
+        wrapper.removeEventListener('transitionend', onEnd);
+        wrapper.style.transition = 'none'; 
+        
+        // Actualizăm datele postului
+        loadStationInfo(currentIdx, true, false); 
         updateSliderText(); 
+        
+        // Resetăm slider-ul pe centrul invizibil
         wrapper.style.transform = 'translateX(-33.333%)'; 
-    }, 600);
+        
+        // Deblocăm după un mic timeout de siguranță pentru randare
+        setTimeout(() => { 
+            isTransitioning = false; 
+        }, 50);
+    };
+
+    wrapper.addEventListener('transitionend', onEnd);
 }
+
+
+
 
 function updateSliderText() {
     if (currentFilteredList.length === 0) return;
@@ -935,15 +967,33 @@ function transliterate(t) {
 function setupSwipe() {
     const zones = [document.getElementById('swipe-zone-art'), document.getElementById('swipe-zone-text')];
     zones.forEach(z => {
-        z.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; isDragging=true; wrapper.style.transition='none'; }, {passive: true});
-        z.addEventListener('touchmove', e=>{ if(!isDragging) return; const d = e.touches[0].clientX-startX; wrapper.style.transform = `translateX(calc(-33.333% + ${(d/window.innerWidth)*33}%))`; }, {passive: true});
-        z.addEventListener('touchend', e=>{ 
-            if(!isDragging) return; const d = e.changedTouches[0].clientX - startX;
-            if(d>60) prev(); else if(d<-60) next(); else { wrapper.style.transition = 'transform 0.4s ease'; wrapper.style.transform='translateX(-33.333%)'; }
-            isDragging=false;
+        z.addEventListener('touchstart', e => { 
+            if (isTransitioning) return; // Blochează swipe dacă se mișcă deja
+            startX = e.touches[0].clientX; 
+            isDragging = true; 
+            wrapper.style.transition = 'none'; 
+        }, {passive: true});
+
+        z.addEventListener('touchmove', e => { 
+            if (!isDragging || isTransitioning) return; 
+            const d = e.touches[0].clientX - startX; 
+            wrapper.style.transform = `translateX(calc(-33.333% + ${(d / window.innerWidth) * 33}%))`; 
+        }, {passive: true});
+
+        z.addEventListener('touchend', e => { 
+            if (!isDragging || isTransitioning) return; 
+            isDragging = false;
+            const d = e.changedTouches[0].clientX - startX;
+            if (d > 60) prev(); 
+            else if (d < -60) next(); 
+            else { 
+                wrapper.style.transition = 'transform 0.4s ease'; 
+                wrapper.style.transform = 'translateX(-33.333%)'; 
+            }
         });
     });
 }
+
 
 function setupFabSwipe() {
     const fab = document.getElementById('fab-play-pause');
