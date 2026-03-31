@@ -255,9 +255,26 @@ body {
 
 .nav-bar { 
     position: absolute; bottom: 20px; left: 25px; right: 25px; z-index: 50; 
-    background: rgba(25,25,25,0.8); backdrop-filter: blur(25px); border-radius: 40px; 
-    display: flex; justify-content: space-around; padding: 8px; border: 1px solid rgba(255,255,255,0.08); 
+    background: rgba(25,25,25,0.6); /* Fundal mai opac la start */
+    backdrop-filter: blur(25px); 
+    -webkit-backdrop-filter: blur(25px); /* Fix pentru Safari/iOS */
+    border-radius: 40px; 
+    display: flex; justify-content: space-around; padding: 8px; 
+    border: 1px solid rgba(255,255,255,0.08); 
+    
+    /* Adaugă aceste linii pentru animație */
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
 }
+
+/* Clasa care va fi activată din JS */
+.nav-bar.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
 .nav-bar::before {
     content: ''; position: absolute; top: 8px; left: 8px; width: calc(50% - 8.5px); height: calc(100% - 16px);
     background: rgba(255, 255, 255, 0.08); border-radius: 35px;
@@ -791,27 +808,31 @@ function updateMediaSession() {
 
 function switchTab(t) {
     const isPlayer = t === 'player';
+    const navBar = document.getElementById('main-nav');
+    
     document.getElementById('list-view').style.display = isPlayer ? 'none' : 'flex';
     document.getElementById('player-view').style.display = isPlayer ? 'flex' : 'none';
+    
     document.getElementById('nav-list').classList.toggle('active', !isPlayer);
     document.getElementById('nav-player').classList.toggle('active', isPlayer);
-    document.getElementById('main-nav').className = isPlayer ? 'nav-bar on-player' : 'nav-bar on-radio';
+    
+    // Actualizăm clasa de poziționare și NE ASIGURĂM că păstrăm clasa visible
+    navBar.className = isPlayer ? 'nav-bar on-player visible' : 'nav-bar on-radio visible';
+    
     document.getElementById('fab-play-pause').style.display = isPlayer ? 'none' : 'flex';
 
-    // --- LOGICA PENTRU URL DINAMIC ---
     if (ENABLE_DIRECT_LINKS) {
         if (isPlayer && activeStationObject) {
-            // Când trecem pe Player, punem numele postului în URL
             const cleanName = transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
             window.history.replaceState({}, "", "/" + cleanName);
         } else {
-            // Când trecem pe Radio (listă), curățăm URL-ul la rădăcină
             window.history.replaceState({}, "", "/");
         }
     }
 
     checkHopeEffect();
 }
+
 
 
 
@@ -1006,11 +1027,14 @@ async function applyRandomItunesCover() {
 
 
 async function init() {
-    // 1. Detectăm destinația din URL IMEDIAT
+    // 1. Identificăm elementele critice din DOM
+    const navBar = document.getElementById('main-nav');
+    const fab = document.getElementById('fab-play-pause');
+
+    // 2. Detectăm destinația din URL (Direct Links)
     const queryString = window.location.search.substring(1); 
     const pathSegments = window.location.pathname.split('/').filter(s => s.length > 0);
     const lastPathSegment = pathSegments.pop();
-    
     const rawTarget = decodeURIComponent(queryString || lastPathSegment || "");
     
     let autoFound = null;
@@ -1022,66 +1046,62 @@ async function init() {
         });
     }
 
-    // 2. Aplicăm fundalul random
-    applyRandomItunesCover();
+    // 3. Aplicăm un fundal random din iTunes la încărcare
+    await applyRandomItunesCover();
 
-    // 3. Decidem ce afișăm (Logica reparată pentru tab-ul "Owned")
+    // 4. Decidem ce afișăm (Owned vs All)
     if (autoFound) {
-        // Verificăm dacă postul găsit aparține categoriei "Owned" (mine)
         const isActuallyMine = autoFound.isMine === true;
-
         if (isActuallyMine) {
-            // Dacă e "Owned", randăm tab-ul Mine (implicit)
             renderList('mine', document.getElementById('tab-mine'));
             currentFilteredList = stations.filter(s => s.isMine);
         } else {
-            // Dacă nu e în "Owned", forțăm tab-ul "All"
             renderList('all', document.getElementById('tab-all'));
             currentFilteredList = stations.filter(s => s.isAll);
         }
 
-        // Setăm indexul corect în lista filtrată actuală
         currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
         if (currentIdx === -1) currentIdx = 0;
 
-        // Comutăm vizual pe Player
-        document.getElementById('list-view').style.display = 'none';
-        document.getElementById('player-view').style.display = 'flex';
-        document.getElementById('nav-list').classList.remove('active');
-        document.getElementById('nav-player').classList.add('active');
-        document.getElementById('main-nav').className = 'nav-bar on-player';
-        document.getElementById('fab-play-pause').style.display = 'none';
-
-        // Pornim postul
+        switchTab('player');
         loadStationInfo(currentIdx, true, false);
     } else {
-        // Comportament standard: Pornire pe tab-ul "Owned" (Mine)
+        // Pornire standard pe tab-ul "Owned"
         renderList('mine', document.getElementById('tab-mine'));
-        
-        // Pregătim primul post din lista "Mine" în player (fără autoplay)
         currentIdx = 0;
+        // Încărcăm info postului fără să pornim sunetul (autoplay: false)
         loadStationInfo(currentIdx, false, true); 
     }
 
-    // 4. Afișăm interfața
+    // 5. Activăm containerele principale
     document.body.classList.add('app-ready');
 
-    // 5. Inițializăm componentele UI
+    // 6. SOLUȚIA PENTRU BLUR: Afișăm elementele de control cu un mic delay
+    setTimeout(() => {
+        if (navBar) navBar.classList.add('visible');
+        
+        // Afișăm butonul plutitor (FAB) doar dacă nu suntem direct în player
+        if (fab && !autoFound) {
+            fab.classList.add('visible');
+        }
+    }, 400); // 400ms este suficient pentru ca browserul să randeze fundalul cu blur
+
+    // 7. Inițializăm restul sistemelor
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
 
-    // 6. Sincronizare Metadata pentru posturile proprii
+    // 8. Prima scanare de metadata (Owned)
     await updateAllOwnedStations(); 
 
-    // 7. Scanare metadata pentru restul listei (cu delay)
+    // 9. Scanare metadata restul listei (cu eșalonare pentru performanță)
     stations.forEach((s, i) => {
         if (!s.stream.includes("sergiumusic.duckdns.org")) {
             setTimeout(() => fetchMetadata(s.stream, s), i * 150);
         }
     });
 
-    // 8. Intervale de refresh metadata (20 secunde)
+    // 10. Intervale periodice de refresh (20 secunde)
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1091,17 +1111,12 @@ async function init() {
         });
     }, 20000);
 
-    // 9. Event Listeners Audio
+    // 11. Event Listeners Audio
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
-
-    // 10. Afișăm butonul plutitor (FAB) dacă nu suntem direct în player
-    setTimeout(() => {
-        const fab = document.getElementById('fab-play-pause');
-        if (fab && (!autoFound)) fab.classList.add('visible');
-    }, 800); 
 }
+
 
 
 
