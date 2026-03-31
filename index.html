@@ -511,45 +511,52 @@ const hopeEmojis = ["🌅", "🫵🏼🫶🏼", "💛", "🥰", "❤️‍🔥",
 let hopeInterval = null; 
 let emojiInterval = null; 
 
+/** --- LOGICA HOPE EMOJI ÎMBUNĂTĂȚITĂ (FĂRĂ REPETARE) --- **/
+let lastHopeEmoji = ""; // Memorează ultimul emoji pentru a evita repetiția
+
 function rotateHopeEmoji() {
-    const newEmoji = hopeEmojis[Math.floor(Math.random() * hopeEmojis.length)];
+    // 1. Alegem un emoji nou care să fie diferit de ultimul
+    let availableEmojis = hopeEmojis.filter(e => e !== lastHopeEmoji);
+    const newEmoji = availableEmojis[Math.floor(Math.random() * availableEmojis.length)];
+    lastHopeEmoji = newEmoji;
 
-    // 1. Actualizare în LISTĂ (Indiferent dacă e activ sau nu)
-const listItemName = document.querySelector(`.station-item[data-name="Hope"] .station-name`);
-if (listItemName) {
-    let listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
-    if (!listEmojiSpan) {
-        // AICI MODIFICI: am adăugat font-size: 2px (poti pune orice valoare, ex: 1.2rem)
-        listItemName.innerHTML = `Hope <span class="list-hope-emoji" style="transition: opacity 0.6s; display: inline-block; margin-left: 5px; font-size: 13px;">${newEmoji}</span>`;
-        listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
+    // 2. Actualizare în LISTĂ
+    const listItemName = document.querySelector(`.station-item[data-name="Hope"] .station-name`);
+    if (listItemName) {
+        let listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
+        if (!listEmojiSpan) {
+            listItemName.innerHTML = `Hope <span class="list-hope-emoji" style="transition: opacity 0.6s; display: inline-block; margin-left: 5px; font-size: 13px;">${newEmoji}</span>`;
+            listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
+        }
+        
+        listEmojiSpan.style.opacity = "0";
+        setTimeout(() => {
+            listEmojiSpan.innerText = newEmoji;
+            listEmojiSpan.style.opacity = "1";
+        }, 600); // Sincronizat cu tranziția de 0.6s
     }
-    
-    listEmojiSpan.style.opacity = "0";
-    setTimeout(() => {
-        listEmojiSpan.innerText = newEmoji;
-        listEmojiSpan.style.opacity = "1";
-    }, 650);
-}
 
-
-    // 2. Actualizare în PLAYER (Doar dacă Hope este postul selectat curent)
+    // 3. Actualizare în PLAYER (Doar dacă Hope este activ)
     const isHopeActive = activeStationObject && activeStationObject.name === "Hope";
     if (isHopeActive) {
         const titleEl = document.querySelector('#slide-current h2');
         if (titleEl) {
             let playerEmojiSpan = titleEl.querySelector('span');
+            // Dacă span-ul nu există (e doar textul "Hope"), îl creăm
             if (!playerEmojiSpan) {
-                titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block;">${newEmoji}</span>`;
+                titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block; margin-left: 5px;">${newEmoji}</span>`;
                 playerEmojiSpan = titleEl.querySelector('span');
             }
+            
             playerEmojiSpan.style.opacity = "0";
             setTimeout(() => {
                 playerEmojiSpan.innerText = newEmoji;
                 playerEmojiSpan.style.opacity = "1";
-            }, 650);
+            }, 600);
         }
     }
 }
+
 
 
 function checkHopeEffect() {
