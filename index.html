@@ -928,24 +928,30 @@ function renderList(mode, el) {
     const list = document.getElementById('stations-list');
     const scrollContainer = document.querySelector('.content');
 
+    // 1. Gestionare Tab-uri (UI)
     if (el) {
+        // Resetăm scroll-ul la începutul listei când schimbăm categoria
         if (scrollContainer) scrollContainer.scrollTop = 0;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
 
+    // 2. Filtrare listă în funcție de tab-ul ales
     list.innerHTML = "";
     const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
     currentFilteredList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
 
+    // 3. Generare elemente listă
     currentFilteredList.forEach((s) => {
         const item = document.createElement('div');
+        
+        // Verificăm dacă acest post este cel care cântă în prezent
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
         
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
 
-        // Folosim descrierea curentă (care poate fi piesa live) sau cea originală
+        // Folosim descrierea actualizată (nume piesă) sau cea originală a postului
         const displayDesc = s.desc || s.originalDesc;
 
         item.innerHTML = `
@@ -961,20 +967,36 @@ function renderList(mode, el) {
             </div>
         `;
 
+        // 4. LOGICA DE CLICK MODIFICATĂ
         item.onclick = () => { 
+            // Setăm indexul curent bazat pe noua listă filtrată
             currentIdx = currentFilteredList.indexOf(s); 
-            playStation(); 
+            
+            // Actualizăm textele din player (în fundal)
+            updateSliderText(); 
+            
+            // Pornim stream-ul audio
+            // loadStationInfo(index, autoplay, skipArtUpdate)
+            loadStationInfo(currentIdx, true, false); 
+
+            // NOTĂ: Am eliminat switchTab('player') de aici pentru a rămâne în listă
         };
 
         list.appendChild(item);
     });
 
+    // Actualizăm starea vizuală a butoanelor Play/Pause (FAB)
     updateUI(!audio.paused);
 }
 
 
 
-function playStation() { updateSliderText(); loadStationInfo(currentIdx, true); switchTab('player'); }
+
+function playStation() { 
+    updateSliderText(); 
+    loadStationInfo(currentIdx, true); 
+    // switchTab('player'); <-- Am eliminat această linie pentru a rămâne în listă
+}
 
 function animateTransition(dir) {
     if (isTransitioning) return;
