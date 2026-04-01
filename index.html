@@ -1259,44 +1259,45 @@ async function init() {
         if (currentIdx === -1) currentIdx = 0;
 
         switchTab('player');
+        // MODIFICARE: Pornim postul găsit
         loadStationInfo(currentIdx, true, false);
     } else {
         // Pornire standard pe tab-ul "Owned"
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
-        // Încărcăm info postului fără să pornim sunetul (autoplay: false)
-        loadStationInfo(currentIdx, false, true); 
+        
+        // --- MODIFICAREA PRINCIPALĂ AICI ---
+        // Încărcăm și PORNIIM primul post din lista filtrată (Owned)
+        loadStationInfo(currentIdx, true, false); 
     }
 
     // 5. Activăm containerele principale
     document.body.classList.add('app-ready');
 
-    // 6. SOLUȚIA PENTRU BLUR: Afișăm elementele de control cu un mic delay
+    // 6. Afișăm elementele de control
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
-        
-        // Afișăm butonul plutitor (FAB) doar dacă nu suntem direct în player
         if (fab && !autoFound) {
             fab.classList.add('visible');
         }
-    }, 400); // 400ms este suficient pentru ca browserul să randeze fundalul cu blur
+    }, 400);
 
     // 7. Inițializăm restul sistemelor
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
 
-    // 8. Prima scanare de metadata (Owned)
+    // 8. Prima scanare de metadata
     await updateAllOwnedStations(); 
 
-    // 9. Scanare metadata restul listei (cu eșalonare pentru performanță)
+    // 9. Scanare metadata restul listei
     stations.forEach((s, i) => {
         if (!s.stream.includes("sergiumusic.duckdns.org")) {
             setTimeout(() => fetchMetadata(s.stream, s), i * 150);
         }
     });
 
-    // 10. Intervale periodice de refresh (20 secunde)
+    // 10. Intervale periodice de refresh
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1311,6 +1312,8 @@ async function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
+
 
 
 
