@@ -1222,10 +1222,11 @@ async function applyRandomItunesCover() {
 
 
 async function init() {
+    // 1. Identificăm elementele critice din DOM
     const navBar = document.getElementById('main-nav');
     const fab = document.getElementById('fab-play-pause');
 
-    // 1. Identificăm dacă există un link direct
+    // 2. Detectăm destinația din URL (Direct Links)
     const queryString = window.location.search.substring(1); 
     const pathSegments = window.location.pathname.split('/').filter(s => s.length > 0);
     const lastPathSegment = pathSegments.pop();
@@ -1240,51 +1241,75 @@ async function init() {
         });
     }
 
-    // 2. Fundal random la pornire
+    // 3. Aplicăm un fundal random din iTunes la încărcare
     await applyRandomItunesCover();
 
-    // 3. LOGICA DE PORNIRE
+    // 4. LOGICA DE PORNIRE (MODIFICATĂ)
     if (autoFound) {
-        // Cazul A: Intrare prin Direct Link (intră în Player)
-        renderList(autoFound.isMine ? 'mine' : 'all', document.getElementById(autoFound.isMine ? 'tab-mine' : 'tab-all'));
+        // --- CAZUL 1: INTRARE PRIN DIRECT LINK ---
+        const isActuallyMine = autoFound.isMine === true;
+        if (isActuallyMine) {
+            renderList('mine', document.getElementById('tab-mine'));
+            currentFilteredList = stations.filter(s => s.isMine);
+        } else {
+            renderList('all', document.getElementById('tab-all'));
+            currentFilteredList = stations.filter(s => s.isAll);
+        }
+
         currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
         if (currentIdx === -1) currentIdx = 0;
 
-        switchTab('player');
+        switchTab('player'); // Intră în player doar dacă e link direct
         loadStationInfo(currentIdx, true, false);
     } else {
-        // Cazul B: Intrare Normală (Rămâne în Listă, dar pornește muzica)
+        // --- CAZUL 2: INTRARE NORMALĂ ---
         renderList('mine', document.getElementById('tab-mine'));
+        currentFilteredList = stations.filter(s => s.isMine);
         currentIdx = 0;
-        
-        // Pornim primul post (true), dar nu schimbăm tab-ul (rămânem pe list-view)
+
+        // Pornim primul radio automat (true), dar NU apelăm switchTab('player')
+        // Astfel utilizatorul rămâne în listă, dar sunetul începe.
         loadStationInfo(currentIdx, true, false); 
-        
-        // Ne asigurăm că suntem pe vizualizarea de listă
-        switchTab('list'); 
     }
 
-    // 4. Afișare UI cu animații
+    // 5. Activăm containerele principale
     document.body.classList.add('app-ready');
+
+    // 6. Afișăm elementele de control cu un mic delay
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
-        if (fab && (document.getElementById('list-view').style.display !== 'none')) {
+        if (fab && !autoFound) {
             fab.classList.add('visible');
         }
     }, 400);
 
-    // 5. Restul inițializărilor (Swipe, Metadata)
+    // 7. Inițializăm restul sistemelor
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
-    await updateAllOwnedStations(); 
 
-    // Pornim scanarea de metadata pentru restul posturilor
+    // 8. Prima scanare de metadata (Eșalonată)
+    await updateAllOwnedStations(); 
     stations.forEach((s, i) => {
         if (!s.stream.includes("sergiumusic.duckdns.org")) {
             setTimeout(() => fetchMetadata(s.stream, s), i * 150);
         }
     });
+
+    // 9. Intervale periodice de refresh
+    setInterval(() => {
+        updateAllOwnedStations();
+        stations.forEach((s, i) => {
+            if (!s.stream.includes("sergiumusic.duckdns.org")) {
+                setTimeout(() => fetchMetadata(s.stream, s), i * 200);
+            }
+        });
+    }, 20000);
+
+    // 10. Event Listeners Audio
+    audio.addEventListener('waiting', () => updateUI('loading'));
+    audio.addEventListener('playing', () => updateUI(true));
+    audio.addEventListener('pause', () => updateUI(false));
 }
 
 
