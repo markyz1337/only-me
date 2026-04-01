@@ -564,7 +564,7 @@ function analyticalClean(artist, title) {
 
 
 // --- LOGICA HOPE EMOJI ÎMBUNĂTĂȚITĂ (ANTI-REPETARE ȘI FIX DISPARIȚIE) ---
-const hopeEmojis = ["🌅", "🫵🏼🫶🏼", "💛", "🥰", "❤️‍🔥", "💗", "💞", "✨", "⭐️", "🌙", "🌕", "🌼", "🌸", "🐝", "🌷", "🪐", "💫", "🌠", "🌌", "🌇", "🌃", "🌆", "💒"];
+const hopeEmojis = ["🌅", "💛", "🥰", "❤️‍🔥", "💗", "💞", "✨", "⭐️", "🌙", "🌕", "🌼", "🌸", "🐝", "🌷", "🪐", "💫", "🌠", "🌌", "🌇", "🌃", "🌆", "💒"];
 let lastHopeEmoji = ""; 
 let emojiInterval = null; 
 
@@ -807,13 +807,16 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
-    if (ENABLE_DIRECT_LINKS && sp) {
+    // MODIFICARE: Verificăm dacă player-ul este vizibil înainte de a schimba URL-ul
+    const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
+    if (ENABLE_DIRECT_LINKS && sp && isPlayerVisible) {
         const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
         window.history.replaceState({}, "", "/" + cleanName);
     }
 
     if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     
+    // ... restul funcției rămâne neschimbat (ytBtn, metadata, audio.src, etc.)
     const ytBtn = document.getElementById('player-yt-btn');
     if (s.yt) { 
         ytBtn.href = s.yt; 
@@ -836,6 +839,7 @@ function loadStationInfo(idx, sp = true, skipArt = false) {
     }
     updateMediaSession();
 }
+
 
 function togglePlay() { 
     if (audio.paused) loadStationInfo(currentIdx, true, false); 
@@ -900,25 +904,26 @@ function switchTab(t) {
     
     if (isPlayer) {
         fab.style.display = 'none';
-        fab.classList.remove('visible'); // Resetăm clasa pentru animație
-    } else {
-        fab.style.display = 'flex';
-        // Folosim un mic timeout pentru a permite browserului să proceseze display: flex înainte de animație
-        setTimeout(() => {
-            fab.classList.add('visible');
-        }, 50);
-    }
-
-    if (ENABLE_DIRECT_LINKS) {
-        if (isPlayer && activeStationObject) {
+        fab.classList.remove('visible');
+        
+        // MODIFICARE: Actualizăm URL-ul doar acum, la intrarea în player
+        if (ENABLE_DIRECT_LINKS && activeStationObject) {
             const cleanName = transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
             window.history.replaceState({}, "", "/" + cleanName);
-        } else {
+        }
+    } else {
+        fab.style.display = 'flex';
+        setTimeout(() => { fab.classList.add('visible'); }, 50);
+        
+        // MODIFICARE: Resetăm URL-ul la bază când ne întoarcem la listă
+        if (ENABLE_DIRECT_LINKS) {
             window.history.replaceState({}, "", "/");
         }
     }
+
     checkHopeEffect();
 }
+
 
 
 
@@ -1230,6 +1235,8 @@ async function init() {
     const queryString = window.location.search.substring(1); 
     const pathSegments = window.location.pathname.split('/').filter(s => s.length > 0);
     const lastPathSegment = pathSegments.pop();
+    
+    // Curățăm target-ul pentru a-l găsi în listă
     const rawTarget = decodeURIComponent(queryString || lastPathSegment || "");
     
     let autoFound = null;
@@ -1244,60 +1251,66 @@ async function init() {
     // 3. Aplicăm un fundal random din iTunes la încărcare
     await applyRandomItunesCover();
 
-    // 4. Decidem ce afișăm (Owned vs All)
+    // 4. Decidem ce afișăm și unde rămânem
     if (autoFound) {
+        // Dacă am găsit un radio în URL, filtrăm lista în care se află acesta
         const isActuallyMine = autoFound.isMine === true;
         if (isActuallyMine) {
             renderList('mine', document.getElementById('tab-mine'));
-            currentFilteredList = stations.filter(s => s.isMine);
         } else {
             renderList('all', document.getElementById('tab-all'));
-            currentFilteredList = stations.filter(s => s.isAll);
         }
 
         currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
         if (currentIdx === -1) currentIdx = 0;
 
+        // INTRĂM ÎN PLAYER: Pentru că userul a venit prin link direct
         switchTab('player');
-        // MODIFICARE: Pornim postul găsit
         loadStationInfo(currentIdx, true, false);
     } else {
-        // Pornire standard pe tab-ul "Owned"
+        // PORNIRE STANDARD: Pe tab-ul "Owned"
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
         
-        // --- MODIFICAREA PRINCIPALĂ AICI ---
-        // Încărcăm și PORNIIM primul post din lista filtrată (Owned)
+        // RĂMÂNEM PE LISTĂ: Pornim muzica, dar nu apelăm switchTab('player')
+        // Astfel URL-ul rămâne curat până când userul apasă manual pe Player
         loadStationInfo(currentIdx, true, false); 
+        
+        // Resetăm URL-ul la bază pentru siguranță
+        if (ENABLE_DIRECT_LINKS) {
+            window.history.replaceState({}, "", "/");
+        }
     }
 
-    // 5. Activăm containerele principale
+    // 5. Activăm containerele principale (Fade in)
     document.body.classList.add('app-ready');
 
-    // 6. Afișăm elementele de control
+    // 6. Afișăm elementele de control cu animație
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
-        if (fab && !autoFound) {
+        // FAB apare doar dacă suntem pe listă
+        const isListVisible = document.getElementById('list-view').style.display !== 'none';
+        if (fab && isListVisible) {
             fab.classList.add('visible');
         }
     }, 400);
 
-    // 7. Inițializăm restul sistemelor
+    // 7. Inițializăm restul sistemelor de interacțiune
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
 
-    // 8. Prima scanare de metadata
+    // 8. Prima scanare de metadata pentru posturile tale
     await updateAllOwnedStations(); 
 
-    // 9. Scanare metadata restul listei
+    // 9. Scanare metadata pentru restul listei (cu delay să nu blocăm procesorul)
     stations.forEach((s, i) => {
         if (!s.stream.includes("sergiumusic.duckdns.org")) {
             setTimeout(() => fetchMetadata(s.stream, s), i * 150);
         }
     });
 
-    // 10. Intervale periodice de refresh
+    // 10. Intervale periodice de refresh metadata (20 secunde)
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1307,11 +1320,12 @@ async function init() {
         });
     }, 20000);
 
-    // 11. Event Listeners Audio
+    // 11. Event Listeners pentru motorul Audio
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
