@@ -1244,9 +1244,8 @@ async function init() {
     // 3. Aplicăm un fundal random din iTunes la încărcare
     await applyRandomItunesCover();
 
-    // 4. LOGICA DE PORNIRE (MODIFICATĂ)
+    // 4. Decidem ce afișăm (Owned vs All)
     if (autoFound) {
-        // --- CAZUL 1: INTRARE PRIN DIRECT LINK ---
         const isActuallyMine = autoFound.isMine === true;
         if (isActuallyMine) {
             renderList('mine', document.getElementById('tab-mine'));
@@ -1259,44 +1258,45 @@ async function init() {
         currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
         if (currentIdx === -1) currentIdx = 0;
 
-        switchTab('player'); // Intră în player doar dacă e link direct
+        switchTab('player');
         loadStationInfo(currentIdx, true, false);
     } else {
-        // --- CAZUL 2: INTRARE NORMALĂ ---
+        // Pornire standard pe tab-ul "Owned"
         renderList('mine', document.getElementById('tab-mine'));
-        currentFilteredList = stations.filter(s => s.isMine);
         currentIdx = 0;
-
-        // Pornim primul radio automat (true), dar NU apelăm switchTab('player')
-        // Astfel utilizatorul rămâne în listă, dar sunetul începe.
-        loadStationInfo(currentIdx, true, false); 
+        // Încărcăm info postului fără să pornim sunetul (autoplay: false)
+        loadStationInfo(currentIdx, false, true); 
     }
 
     // 5. Activăm containerele principale
     document.body.classList.add('app-ready');
 
-    // 6. Afișăm elementele de control cu un mic delay
+    // 6. SOLUȚIA PENTRU BLUR: Afișăm elementele de control cu un mic delay
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
+        
+        // Afișăm butonul plutitor (FAB) doar dacă nu suntem direct în player
         if (fab && !autoFound) {
             fab.classList.add('visible');
         }
-    }, 400);
+    }, 400); // 400ms este suficient pentru ca browserul să randeze fundalul cu blur
 
     // 7. Inițializăm restul sistemelor
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
 
-    // 8. Prima scanare de metadata (Eșalonată)
+    // 8. Prima scanare de metadata (Owned)
     await updateAllOwnedStations(); 
+
+    // 9. Scanare metadata restul listei (cu eșalonare pentru performanță)
     stations.forEach((s, i) => {
         if (!s.stream.includes("sergiumusic.duckdns.org")) {
             setTimeout(() => fetchMetadata(s.stream, s), i * 150);
         }
     });
 
-    // 9. Intervale periodice de refresh
+    // 10. Intervale periodice de refresh (20 secunde)
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1306,13 +1306,11 @@ async function init() {
         });
     }, 20000);
 
-    // 10. Event Listeners Audio
+    // 11. Event Listeners Audio
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
-
-
 
 
 
