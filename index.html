@@ -426,7 +426,7 @@ let metadataInterval = null;
 let isTransitioning = false;
 
 
-const ENABLE_DIRECT_LINKS = true; 
+const ENABLE_DIRECT_LINKS = false; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
@@ -696,98 +696,80 @@ async function fetchAlbumArt(title, stationRef) {
         const data = await res.json();
         
         if (data.results && data.results.length > 0) {
-            const newImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
+            const highResImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
             
-            // Actualizăm obiectul stației cu noua imagine găsită
-            stationRef.img = newImg;
+            // 1. Salvăm imaginea în obiectul stației
+            stationRef.img = highResImg;
             
-            // Dacă această stație este cea care cântă acum, o afișăm pe ecran
+            // 2. DACĂ ACESTA ESTE RADIUL ACTIV, UPDATE ÎN MEDIA SESSION IMEDIAT
             if (activeStationObject && activeStationObject.name === stationRef.name) {
-                updateArtUI(newImg);
+                // Forțăm update-ul pe ecranul de blocare chiar și în fundal
+                updateMediaSession(); 
+                
+                // Actualizăm UI-ul vizibil doar dacă pagina este activă (evităm lag-ul în fundal)
+                if (document.visibilityState === 'visible') {
+                    updateArtUI(highResImg);
+                }
             }
-            
-            // Actualizăm și mica miniatură din listă
-            const thumb = document.querySelector(`.station-item[data-name="${stationRef.name}"] .station-thumb`);
-            if (thumb) thumb.src = newImg;
-            
         }
-    } catch (e) { 
-        console.log("Eroare iTunes pentru:", title); 
-    }
+    } catch (e) { console.log("iTunes Background Error"); }
 }
+
 
 
 async function fetchMetadata(url, station) {
     if (url.includes("emisiunivechi")) return;
 
-    // 1. LOGICĂ PENTRU SERVERUL TĂU (OWNED)
+    let newTitle = "";
+
     if (url.includes("sergiumusic.duckdns.org")) {
         try {
             const mountPoint = url.split('/').pop();
             const response = await fetch("https://sergiumusic.duckdns.org/status-json.xsl");
             const data = await response.json();
-            
             if (data.icestats && data.icestats.source) {
                 let sources = Array.isArray(data.icestats.source) ? data.icestats.source : [data.icestats.source];
                 let sData = sources.find(s => s.listenurl.includes(mountPoint));
-                
-                if (sData) {
-                    const cleanTitle = analyticalClean(sData.artist, sData.title);
-                    if (station.desc !== cleanTitle) {
-                        station.desc = cleanTitle;
-                        updateStationUI(station.name, cleanTitle);
-                        // Căutăm coperta pentru melodia nouă găsită pe serverul tău
-                        fetchAlbumArt(cleanTitle, station);
+                if (sData) newTitle = analyticalClean(sData.artist, sData.title);
+            }
+        } catch (e) { console.error("Error owned meta:", e); }
+    } else {
+        try {
+            const response = await fetch(url, { headers: { "Icy-MetaData": "1" } });
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            const metaInt = parseInt(response.headers.get("icy-metaint"));
+            if (metaInt) {
+                let buffer = new Uint8Array();
+                let bytesRead = 0;
+                while (bytesRead < metaInt + 500) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    let temp = new Uint8Array(buffer.length + value.length);
+                    temp.set(buffer); temp.set(value, buffer.length); buffer = temp;
+                    bytesRead += value.length;
+                    if (buffer.length >= metaInt + 1) {
+                        let mLen = buffer[metaInt] * 16;
+                        if (buffer.length < metaInt + 1 + mLen) continue;
+                        let mStr = decoder.decode(buffer.slice(metaInt + 1, metaInt + 1 + mLen));
+                        let match = mStr.match(/StreamTitle='([^']*)'/);
+                        if (match && match[1]) newTitle = match[1].replace(/;/g, "").trim();
+                        break;
                     }
                 }
+                reader.cancel();
             }
-        } catch (e) { console.error("Scrubber Error:", e); }
-        return; 
+        } catch(e) { console.log("Error external meta"); }
     }
 
-    // 2. LOGICĂ PENTRU RADIOURI EXTERNE (Heart 10s, Kiss, etc.)
-    if (url.includes('.m3u8')) return;
-    try {
-        const response = await fetch(url, { headers: { "Icy-MetaData": "1" } });
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        const metaInt = parseInt(response.headers.get("icy-metaint"));
-        if (!metaInt) return;
-
-        let buffer = new Uint8Array();
-        let bytesRead = 0;
-
-        while (bytesRead < metaInt + 500) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            let temp = new Uint8Array(buffer.length + value.length);
-            temp.set(buffer); temp.set(value, buffer.length); buffer = temp;
-            bytesRead += value.length;
-            
-            if (buffer.length >= metaInt + 1) {
-                let mLen = buffer[metaInt] * 16;
-                if (buffer.length < metaInt + 1 + mLen) continue;
-                let mStr = decoder.decode(buffer.slice(metaInt + 1, metaInt + 1 + mLen));
-                let match = mStr.match(/StreamTitle='([^']*)'/);
-                
-                if (match && match[1]) {
-                    const rawTitle = match[1].replace(/;/g, "").trim();
-                    const cleanTitle = analyticalClean("", rawTitle); // Curățăm titlul primit
-
-                    if (station.desc !== cleanTitle) {
-                        station.desc = cleanTitle;
-                        updateStationUI(station.name, cleanTitle);
-                        // LINIA CRUCIALĂ: Aici trimitem titlul către iTunes să caute poza!
-                        fetchAlbumArt(cleanTitle, station);
-                    }
-                    reader.cancel(); 
-                    return;
-                }
-            }
-        }
-        reader.cancel();
-    } catch(e) { console.log("Metadata fetch failed for", station.name); }
+    if (newTitle && station.desc !== newTitle) {
+        station.desc = newTitle;
+        updateStationUI(station.name, newTitle);
+        // Căutăm coperta imediat ce avem titlul
+        fetchAlbumArt(newTitle, station);
+    }
 }
+
 
 
 
@@ -902,12 +884,11 @@ function updateUI(state) {
 function updateMediaSession() {
     if ('mediaSession' in navigator && activeStationObject) {
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: activeStationObject.desc, // Titlul nou
+            title: activeStationObject.desc || "Live",
             artist: activeStationObject.name,
             album: "Sergiu FM",
             artwork: [
                 { 
-                    // Folosește direct URL-ul, sistemul de operare se va ocupa de descărcare
                     src: activeStationObject.img || FALLBACK_IMG, 
                     sizes: '512x512', 
                     type: 'image/png' 
@@ -916,6 +897,7 @@ function updateMediaSession() {
         });
     }
 }
+
 
 
 
@@ -1251,25 +1233,20 @@ async function applyRandomItunesCover() {
 }
 
 function updateStationUI(name, desc) {
-    // 1. Actualizăm în lista de radiouri
+    // Update în listă
     const items = document.querySelectorAll(`.station-item[data-name="${name}"]`);
     items.forEach(item => {
-        const descEl = item.querySelector('.station-desc');
-        if (descEl) descEl.innerText = desc;
+        const dEl = item.querySelector('.station-desc');
+        if (dEl) dEl.innerText = desc;
     });
 
-    // 2. Dacă acest radio este cel activ, actualizăm și textele din Player
+    // Update în Player dacă e activ
     if (activeStationObject && activeStationObject.name === name) {
-        activeStationObject.desc = desc;
-        
-        // Actualizăm textul din slider-ul central (Player)
-        const currentDescEl = document.querySelector('#slide-current p');
-        if (currentDescEl) currentDescEl.innerText = desc;
-        
-        // Actualizăm și MediaSession (pentru ecranul de blocare/notificări)
-        updateMediaSession();
+        const pDesc = document.querySelector('#slide-current p');
+        if (pDesc) pDesc.innerText = desc;
     }
 }
+
 
 
 
