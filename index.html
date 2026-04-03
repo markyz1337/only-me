@@ -689,7 +689,7 @@ function applyImageToUI(imgUrl, stationRef, isFallback) {
 }
 
 async function fetchAlbumArt(title, stationRef) {
-    if (!title || title.length < 3) return;
+    if (!title || title.length < 3 || title === "Live Stream") return;
 
     try {
         const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
@@ -698,30 +698,26 @@ async function fetchAlbumArt(title, stationRef) {
         if (data.results && data.results.length > 0) {
             const highResImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
             
-            // 1. Salvăm imaginea în obiectul stației (pentru memorie)
+            // Salvăm în obiect
             stationRef.img = highResImg;
             
-            // 2. UPDATE ÎN LISTĂ (Aici era problema!)
-            // Căutăm imaginea stației în lista de radiouri și o schimbăm instant
+            // Update imagine în LISTĂ (vizibil imediat)
             const stationThumb = document.querySelector(`.station-item[data-name="${stationRef.name}"] .station-thumb`);
             if (stationThumb) {
                 stationThumb.src = highResImg;
             }
 
-            // 3. DACĂ ACESTA ESTE RADIUL ACTIV, UPDATE ÎN PLAYER ȘI MEDIASESSION
+            // Update în PLAYER dacă este postul activ
             if (activeStationObject && activeStationObject.name === stationRef.name) {
-                updateMediaSession(); 
-                
-                // Actualizăm coperta mare din Player doar dacă vedem pagina
-                if (document.visibilityState === 'visible') {
-                    updateArtUI(highResImg);
-                }
+                updateArtUI(highResImg);
+                updateMediaSession();
             }
         }
     } catch (e) { 
-        console.log("iTunes Sync Error pentru lista"); 
+        console.log("iTunes Sync Error"); 
     }
 }
+
 
 
 
@@ -904,8 +900,39 @@ function updateMediaSession() {
                 }
             ]
         });
+
+        // --- ADAUGĂ ACESTE LINII PENTRU CONTROLUL DIN EXTERIOR ---
+        
+        // Butonul de Play
+        navigator.mediaSession.setActionHandler('play', () => {
+            audio.play();
+            updateUI(true);
+        });
+
+        // Butonul de Pause
+        navigator.mediaSession.setActionHandler('pause', () => {
+            audio.pause();
+            updateUI(false);
+        });
+
+        // Butonul de Next (Următorul post)
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            next(); // Apelează funcția ta existentă
+        });
+
+        // Butonul de Previous (Postul anterior)
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            prev(); // Apelează funcția ta existentă
+        });
+        
+        // Opțional: Oprire (Stop)
+        navigator.mediaSession.setActionHandler('stop', () => {
+            audio.pause();
+            updateUI(false);
+        });
     }
 }
+
 
 
 
@@ -1184,21 +1211,20 @@ async function updateAllOwnedStations() {
         let sources = Array.isArray(data.icestats.source) ? data.icestats.source : [data.icestats.source];
 
         stations.forEach(station => {
-            // Verificăm să fie de pe serverul tău DAR să NU fie emisiunivechi
             if (station.stream.includes("sergiumusic.duckdns.org") && !station.stream.includes("emisiunivechi")) {
                 const mountPoint = station.stream.split('/').pop();
                 const sData = sources.find(s => s.listenurl.includes(mountPoint));
 
                 if (sData) {
                     const cleanTitle = analyticalClean(sData.artist, sData.title);
-                    station.desc = cleanTitle; 
-
-                    const stationItem = document.querySelector(`.station-item[data-name="${station.name}"]`);
-                    if (stationItem) {
-                        const descEl = stationItem.querySelector('.station-desc');
-                        if (descEl && descEl.innerText !== cleanTitle) {
-                            descEl.innerText = cleanTitle;
-                        }
+                    
+                    // Verificăm dacă titlul s-a schimbat
+                    if (station.desc !== cleanTitle) {
+                        station.desc = cleanTitle; 
+                        updateStationUI(station.name, cleanTitle);
+                        
+                        // 🔥 ACEASTA ESTE CHEIA: Căutăm coperta imediat ce titlul s-a schimbat
+                        fetchAlbumArt(cleanTitle, station);
                     }
                 }
             }
@@ -1208,6 +1234,7 @@ async function updateAllOwnedStations() {
         
     } catch (e) { console.error("Update Error:", e); }
 }
+
 
 
 
