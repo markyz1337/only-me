@@ -901,27 +901,22 @@ function updateUI(state) {
 
 function updateMediaSession() {
     if ('mediaSession' in navigator && activeStationObject) {
-        // Creăm un obiect nou pentru a forța refresh-ul pe ecranul de blocare
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: activeStationObject.desc, // Titlul piesei curente
-            artist: activeStationObject.name, // Numele postului de radio
+            title: activeStationObject.desc, // Titlul nou
+            artist: activeStationObject.name,
             album: "Sergiu FM",
             artwork: [
                 { 
+                    // Folosește direct URL-ul, sistemul de operare se va ocupa de descărcare
                     src: activeStationObject.img || FALLBACK_IMG, 
                     sizes: '512x512', 
                     type: 'image/png' 
                 }
             ]
         });
-
-        // Re-atașăm controllerele (opțional, dar recomandat pentru stabilitate)
-        navigator.mediaSession.setActionHandler('play', () => audio.play());
-        navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-        navigator.mediaSession.setActionHandler('previoustrack', () => prev());
-        navigator.mediaSession.setActionHandler('nexttrack', () => next());
     }
 }
+
 
 
 function switchTab(t) {
