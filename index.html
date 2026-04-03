@@ -201,7 +201,6 @@ body {
 .station-item { 
     display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid transparent;
     border-image: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent) 1; 
-    cursor: pointer; /* <--- ADAUGĂ ACEASTĂ LINIE */
 }
 
 
@@ -212,7 +211,13 @@ body {
     transition: opacity 0.8s ease, transform 0.5s ease;
 }
 
-.station-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+.station-name { 
+    font-weight: 600; 
+    font-size: 16px; 
+    margin-bottom: 4px; 
+    cursor: pointer; /* Aceasta este linia adăugată */
+}
+
 .station-desc { 
     font-size: 11px; color: #b3b3b3; text-transform: uppercase;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;  
