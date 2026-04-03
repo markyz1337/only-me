@@ -698,22 +698,31 @@ async function fetchAlbumArt(title, stationRef) {
         if (data.results && data.results.length > 0) {
             const highResImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
             
-            // 1. Salvăm imaginea în obiectul stației
+            // 1. Salvăm imaginea în obiectul stației (pentru memorie)
             stationRef.img = highResImg;
             
-            // 2. DACĂ ACESTA ESTE RADIUL ACTIV, UPDATE ÎN MEDIA SESSION IMEDIAT
+            // 2. UPDATE ÎN LISTĂ (Aici era problema!)
+            // Căutăm imaginea stației în lista de radiouri și o schimbăm instant
+            const stationThumb = document.querySelector(`.station-item[data-name="${stationRef.name}"] .station-thumb`);
+            if (stationThumb) {
+                stationThumb.src = highResImg;
+            }
+
+            // 3. DACĂ ACESTA ESTE RADIUL ACTIV, UPDATE ÎN PLAYER ȘI MEDIASESSION
             if (activeStationObject && activeStationObject.name === stationRef.name) {
-                // Forțăm update-ul pe ecranul de blocare chiar și în fundal
                 updateMediaSession(); 
                 
-                // Actualizăm UI-ul vizibil doar dacă pagina este activă (evităm lag-ul în fundal)
+                // Actualizăm coperta mare din Player doar dacă vedem pagina
                 if (document.visibilityState === 'visible') {
                     updateArtUI(highResImg);
                 }
             }
         }
-    } catch (e) { console.log("iTunes Background Error"); }
+    } catch (e) { 
+        console.log("iTunes Sync Error pentru lista"); 
+    }
 }
+
 
 
 
