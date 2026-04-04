@@ -422,7 +422,11 @@ body {
 <audio id="audio-engine" preload="auto" crossorigin="anonymous"></audio>
 
 <script>
-// --- VARIABILE GLOBALE ---
+// --- 1. VARIABILELE DE BAZĂ (Trebuie să fie primele!) ---
+const audio = document.getElementById('audio-engine');
+const ENABLE_DIRECT_LINKS = false; 
+const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
+
 let currentIdx = 0;
 let currentFilteredList = []; 
 let activeBGLayer = 1;
@@ -433,64 +437,66 @@ let isDragging = false;
 let metadataInterval = null;
 let isTransitioning = false;
 
-
-
-
-// --- LOGICA AUTO-RECONNECT ---
+// --- 2. LOGICA AUTO-RECONNECT (Acum e sigur, audio e definit) ---
 let reconnectTimeout = null;
+// --- LOGICA RECONNECT OPTIMIZATĂ PENTRU FUNDAL (STAY-ALIVE) ---
 let isReconnecting = false;
 
-function handleConnectionLoss() {
-    if (isReconnecting) return;
+function attemptReconnect() {
+    if (isReconnecting || audio.paused) return;
     
-    // Verificăm dacă playerul ar trebui să fie activ (nu e dat pe pauză manual)
-    if (!audio.paused || audio.readyState === 0) {
-        console.log("Conexiune pierdută. Încercăm reconectarea...");
-        isReconnecting = true;
-        updateUI('loading');
+    isReconnecting = true;
+    console.log("Reconectare în curs (Background Safe)...");
+    updateUI('loading');
 
-        // Așteptăm 3 secunde înainte de a reîncărca pentru a lăsa rețeaua să se stabilizeze
-        clearTimeout(reconnectTimeout);
-        reconnectTimeout = setTimeout(() => {
-            const currentSrc = audio.src;
-            audio.src = ""; // Resetăm sursa pentru a forța browserul să curețe bufferul blocat
-            audio.load();
-            audio.src = currentSrc;
-            
-            audio.play()
-                .then(() => {
-                    isReconnecting = false;
-                    console.log("Reconectat cu succes!");
-                })
-                .catch(err => {
-                    isReconnecting = false;
-                    console.log("Reîncercare eșuată, reluăm procesul...");
-                    handleConnectionLoss(); // Reîncercăm dacă nu a mers
-                });
-        }, 3000);
-    }
+    // Forțăm reîncărcarea sursei
+    const currentSrc = audio.src;
+    audio.src = ""; 
+    audio.load();
+    audio.src = currentSrc;
+    
+    audio.play()
+        .then(() => {
+            isReconnecting = false;
+            updateUI(true);
+            console.log("Reconectat cu succes!");
+        })
+        .catch(() => {
+            isReconnecting = false;
+            // Dacă eșuează, mai încercăm o dată peste 5 secunde
+            setTimeout(attemptReconnect, 5000);
+        });
 }
 
-// Event Listeners pentru detecție automată
-audio.addEventListener('error', handleConnectionLoss);
-audio.addEventListener('stalled', handleConnectionLoss);
-
-// Verificare periodică (Safety Guard)
-// Dacă audio este "playing" dar nu s-a mai descărcat nimic de 10 secunde
-setInterval(() => {
-    if (!audio.paused && audio.buffered.length > 0) {
-        const lastBuffer = audio.buffered.end(audio.buffered.length - 1);
-        if (audio.currentTime > lastBuffer) {
-            handleConnectionLoss();
-        }
+// EVENIMENTE NATIVE (Acestea funcționează și cu ecranul stins)
+// 'waiting' - când bufferul este gol (internet slab)
+audio.addEventListener('waiting', () => {
+    if (!isReconnecting) {
+        // Așteptăm 3 secunde să vedem dacă își revine singur, dacă nu, forțăm
+        setTimeout(() => {
+            if (audio.paused === false && audio.readyState < 3) {
+                attemptReconnect();
+            }
+        }, 3000);
     }
-}, 10000);
+});
+
+// 'error' - când link-ul a murit de tot
+audio.addEventListener('error', attemptReconnect);
+
+// 'stalled' - când browserul încearcă să ia date dar serverul nu dă nimic
+audio.addEventListener('stalled', attemptReconnect);
+
+// FIX PENTRU MOBIL: Verificăm dacă fluxul s-a oprit deși ar trebui să cânte
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !audio.paused && audio.readyState < 2) {
+        // Când userul revine pe tab și vede că e blocat, forțăm refresh
+        attemptReconnect();
+    }
+});
 
 
-const ENABLE_DIRECT_LINKS = true; 
-const audio = document.getElementById('audio-engine');
-const wrapper = document.getElementById('info-wrapper');
-const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
+
 
 const stations = [
     { name: "Heart 10s", stream: "https://media-ice.musicradio.com/Heart10sMP3", img: "https://images.weserv.nl/?url=www.globalplayer.com/assets/track-placeholders/heart10s.png", desc: "POP, HITS, CHART", isFav: true, isAll: true },
