@@ -961,19 +961,47 @@ function updateUI(state) {
     const b = document.getElementById('play-trigger');
     const f = document.getElementById('fab-play-pause');
     if(!b && !f) return;
+
     const icons = { play: 'play', pause: 'pause', loading: 'loader-2' };
     let currentIcon = state === 'loading' ? icons.loading : (state === true ? icons.pause : icons.play);
+
     [b, f].forEach(el => {
         if(!el) return;
-        el.innerHTML = `<i data-lucide="${currentIcon}" ${currentIcon === 'loader-2' ? 'class="spin"' : 'fill="currentColor"'} ></i>`;
-        state === true ? el.classList.add('playing') : el.classList.remove('playing');
+
+        const currentSvg = el.querySelector('i');
+        const alreadyLoading = (currentSvg && currentSvg.getAttribute('data-lucide') === 'loader-2');
+
+        // 1. UPDATE HTML/ICON (Doar dacă s-a schimbat starea, ca să nu resetăm rotația)
+        if (state === 'loading') {
+            if (!alreadyLoading) {
+                el.innerHTML = `<i data-lucide="${icons.loading}" class="spin"></i>`;
+                lucide.createIcons();
+            }
+        } else {
+            // Dacă nu e loading, punem Play sau Pause normal
+            el.innerHTML = `<i data-lucide="${currentIcon}" fill="currentColor"></i>`;
+            lucide.createIcons();
+        }
+
+        // 2. UPDATE STIL (Culori și Puls)
+        // Când e loading, vrem să se comporte ca și cum ar fi "playing" (să fie alb/accent și să pulseze)
+        if (state === true || state === 'loading') {
+            el.classList.add('playing');
+        } else {
+            el.classList.remove('playing');
+        }
     });
+
+    // 3. UPDATE LISTĂ (Egalizatorul mic din dreptul postului)
     document.querySelectorAll('.station-item').forEach(item => {
-        item.classList.toggle('is-playing', (state === true || state === 'loading') && activeStationObject && item.getAttribute('data-name') === activeStationObject.name);
+        const isCurrent = activeStationObject && item.getAttribute('data-name') === activeStationObject.name;
+        item.classList.toggle('is-playing', (state === true || state === 'loading') && isCurrent);
     });
+
     checkHopeEffect();
-    lucide.createIcons();
 }
+
+
 
 function updateMediaSession() {
     if ('mediaSession' in navigator && activeStationObject) {
