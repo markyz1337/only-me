@@ -422,11 +422,7 @@ body {
 <audio id="audio-engine" preload="auto" crossorigin="anonymous"></audio>
 
 <script>
-// --- 1. VARIABILELE DE BAZĂ (Trebuie să fie primele!) ---
-const audio = document.getElementById('audio-engine');
-const ENABLE_DIRECT_LINKS = false; 
-const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
-
+// --- VARIABILE GLOBALE ---
 let currentIdx = 0;
 let currentFilteredList = []; 
 let activeBGLayer = 1;
@@ -437,66 +433,11 @@ let isDragging = false;
 let metadataInterval = null;
 let isTransitioning = false;
 
-// --- 2. LOGICA AUTO-RECONNECT (Acum e sigur, audio e definit) ---
-let reconnectTimeout = null;
-// --- LOGICA RECONNECT OPTIMIZATĂ PENTRU FUNDAL (STAY-ALIVE) ---
-let isReconnecting = false;
 
-function attemptReconnect() {
-    if (isReconnecting || audio.paused) return;
-    
-    isReconnecting = true;
-    console.log("Reconectare în curs (Background Safe)...");
-    updateUI('loading');
-
-    // Forțăm reîncărcarea sursei
-    const currentSrc = audio.src;
-    audio.src = ""; 
-    audio.load();
-    audio.src = currentSrc;
-    
-    audio.play()
-        .then(() => {
-            isReconnecting = false;
-            updateUI(true);
-            console.log("Reconectat cu succes!");
-        })
-        .catch(() => {
-            isReconnecting = false;
-            // Dacă eșuează, mai încercăm o dată peste 5 secunde
-            setTimeout(attemptReconnect, 5000);
-        });
-}
-
-// EVENIMENTE NATIVE (Acestea funcționează și cu ecranul stins)
-// 'waiting' - când bufferul este gol (internet slab)
-audio.addEventListener('waiting', () => {
-    if (!isReconnecting) {
-        // Așteptăm 3 secunde să vedem dacă își revine singur, dacă nu, forțăm
-        setTimeout(() => {
-            if (audio.paused === false && audio.readyState < 3) {
-                attemptReconnect();
-            }
-        }, 3000);
-    }
-});
-
-// 'error' - când link-ul a murit de tot
-audio.addEventListener('error', attemptReconnect);
-
-// 'stalled' - când browserul încearcă să ia date dar serverul nu dă nimic
-audio.addEventListener('stalled', attemptReconnect);
-
-// FIX PENTRU MOBIL: Verificăm dacă fluxul s-a oprit deși ar trebui să cânte
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && !audio.paused && audio.readyState < 2) {
-        // Când userul revine pe tab și vede că e blocat, forțăm refresh
-        attemptReconnect();
-    }
-});
-
-
-
+const ENABLE_DIRECT_LINKS = false; 
+const audio = document.getElementById('audio-engine');
+const wrapper = document.getElementById('info-wrapper');
+const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
 
 const stations = [
     { name: "Heart 10s", stream: "https://media-ice.musicradio.com/Heart10sMP3", img: "https://images.weserv.nl/?url=www.globalplayer.com/assets/track-placeholders/heart10s.png", desc: "POP, HITS, CHART", isFav: true, isAll: true },
@@ -878,26 +819,20 @@ function updateArtUI(newImg) {
 // --- CORE PLAYER ---
 function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (currentFilteredList.length === 0) return;
-    
-    // Resetăm starea de reconectare la fiecare schimbare manuală a postului
-    isReconnecting = false;
-    if (reconnectTimeout) clearTimeout(reconnectTimeout);
-
     const s = currentFilteredList[idx];
     
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
-    // Gestionare URL (Direct Links)
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
     if (ENABLE_DIRECT_LINKS && sp && isPlayerVisible) {
         const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
         window.history.replaceState({}, "", "/" + cleanName);
     }
 
-    // Logica de Imagini (Art & Background)
+    // LOGICA DE IMAGINI:
     if (isInitial) {
-        // La pornirea automată (primul load), nu schimbăm fundalul blurat global
+        // La pornirea automată: Schimbăm DOAR coperta mică din Player, NU și fundalul blurat
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
         if (activeArtLayer === 1) {
@@ -906,11 +841,10 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
             art2.src = s.img || FALLBACK_IMG;
         }
     } else {
-        // La schimbare manuală, facem tranziția completă de artă și fundal
+        // La schimbare manuală: Schimbăm TOT (copertă + fundal blurat)
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
     
-    // Gestionare buton YouTube
     const ytBtn = document.getElementById('player-yt-btn');
     if (s.yt) { 
         ytBtn.href = s.yt; 
@@ -919,35 +853,20 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
         ytBtn.classList.add('yt-hidden'); 
     }
 
-    // Gestionare Metadata (Curățăm intervalul vechi și pornim unul nou)
     if (metadataInterval) clearInterval(metadataInterval);
-    
-    // Resetare Audio Engine și încărcare stream nou
-    audio.pause();
     audio.src = s.stream;
-    audio.load(); // Forțează browserul să reîncarce bufferul
 
     setTimeout(() => { 
         fetchMetadata(s.stream, s); 
         metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
     }, 3000);
 
-    // Dacă parametrul 'sp' (should play) este true, pornim redarea
     if(sp) { 
         updateUI('loading'); 
-        audio.play()
-            .then(() => {
-                updateUI(true);
-            })
-            .catch((e) => {
-                console.error("Autoplay blocat sau eroare stream:", e);
-                updateUI(false);
-            }); 
+        audio.play().catch(() => updateUI(false)); 
     }
-    
     updateMediaSession();
 }
-
 
 
 
@@ -961,47 +880,19 @@ function updateUI(state) {
     const b = document.getElementById('play-trigger');
     const f = document.getElementById('fab-play-pause');
     if(!b && !f) return;
-
     const icons = { play: 'play', pause: 'pause', loading: 'loader-2' };
     let currentIcon = state === 'loading' ? icons.loading : (state === true ? icons.pause : icons.play);
-
     [b, f].forEach(el => {
         if(!el) return;
-
-        const currentSvg = el.querySelector('i');
-        const alreadyLoading = (currentSvg && currentSvg.getAttribute('data-lucide') === 'loader-2');
-
-        // 1. UPDATE HTML/ICON (Doar dacă s-a schimbat starea, ca să nu resetăm rotația)
-        if (state === 'loading') {
-            if (!alreadyLoading) {
-                el.innerHTML = `<i data-lucide="${icons.loading}" class="spin"></i>`;
-                lucide.createIcons();
-            }
-        } else {
-            // Dacă nu e loading, punem Play sau Pause normal
-            el.innerHTML = `<i data-lucide="${currentIcon}" fill="currentColor"></i>`;
-            lucide.createIcons();
-        }
-
-        // 2. UPDATE STIL (Culori și Puls)
-        // Când e loading, vrem să se comporte ca și cum ar fi "playing" (să fie alb/accent și să pulseze)
-        if (state === true || state === 'loading') {
-            el.classList.add('playing');
-        } else {
-            el.classList.remove('playing');
-        }
+        el.innerHTML = `<i data-lucide="${currentIcon}" ${currentIcon === 'loader-2' ? 'class="spin"' : 'fill="currentColor"'} ></i>`;
+        state === true ? el.classList.add('playing') : el.classList.remove('playing');
     });
-
-    // 3. UPDATE LISTĂ (Egalizatorul mic din dreptul postului)
     document.querySelectorAll('.station-item').forEach(item => {
-        const isCurrent = activeStationObject && item.getAttribute('data-name') === activeStationObject.name;
-        item.classList.toggle('is-playing', (state === true || state === 'loading') && isCurrent);
+        item.classList.toggle('is-playing', (state === true || state === 'loading') && activeStationObject && item.getAttribute('data-name') === activeStationObject.name);
     });
-
     checkHopeEffect();
+    lucide.createIcons();
 }
-
-
 
 function updateMediaSession() {
     if ('mediaSession' in navigator && activeStationObject) {
