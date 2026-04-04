@@ -434,6 +434,59 @@ let metadataInterval = null;
 let isTransitioning = false;
 
 
+
+
+// --- LOGICA AUTO-RECONNECT ---
+let reconnectTimeout = null;
+let isReconnecting = false;
+
+function handleConnectionLoss() {
+    if (isReconnecting) return;
+    
+    // Verificăm dacă playerul ar trebui să fie activ (nu e dat pe pauză manual)
+    if (!audio.paused || audio.readyState === 0) {
+        console.log("Conexiune pierdută. Încercăm reconectarea...");
+        isReconnecting = true;
+        updateUI('loading');
+
+        // Așteptăm 3 secunde înainte de a reîncărca pentru a lăsa rețeaua să se stabilizeze
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = setTimeout(() => {
+            const currentSrc = audio.src;
+            audio.src = ""; // Resetăm sursa pentru a forța browserul să curețe bufferul blocat
+            audio.load();
+            audio.src = currentSrc;
+            
+            audio.play()
+                .then(() => {
+                    isReconnecting = false;
+                    console.log("Reconectat cu succes!");
+                })
+                .catch(err => {
+                    isReconnecting = false;
+                    console.log("Reîncercare eșuată, reluăm procesul...");
+                    handleConnectionLoss(); // Reîncercăm dacă nu a mers
+                });
+        }, 3000);
+    }
+}
+
+// Event Listeners pentru detecție automată
+audio.addEventListener('error', handleConnectionLoss);
+audio.addEventListener('stalled', handleConnectionLoss);
+
+// Verificare periodică (Safety Guard)
+// Dacă audio este "playing" dar nu s-a mai descărcat nimic de 10 secunde
+setInterval(() => {
+    if (!audio.paused && audio.buffered.length > 0) {
+        const lastBuffer = audio.buffered.end(audio.buffered.length - 1);
+        if (audio.currentTime > lastBuffer) {
+            handleConnectionLoss();
+        }
+    }
+}, 10000);
+
+
 const ENABLE_DIRECT_LINKS = true; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
@@ -819,20 +872,26 @@ function updateArtUI(newImg) {
 // --- CORE PLAYER ---
 function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (currentFilteredList.length === 0) return;
+    
+    // Resetăm starea de reconectare la fiecare schimbare manuală a postului
+    isReconnecting = false;
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+
     const s = currentFilteredList[idx];
     
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
+    // Gestionare URL (Direct Links)
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
     if (ENABLE_DIRECT_LINKS && sp && isPlayerVisible) {
         const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
         window.history.replaceState({}, "", "/" + cleanName);
     }
 
-    // LOGICA DE IMAGINI:
+    // Logica de Imagini (Art & Background)
     if (isInitial) {
-        // La pornirea automată: Schimbăm DOAR coperta mică din Player, NU și fundalul blurat
+        // La pornirea automată (primul load), nu schimbăm fundalul blurat global
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
         if (activeArtLayer === 1) {
@@ -841,10 +900,11 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
             art2.src = s.img || FALLBACK_IMG;
         }
     } else {
-        // La schimbare manuală: Schimbăm TOT (copertă + fundal blurat)
+        // La schimbare manuală, facem tranziția completă de artă și fundal
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
     
+    // Gestionare buton YouTube
     const ytBtn = document.getElementById('player-yt-btn');
     if (s.yt) { 
         ytBtn.href = s.yt; 
@@ -853,20 +913,35 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
         ytBtn.classList.add('yt-hidden'); 
     }
 
+    // Gestionare Metadata (Curățăm intervalul vechi și pornim unul nou)
     if (metadataInterval) clearInterval(metadataInterval);
+    
+    // Resetare Audio Engine și încărcare stream nou
+    audio.pause();
     audio.src = s.stream;
+    audio.load(); // Forțează browserul să reîncarce bufferul
 
     setTimeout(() => { 
         fetchMetadata(s.stream, s); 
         metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
     }, 3000);
 
+    // Dacă parametrul 'sp' (should play) este true, pornim redarea
     if(sp) { 
         updateUI('loading'); 
-        audio.play().catch(() => updateUI(false)); 
+        audio.play()
+            .then(() => {
+                updateUI(true);
+            })
+            .catch((e) => {
+                console.error("Autoplay blocat sau eroare stream:", e);
+                updateUI(false);
+            }); 
     }
+    
     updateMediaSession();
 }
+
 
 
 
