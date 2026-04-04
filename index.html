@@ -476,17 +476,16 @@ stations.forEach(s => { s.originalDesc = s.desc; s.originalImg = s.img; });
 function next() { 
     if (!currentFilteredList || currentFilteredList.length === 0) return;
 
-    // VERIFICARE: Suntem în Player?
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
 
     if (isPlayerVisible) {
-        // În Player: Respectăm animația pentru a evita bug-ul vizual
         if (isTransitioning) return; 
         currentIdx = (currentIdx + 1) % currentFilteredList.length; 
         animateTransition('next'); 
     } else {
-        // În Listă (FAB): Schimbăm instant, fără animație
+        // Schimbăm indexul
         currentIdx = (currentIdx + 1) % currentFilteredList.length; 
+        // Forțăm încărcarea și PLAY (true)
         loadStationInfo(currentIdx, true, false);
         updateSliderText();
     }
@@ -503,10 +502,12 @@ function prev() {
         animateTransition('prev'); 
     } else {
         currentIdx = (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length; 
+        // Forțăm încărcarea și PLAY (true)
         loadStationInfo(currentIdx, true, false);
         updateSliderText();
     }
 }
+
 
 
 
@@ -1032,20 +1033,32 @@ function renderList(mode, el) {
     // 2. Filtrare listă
     list.innerHTML = "";
     const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
-    currentFilteredList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
+    const newList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
+    
+    // --- FIX PENTRU SWIPE PE FILĂ NOUĂ ---
+    // Verificăm dacă postul activ face parte din noua listă
+    if (activeStationObject) {
+        const foundIdx = newList.findIndex(s => s.name === activeStationObject.name);
+        if (foundIdx !== -1) {
+            currentIdx = foundIdx; // Păstrăm poziția dacă postul e în noua listă
+        } else {
+            currentIdx = -1; // Resetăm dacă postul curent nu e în noul tab
+        }
+    } else {
+        currentIdx = 0;
+    }
+    
+    currentFilteredList = newList;
+    // -------------------------------------
 
     // 3. Generare elemente
     currentFilteredList.forEach((s) => {
         const item = document.createElement('div');
-        
-        // Verificăm dacă acest post cântă acum
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
         
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
 
-        // LOGICA OPTIMIZARE IMAGINE:
-        // Verificăm dacă avem o imagine validă, altfel punem Fallback-ul direct
         const optimizedUrl = getOptimizedImg(s.img);
         const finalImg = optimizedUrl || s.img || FALLBACK_IMG;
 
@@ -1056,9 +1069,7 @@ function renderList(mode, el) {
                 <div class="station-desc">${s.desc || s.originalDesc}</div>
             </div>
             <div class="playing-icon">
-                <span></span>
-                <span></span>
-                <span></span>
+                <span></span><span></span><span></span>
             </div>
         `;
 
@@ -1073,6 +1084,7 @@ function renderList(mode, el) {
 
     updateUI(!audio.paused);
 }
+
 
 
 
@@ -1184,16 +1196,16 @@ function setupFabSwipe() {
         const dX = e.changedTouches[0].clientX - fSX;
         const dY = e.changedTouches[0].clientY - fSY;
         
-        // Prag minim de 30px pentru a ignora atingerile accidentale
         if (Math.abs(dX) > 30 || Math.abs(dY) > 30) {
             let direction = '';
             
-            // Swipe JOS sau STÂNGA = NEXT
+            // Dacă e prima intrare și indexul e resetat, îl pregătim pentru primul post
+            if (currentIdx === -1) currentIdx = -1; 
+
             if (dY > 30 || dX < -30) {
-                next();
+                next(); // Aceasta va apela acum loadStationInfo(idx, true...)
                 direction = 'skip-forward';
             } 
-            // Swipe SUS sau DREAPTA = PREV
             else if (dY < -30 || dX > 30) {
                 prev();
                 direction = 'skip-back';
@@ -1206,6 +1218,7 @@ function setupFabSwipe() {
         }
     }, {passive: true});
 }
+
 
 function updateFabVisuals(iconName) {
     const fab = document.getElementById('fab-play-pause');
