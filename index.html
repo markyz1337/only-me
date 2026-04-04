@@ -45,9 +45,6 @@
 }
 
 
-.fade-text {
-    transition: opacity 0.5s ease-in-out;
-}
 
 
 
@@ -58,9 +55,6 @@
     will-change: opacity;
 }
 
-.fade-out-emoji {
-    opacity: 0 !important;
-}
 
 
 /* Stiluri pentru Egalizatorul din Listă */
@@ -100,8 +94,23 @@
     to { height: 18px; }
 }
 
-::-webkit-scrollbar { display: none; }
-* { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Ascunde bara de scroll pentru Chrome, Safari și Opera */
+::-webkit-scrollbar {
+    display: none;
+}
+
+/* Ascunde bara de scroll pentru Firefox */
+* {
+    scrollbar-width: none;
+}
+
+/* Ascunde bara pentru IE și Edge vechi */
+* {
+    -ms-overflow-style: none;
+}
+
+
 
 body { 
     background: var(--bg-dark); 
@@ -434,13 +443,13 @@ let metadataInterval = null;
 let isTransitioning = false;
 
 
-const ENABLE_DIRECT_LINKS = false; 
+const ENABLE_DIRECT_LINKS = true; 
 const audio = document.getElementById('audio-engine');
 const wrapper = document.getElementById('info-wrapper');
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
 
 const stations = [
-    { name: "Heart 10s", stream: "https://media-ice.musicradio.com/Heart10sMP3", img: "https://images.weserv.nl/?url=www.globalplayer.com/assets/track-placeholders/heart10s.png", desc: "POP, HITS, CHART", isFav: true, isAll: true },
+    { name: "Heart 10s", stream: "https://media-ice.musicradio.com/Heart10sMP3", img: "https://www.globalplayer.com/assets/track-placeholders/heart10s.png", desc: "POP, HITS, CHART", isFav: true, isAll: true },
     { name: "Kiss 10s", stream: "https://dc.digi.live.kissfm.ro/kiss.hits.from.the.10s/listen.m3u", img: "https://api.kissfm.ro/resized/streams/homepage/2025/01/10/cover-kiss-hits-from-the-10s_6210a8bb4e6b58d8b6d2c0342721cdb9.png", desc: "HITS FROM THE 10S", isFav: true, isAll: true },
     { name: "Millenium Hits", stream: "https://dc.digi.live.kissfm.ro/milleniumhits", img: "https://api.kissfm.ro/resized/streams/homepage/2024/10/07/homepage-logo-kiss-millenium-hits_bd81e49f11f3edfff722aecb28f9ae34.png", desc: "KISS MILLENIUM HITS", isAll: true },
     { name: "ONE FM DANCE", stream: "https://live.onefm.ro/onefm.aacp", img: "https://onefm.es/wp-content/uploads/2023/09/LOGO-2025.jpg", desc: "DANCE, HOUSE, TECHNO", isAll: true },
@@ -497,6 +506,25 @@ function prev() {
         loadStationInfo(currentIdx, true, false);
         updateSliderText();
     }
+}
+
+
+
+function getOptimizedImg(url) {
+    if (!url || typeof url !== 'string' || url.length < 10 || url.includes('googleusercontent')) {
+        return null; 
+    }
+
+    // Dacă imaginea este deja de pe weserv.nl, extragem URL-ul original 
+    // și îl re-procesăm curat pentru a evita parametrii dublați
+    let cleanUrl = url;
+    if (url.includes('images.weserv.nl/?url=')) {
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        cleanUrl = urlParams.get('url');
+    }
+
+    // Returnăm URL-ul optimizat cu parametrii corecți
+    return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&w=450&h=450&fit=cover&output=webp&q=80&errorredirect=${encodeURIComponent(FALLBACK_IMG)}`;
 }
 
 
@@ -704,27 +732,32 @@ async function fetchAlbumArt(title, stationRef) {
         const data = await res.json();
         
         if (data.results && data.results.length > 0) {
-            const highResImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
+            // Luăm URL-ul de înaltă rezoluție de la iTunes
+            const rawItunesImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '500x500bb.jpg');
             
-            // Salvăm în obiect
+            // Îl trecem prin proxy pentru WebP și compresie
+            const highResImg = getOptimizedImg(rawItunesImg) || rawItunesImg;
+            
+            // Salvăm în obiectul stației pentru referință viitoare
             stationRef.img = highResImg;
             
-            // Update imagine în LISTĂ (vizibil imediat)
+            // Update imagine în LISTĂ (dacă stația este vizibilă în tab-ul curent)
             const stationThumb = document.querySelector(`.station-item[data-name="${stationRef.name}"] .station-thumb`);
             if (stationThumb) {
                 stationThumb.src = highResImg;
             }
 
-            // Update în PLAYER dacă este postul activ
+            // Update în PLAYER dacă este postul activ în acest moment
             if (activeStationObject && activeStationObject.name === stationRef.name) {
                 updateArtUI(highResImg);
                 updateMediaSession();
             }
         }
     } catch (e) { 
-        console.log("iTunes Sync Error"); 
+        console.log("iTunes Sync Error:", e); 
     }
 }
+
 
 
 
@@ -991,35 +1024,36 @@ function renderList(mode, el) {
 
     // 1. Gestionare Tab-uri (UI)
     if (el) {
-        // Resetăm scroll-ul la începutul listei când schimbăm categoria
         if (scrollContainer) scrollContainer.scrollTop = 0;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
 
-    // 2. Filtrare listă în funcție de tab-ul ales
+    // 2. Filtrare listă
     list.innerHTML = "";
     const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
     currentFilteredList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
 
-    // 3. Generare elemente listă
+    // 3. Generare elemente
     currentFilteredList.forEach((s) => {
         const item = document.createElement('div');
         
-        // Verificăm dacă acest post este cel care cântă în prezent
+        // Verificăm dacă acest post cântă acum
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
         
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
 
-        // Folosim descrierea actualizată (nume piesă) sau cea originală a postului
-        const displayDesc = s.desc || s.originalDesc;
+        // LOGICA OPTIMIZARE IMAGINE:
+        // Verificăm dacă avem o imagine validă, altfel punem Fallback-ul direct
+        const optimizedUrl = getOptimizedImg(s.img);
+        const finalImg = optimizedUrl || s.img || FALLBACK_IMG;
 
         item.innerHTML = `
-            <img src="${s.img || FALLBACK_IMG}" class="station-thumb" onerror="this.src=FALLBACK_IMG">
+            <img src="${finalImg}" class="station-thumb" loading="lazy" onerror="this.src='${FALLBACK_IMG}'">
             <div style="flex:1">
                 <div class="station-name">${s.name}</div>
-                <div class="station-desc">${displayDesc}</div>
+                <div class="station-desc">${s.desc || s.originalDesc}</div>
             </div>
             <div class="playing-icon">
                 <span></span>
@@ -1028,36 +1062,20 @@ function renderList(mode, el) {
             </div>
         `;
 
-        // 4. LOGICA DE CLICK MODIFICATĂ
         item.onclick = () => { 
-            // Setăm indexul curent bazat pe noua listă filtrată
             currentIdx = currentFilteredList.indexOf(s); 
-            
-            // Actualizăm textele din player (în fundal)
             updateSliderText(); 
-            
-            // Pornim stream-ul audio
-            // loadStationInfo(index, autoplay, skipArtUpdate)
             loadStationInfo(currentIdx, true, false); 
-
-            // NOTĂ: Am eliminat switchTab('player') de aici pentru a rămâne în listă
         };
 
         list.appendChild(item);
     });
 
-    // Actualizăm starea vizuală a butoanelor Play/Pause (FAB)
     updateUI(!audio.paused);
 }
 
 
 
-
-function playStation() { 
-    updateSliderText(); 
-    loadStationInfo(currentIdx, true); 
-    // switchTab('player'); <-- Am eliminat această linie pentru a rămâne în listă
-}
 
 function animateTransition(dir) {
     if (isTransitioning) return;
@@ -1255,10 +1273,16 @@ async function applyRandomItunesCover() {
     try {
         const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(randomKey)}&entity=song&limit=20`);
         const data = await res.json();
+        
         if (data.results && data.results.length > 0) {
             const randomTrack = data.results[Math.floor(Math.random() * data.results.length)];
-            const highResImg = randomTrack.artworkUrl100.replace('100x100bb.jpg', '1000x1000bb.jpg');
             
+            // 1. Luăm URL-ul de rezoluție mare (600x600 sau 1000x1000 pentru fundal)
+            const rawImg = randomTrack.artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
+            
+            // 2. Îl optimizăm prin proxy (WebP, compresie 80%)
+            // Folosim dimensiuni puțin mai mari aici (w=800) pentru că e fundalul principal
+          const highResImg = `https://images.weserv.nl/?url=${encodeURIComponent(rawImg)}&w=350&q=20&output=webp`;            
             const bg1 = document.getElementById('bg-layer-1');
             const art1 = document.getElementById('player-img-1');
             
@@ -1269,12 +1293,18 @@ async function applyRandomItunesCover() {
             if (art1) {
                 art1.src = highResImg;
             }
+        } else {
+            // Dacă iTunes nu returnează nimic, activăm stratul de fundal cu imaginea default
+            document.getElementById('bg-layer-1').style.opacity = "1";
         }
     } catch (e) {
-        console.log("Eroare fundal:", e);
-        document.getElementById('bg-layer-1').style.opacity = "1";
+        console.log("Eroare fundal random:", e);
+        // Fallback de siguranță: afișăm fundalul existent (chiar dacă e cel de rezervă)
+        const bg1 = document.getElementById('bg-layer-1');
+        if (bg1) bg1.style.opacity = "1";
     }
 }
+
 
 function updateStationUI(name, desc) {
     // Update în listă
