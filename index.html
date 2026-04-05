@@ -580,43 +580,39 @@ async function openSearch() {
     lucide.createIcons();
 
     try {
-        // Interogăm API-ul (limită 100 pentru a avea de unde filtra)
         const response = await fetch(`https://de1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(query)}?limit=100`);
         const results = await response.json();
-
-        // FILTRARE: Doar fluxuri securizate HTTPS
         const secureResults = results.filter(r => r.url_resolved && r.url_resolved.startsWith('https'));
 
         if (secureResults.length === 0) {
             alert("Niciun rezultat HTTPS găsit.");
         } else {
             const newStations = secureResults.map(r => {
-                // Curățăm numele pentru a nu fi prea lung
                 let cleanName = r.name.split('[')[0].split('(')[0].trim();
                 if (cleanName.length > 28) cleanName = cleanName.substring(0, 25) + "...";
 
-                // Extragere țară (ex: RO, RU, US) sau fallback dacă lipsește
                 const country = r.countrycode ? r.countrycode.toUpperCase() : "INTL";
-                // Extragere tag principal (gen muzical)
                 const tag = (r.tags || "Radio").split(',')[0].toUpperCase();
+                
+                // Generăm un ID bazat pe URL pentru Direct Link
+                const urlObj = new URL(r.url_resolved);
+                const streamSlug = urlObj.hostname.replace(/\./g, '-') + (urlObj.port ? '-' + urlObj.port : '');
 
                 return {
                     name: cleanName,
                     stream: r.url_resolved,
                     img: (r.favicon && r.favicon.startsWith('http')) ? r.favicon : FALLBACK_IMG,
-                    // Format: "RO | POP"
                     desc: `${country} | ${tag}`,
                     isAll: true,
-                    isSearch: true
+                    isSearch: true,
+                    slug: streamSlug // Folosit pentru URL: /url/slug
                 };
             });
 
             currentFilteredList = newStations;
             currentIdx = 0;
-            
             renderSearchResults(newStations);
             
-            // Activăm tab-ul All vizual
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-all').classList.add('active');
         }
@@ -628,6 +624,7 @@ async function openSearch() {
         lucide.createIcons();
     }
 }
+
 
 
 
@@ -1014,21 +1011,27 @@ function updateArtUI(newImg) {
 
 // --- CORE PLAYER ---
 function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
-    if (currentFilteredList.length === 0) return;
+    if (!currentFilteredList || currentFilteredList.length === 0) return;
     const s = currentFilteredList[idx];
     
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
-    if (ENABLE_DIRECT_LINKS && sp && isPlayerVisible) {
-        const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
-        window.history.replaceState({}, "", "/" + cleanName);
+
+    // Logica de Direct Links / URL Update
+    if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS && sp && isPlayerVisible) {
+        let finalPath = "/";
+        if (s.isSearch && s.slug) {
+            finalPath = "/url/" + s.slug;
+        } else {
+            finalPath = "/" + transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+        }
+        window.history.replaceState({}, "", finalPath);
     }
 
-    // LOGICA DE IMAGINI:
+    // Gestionare Imagini
     if (isInitial) {
-        // La pornirea automată: Schimbăm DOAR coperta mică din Player, NU și fundalul blurat
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
         if (activeArtLayer === 1) {
@@ -1037,7 +1040,6 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
             art2.src = s.img || FALLBACK_IMG;
         }
     } else {
-        // La schimbare manuală: Schimbăm TOT (copertă + fundal blurat)
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
     
@@ -1063,6 +1065,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     }
     updateMediaSession();
 }
+
 
 
 
@@ -1496,90 +1499,81 @@ function updateStationUI(name, desc) {
     }
 }
 
+const ENABLE_DIRECT_LINKS = true;
 
 
 
 async function init() {
     const navBar = document.getElementById('main-nav');
     const fabPlay = document.getElementById('fab-play-pause');
-    const fabSearch = document.getElementById('fab-search'); // Referință către noul buton
+    const fabSearch = document.getElementById('fab-search');
 
-    const queryString = window.location.search.substring(1); 
-    const pathSegments = window.location.pathname.split('/').filter(s => s.length > 0);
-    const lastPathSegment = pathSegments.pop();
-    const rawTarget = decodeURIComponent(queryString || lastPathSegment || "");
-    
-    let autoFound = null;
-    if (rawTarget && ENABLE_DIRECT_LINKS) {
-        const cleanTarget = transliterate(rawTarget).toLowerCase().replace(/\s+/g, '');
-        autoFound = stations.find(s => {
-            const cleanStationName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
-            return cleanStationName === cleanTarget;
-        });
+    const path = window.location.pathname;
+    let autoFound = null;    
+
+    // Verificăm dacă avem un link direct la pornire
+    if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS && path !== "/" && path.length > 1) {
+        if (path.startsWith('/url/')) {
+            const targetSlug = path.replace('/url/', '');
+            autoFound = currentFilteredList.find(s => s.slug === targetSlug);
+            if (!autoFound && activeStationObject && activeStationObject.slug === targetSlug) {
+                autoFound = activeStationObject;
+            }
+        } else {
+            const targetName = path.substring(1).toLowerCase();
+            autoFound = stations.find(s => {
+                const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+                return cleanName === targetName;
+            });
+        }
     }
 
-    // 1. Aplicăm fundalul random la pornire
     await applyRandomItunesCover();
 
     if (autoFound) {
-        // Dacă am găsit un post prin URL, selectăm tab-ul corespunzător
-        const isActuallyMine = autoFound.isMine === true;
-        if (isActuallyMine) {
-            renderList('mine', document.getElementById('tab-mine'));
+        if (autoFound.isSearch) {
+            currentFilteredList = [autoFound];
+            currentIdx = 0;
         } else {
-            renderList('all', document.getElementById('tab-all'));
+            const isActuallyMine = autoFound.isMine === true;
+            const tabId = isActuallyMine ? 'tab-mine' : 'tab-all';
+            renderList(isActuallyMine ? 'mine' : 'all', document.getElementById(tabId));
+            currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
+            if (currentIdx === -1) currentIdx = 0;
         }
-        
-        currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
-        if (currentIdx === -1) currentIdx = 0;
-
         switchTab('player');
-        // Încărcăm postul (fără silent start, deoarece userul a dat click pe un link specific)
         loadStationInfo(currentIdx, true, false, false);
     } else {
-        // Pornire standard pe tab-ul "Owned"
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
-        
-        // PORNIRE SILENȚIOASĂ (Păstrează fundalul random de la iTunes)
         loadStationInfo(currentIdx, true, false, true); 
-        
-        if (ENABLE_DIRECT_LINKS) {
+        if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS) {
             window.history.replaceState({}, "", "/");
         }
     }
 
-    // Marcăm aplicația ca fiind gata (trigger pentru opacitate)
     document.body.classList.add('app-ready');
 
-    // 2. Animații de intrare pentru interfață
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
-        
-        const isListVisible = document.getElementById('list-view').style.display !== 'none';
-        if (isListVisible) {
-            // Afișăm ambele butoane FAB dacă suntem în modul listă
+        if (document.getElementById('list-view').style.display !== 'none') {
             if (fabPlay) fabPlay.classList.add('visible');
             if (fabSearch) fabSearch.classList.add('visible');
         }
     }, 400);
 
-    // 3. Configurare controale și swipe
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
     
-    // 4. Update metadata inițial pentru posturile proprii
     await updateAllOwnedStations(); 
 
-    // Pornim verificarea metadata pentru restul posturilor cu un mic delay
     stations.forEach((s, i) => {
         if (!s.stream.includes("sergiumusic.duckdns.org")) {
             setTimeout(() => fetchMetadata(s.stream, s), i * 150);
         }
     });
 
-    // 5. Interval de refresh metadata (20 secunde)
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1589,13 +1583,14 @@ async function init() {
         });
     }, 20000);
 
-    // Event listeners pentru starea audio
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
 
-const ENABLE_DIRECT_LINKS = true;
+
+
+
 
 
 init();
