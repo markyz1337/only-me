@@ -1028,33 +1028,29 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
 
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
     
-    // --- LOGICA ACTUALIZATĂ PENTRU URL ---
+    // --- FIX PENTRU LINK-URI COMPLETE ---
     if (ENABLE_DIRECT_LINKS && sp && isPlayerVisible) {
         if (s.isSearch) {
-            // Dacă este un post extern (din căutare), folosim hostname-ul (IP sau domeniu)
             try {
                 const urlObj = new URL(s.stream);
-                const hostPath = urlObj.hostname;
+                // .host include și portul (ex: 192.168.1.1:8000)
+                // .hostname include doar IP-ul (ex: 192.168.1.1)
+                const hostPath = urlObj.host; 
                 window.history.replaceState({}, "", "/url/" + hostPath);
             } catch (e) {
                 window.history.replaceState({}, "", "/url/external-radio");
             }
         } else {
-            // Dacă este un post din lista ta (Owned/Favorites), folosim numele transliterat
             const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
             window.history.replaceState({}, "", "/" + cleanName);
         }
     }
 
-    // LOGICA DE IMAGINI
     if (isInitial) {
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
-        if (activeArtLayer === 1) {
-            art1.src = s.img || FALLBACK_IMG;
-        } else {
-            art2.src = s.img || FALLBACK_IMG;
-        }
+        if (activeArtLayer === 1) art1.src = s.img || FALLBACK_IMG;
+        else art2.src = s.img || FALLBACK_IMG;
     } else {
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
@@ -1081,6 +1077,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     }
     updateMediaSession();
 }
+
 
 
 
@@ -1175,15 +1172,14 @@ function switchTab(t) {
     navBar.className = isPlayer ? 'nav-bar on-player visible' : 'nav-bar on-radio visible';
     
     if (isPlayer) {
-        // Ascunde butoanele de acțiune în Player
         if (fab) { fab.style.display = 'none'; fab.classList.remove('visible'); }
         if (fabSearch) { fabSearch.style.display = 'none'; fabSearch.classList.remove('visible'); }
         
-        // --- LOGICA ACTUALIZATĂ PENTRU URL ---
         if (ENABLE_DIRECT_LINKS && activeStationObject) {
             if (activeStationObject.isSearch) {
                 try {
-                    const hostPath = new URL(activeStationObject.stream).hostname;
+                    // Folosim .host pentru IP + Port complet
+                    const hostPath = new URL(activeStationObject.stream).host;
                     window.history.replaceState({}, "", "/url/" + hostPath);
                 } catch (e) {
                     window.history.replaceState({}, "", "/url/external-radio");
@@ -1194,11 +1190,9 @@ function switchTab(t) {
             }
         }
     } else {
-        // Afișează butoanele de acțiune în Listă
         if (fab) { fab.style.display = 'flex'; setTimeout(() => fab.classList.add('visible'), 50); }
         if (fabSearch) { fabSearch.style.display = 'flex'; setTimeout(() => fabSearch.classList.add('visible'), 50); }
         
-        // Resetăm URL-ul la bază când ne întoarcem la listă
         if (ENABLE_DIRECT_LINKS) {
             window.history.replaceState({}, "", "/");
         }
@@ -1206,6 +1200,7 @@ function switchTab(t) {
 
     checkHopeEffect();
 }
+
 
 
 
