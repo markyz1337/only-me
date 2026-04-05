@@ -4,35 +4,19 @@
     <meta charset="utf-8">
     <title>Redirecționare Sergiu FM...</title>
     <style>
-        body { 
-            background: #000; 
-            color: white; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-        }
+        body { background: #000; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #ff5e3a; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin-right: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
     <script type="text/javascript">
-        // 1. Preluăm calea URL-ului (ex: /hope sau /маруся%20фм)
+        // Extragem segmentul din cale (ex: din /hope extragem "hope")
         var path = window.location.pathname;
-        
-        // 2. Extragem ultimul segment de după ultimul "/"
-        var segments = path.split('/').filter(function(s) {
-            return s.length > 0;
-        });
-        
-        var station = segments.length > 0 ? segments[segments.length - 1] : "";
+        var segments = path.split('/').filter(function(s) { return s.length > 0; });
+        var stationSlug = segments.length > 0 ? segments[segments.length - 1] : "";
 
-        // 3. Redirecționăm către index.html folosind Query String (?)
-        // Acest lucru previne bucla infinită de 404 și îi spune scriptului index.html ce să cânte.
-        if (station) {
-            // Trimitem exact segmentul (va fi decodat și transliterat de init() în index.html)
-            window.location.replace(window.location.origin + '/?' + station);
+        if (stationSlug) {
+            // Trimitem către index.html cu semnul întrebării (ex: index.html?hope)
+            window.location.replace(window.location.origin + '/?' + stationSlug);
         } else {
             window.location.replace(window.location.origin);
         }
@@ -40,6 +24,6 @@
 </head>
 <body>
     <div class="loader"></div>
-    <p>Se încarcă stația radio...</p>
+    <p>Se caută postul radio...</p>
 </body>
 </html>
