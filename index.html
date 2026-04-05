@@ -548,43 +548,26 @@ function prev() {
 }
 
 
-// Transformă: (https://live.onefm.ro/onefm.aacp, "One FM") -> One_FM~~live_onefm_ro~onefm_aacp
 function encodeStreamToPath(url, name) {
     try {
         let cleanUrl = url.replace('https://', '').replace('http://', '');
         let urlPart = cleanUrl.replace(/\./g, '_').replace(/:/g, '-').replace(/\//g, '~');
-        
-        // Curățăm numele (înlocuim spațiile cu underscore pentru URL)
         let namePart = encodeURIComponent(name.replace(/\s+/g, '_'));
-        
         return namePart + "~~" + urlPart;
-    } catch (e) {
-        return "Radio_Extern~~external_radio";
-    }
+    } catch (e) { return "Radio_Extern~~external_radio"; }
 }
 
-// Extrage obiectul {name, stream} din URL-ul de tip /url/...
 function decodePathToStream(path) {
-    // Curățăm prefixul url/ sau url~ (bug refresh)
     let clean = path.replace(/^url\//, '').replace(/^url~/, '');
-    
-    // Split după separatorul special "~~"
     let parts = clean.split('~~');
-    
     let rawName = parts.length > 1 ? parts[0] : "Radio Extern";
     let rawUrl = parts.length > 1 ? parts[1] : parts[0];
-
-    // Reconstruim numele (înapoi cu spații)
-    let displayName = decodeURIComponent(rawName).replace(/_/g, ' ');
-    
-    // Reconstruim URL-ul original
-    let streamUrl = "https://" + rawUrl.replace(/_/g, '.').replace(/-/g, ':').replace(/~/g, '/');
-
     return {
-        name: displayName,
-        stream: streamUrl
+        name: decodeURIComponent(rawName).replace(/_/g, ' '),
+        stream: "https://" + rawUrl.replace(/_/g, '.').replace(/-/g, ':').replace(/~/g, '/')
     };
 }
+
 
 
 
@@ -1062,20 +1045,22 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
-    // --- ACTUALIZARE URL DINAMIC ---
+    // --- LOGICA URL DIFERENȚIATĂ ---
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
     if (ENABLE_DIRECT_LINKS && isPlayerVisible) {
         let finalPath = "";
+        
         if (s.isSearch) {
-            // Trimitem URL-ul și NUMELE stației pentru encodare
+            // EXTERN: sergiumusic.ro/url/Nume~~URL
             finalPath = "url/" + encodeStreamToPath(s.stream, s.name);
         } else {
+            // IMPLICIT: sergiumusic.ro/hope
             finalPath = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
         }
         window.history.replaceState({}, "", "/" + finalPath);
     }
 
-    // --- UI ȘI IMAGINI ---
+    // --- UI & AUDIO (Codul tău existent) ---
     if (isInitial) {
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
@@ -1086,17 +1071,11 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     }
     
     const ytBtn = document.getElementById('player-yt-btn');
-    if (s.yt) { 
-        ytBtn.href = s.yt; 
-        ytBtn.classList.remove('yt-hidden'); 
-    } else { 
-        ytBtn.classList.add('yt-hidden'); 
-    }
+    if (s.yt) { ytBtn.href = s.yt; ytBtn.classList.remove('yt-hidden'); } 
+    else { ytBtn.classList.add('yt-hidden'); }
 
-    // --- AUDIO ---
     if (metadataInterval) clearInterval(metadataInterval);
     audio.src = s.stream;
-
     setTimeout(() => { 
         fetchMetadata(s.stream, s); 
         metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
@@ -1108,6 +1087,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     }
     updateMediaSession();
 }
+
 
 
 
@@ -1577,26 +1557,22 @@ async function init() {
     let autoFound = null;
 
     if (fullPath && ENABLE_DIRECT_LINKS) {
-        // Dacă este link extern (conține url/ sau url~)
+        // CAZUL 1: LINK EXTERN (Decoder activat)
         if (fullPath.startsWith('url/') || fullPath.startsWith('url~')) {
-            const decodedData = decodePathToStream(fullPath); // Extragem {name, stream}
-            
+            const decodedData = decodePathToStream(fullPath);
             autoFound = {
-                name: decodedData.name, // AFISĂM NUMELE DIN LINK
+                name: decodedData.name,
                 stream: decodedData.stream,
                 img: FALLBACK_IMG,
                 desc: "LIVE STREAM",
                 isAll: true,
                 isSearch: true 
             };
-            
-            // Populăm lista 'Owned' în fundal
             renderList('mine', document.getElementById('tab-mine'));
-            // Adăugăm postul extern la începutul listei actuale
             currentFilteredList = [autoFound, ...currentFilteredList];
             currentIdx = 0;
         } 
-        // Dacă este un post din lista ta (ex: /hope)
+        // CAZUL 2: LINK IMPLICIT (Căutare în stațiile tale)
         else {
             const cleanTarget = transliterate(decodeURIComponent(fullPath)).toLowerCase().replace(/\s+/g, '');
             autoFound = stations.find(s => {
@@ -1612,6 +1588,7 @@ async function init() {
         }
     }
 
+    // --- FINALIZARE SETUP ---
     await applyRandomItunesCover();
 
     if (autoFound) {
@@ -1626,7 +1603,6 @@ async function init() {
 
     document.body.classList.add('app-ready');
     
-    // Verificăm dacă butoanele trebuie să fie vizibile
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
         const isListActive = document.getElementById('list-view').style.display !== 'none';
@@ -1636,7 +1612,6 @@ async function init() {
         }
     }, 400);
 
-    // Restul inițializărilor tale...
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
@@ -1655,6 +1630,7 @@ async function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
