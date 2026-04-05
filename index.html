@@ -571,7 +571,7 @@ function getOptimizedImg(url) {
 
 
 async function openSearch() {
-    const query = prompt("Caută post de radio:");
+    const query = prompt("Caută un post de radio:");
     if (!query || query.length < 2) return;
 
     const searchBtn = document.getElementById('fab-search');
@@ -580,26 +580,32 @@ async function openSearch() {
     lucide.createIcons();
 
     try {
-        // Interogăm API-ul Radio-Browser
+        // Interogăm API-ul (limită 100 pentru a avea de unde filtra)
         const response = await fetch(`https://de1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(query)}?limit=100`);
         const results = await response.json();
 
-        // FILTRARE: Păstrăm doar rezultatele care au flux HTTPS
+        // FILTRARE: Doar fluxuri securizate HTTPS
         const secureResults = results.filter(r => r.url_resolved && r.url_resolved.startsWith('https'));
 
         if (secureResults.length === 0) {
-            alert("Niciun rezultat HTTPS găsit pentru această căutare.");
+            alert("Niciun rezultat HTTPS găsit.");
         } else {
-            // Mapăm rezultatele filtrate
             const newStations = secureResults.map(r => {
+                // Curățăm numele pentru a nu fi prea lung
                 let cleanName = r.name.split('[')[0].split('(')[0].trim();
                 if (cleanName.length > 28) cleanName = cleanName.substring(0, 25) + "...";
+
+                // Extragere țară (ex: RO, RU, US) sau fallback dacă lipsește
+                const country = r.countrycode ? r.countrycode.toUpperCase() : "INTL";
+                // Extragere tag principal (gen muzical)
+                const tag = (r.tags || "Radio").split(',')[0].toUpperCase();
 
                 return {
                     name: cleanName,
                     stream: r.url_resolved,
                     img: (r.favicon && r.favicon.startsWith('http')) ? r.favicon : FALLBACK_IMG,
-                    desc: (r.tags || "International Radio").split(',')[0].toUpperCase(),
+                    // Format: "RO | POP"
+                    desc: `${country} | ${tag}`,
                     isAll: true,
                     isSearch: true
                 };
@@ -610,7 +616,7 @@ async function openSearch() {
             
             renderSearchResults(newStations);
             
-            // Setăm tab-ul All ca vizual activ
+            // Activăm tab-ul All vizual
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-all').classList.add('active');
         }
@@ -622,6 +628,7 @@ async function openSearch() {
         lucide.createIcons();
     }
 }
+
 
 
 
