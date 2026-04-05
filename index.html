@@ -548,24 +548,44 @@ function prev() {
 }
 
 
-// Transformă: https://live.onefm.ro/stream.mp3 -> url/live_onefm_ro~stream_mp3
-// Transformă: https://live.onefm.ro/onefm.aacp -> live_onefm_ro~onefm_aacp
-function encodeStreamToPath(url) {
+// Transformă: (https://live.onefm.ro/onefm.aacp, "One FM") -> One_FM~~live_onefm_ro~onefm_aacp
+function encodeStreamToPath(url, name) {
     try {
-        let clean = url.replace('https://', '').replace('http://', '');
-        // Nu adăugăm "url/" aici, îl adăugăm doar în momentul scrierii în bara de adrese
-        return clean.replace(/\./g, '_').replace(/:/g, '-').replace(/\//g, '~');
+        let cleanUrl = url.replace('https://', '').replace('http://', '');
+        let urlPart = cleanUrl.replace(/\./g, '_').replace(/:/g, '-').replace(/\//g, '~');
+        
+        // Curățăm numele (înlocuim spațiile cu underscore pentru URL)
+        let namePart = encodeURIComponent(name.replace(/\s+/g, '_'));
+        
+        return namePart + "~~" + urlPart;
     } catch (e) {
-        return "external_radio";
+        return "Radio_Extern~~external_radio";
     }
 }
 
-// Transformă: url/live_onefm_ro~onefm_aacp -> https://live.onefm.ro/onefm.aacp
+// Extrage obiectul {name, stream} din URL-ul de tip /url/...
 function decodePathToStream(path) {
-    // Curățăm orice prefix "url/" sau "url~" (pentru a evita bug-ul de refresh)
+    // Curățăm prefixul url/ sau url~ (bug refresh)
     let clean = path.replace(/^url\//, '').replace(/^url~/, '');
-    return "https://" + clean.replace(/_/g, '.').replace(/-/g, ':').replace(/~/g, '/');
+    
+    // Split după separatorul special "~~"
+    let parts = clean.split('~~');
+    
+    let rawName = parts.length > 1 ? parts[0] : "Radio Extern";
+    let rawUrl = parts.length > 1 ? parts[1] : parts[0];
+
+    // Reconstruim numele (înapoi cu spații)
+    let displayName = decodeURIComponent(rawName).replace(/_/g, ' ');
+    
+    // Reconstruim URL-ul original
+    let streamUrl = "https://" + rawUrl.replace(/_/g, '.').replace(/-/g, ':').replace(/~/g, '/');
+
+    return {
+        name: displayName,
+        stream: streamUrl
+    };
 }
+
 
 
 
@@ -1042,21 +1062,20 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
-    // --- LOGICĂ URL DINAMICĂ ---
+    // --- ACTUALIZARE URL DINAMIC ---
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
     if (ENABLE_DIRECT_LINKS && isPlayerVisible) {
         let finalPath = "";
         if (s.isSearch) {
-            // Punem prefixul "url/" o singură dată aici
-            finalPath = "url/" + encodeStreamToPath(s.stream);
+            // Trimitem URL-ul și NUMELE stației pentru encodare
+            finalPath = "url/" + encodeStreamToPath(s.stream, s.name);
         } else {
-            // Posturile din lista ta rămân curate (ex: /hope)
             finalPath = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
         }
         window.history.replaceState({}, "", "/" + finalPath);
     }
 
-    // --- IMAGINI ȘI COPERȚI ---
+    // --- UI ȘI IMAGINI ---
     if (isInitial) {
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
@@ -1066,7 +1085,6 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
     
-    // Buton YouTube
     const ytBtn = document.getElementById('player-yt-btn');
     if (s.yt) { 
         ytBtn.href = s.yt; 
@@ -1075,7 +1093,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
         ytBtn.classList.add('yt-hidden'); 
     }
 
-    // --- REDARE AUDIO ---
+    // --- AUDIO ---
     if (metadataInterval) clearInterval(metadataInterval);
     audio.src = s.stream;
 
@@ -1090,6 +1108,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     }
     updateMediaSession();
 }
+
 
 
 
@@ -1550,7 +1569,6 @@ async function init() {
     const fabPlay = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
 
-    // 1. Detectăm calea (Path sau Query)
     let fullPath = window.location.pathname.split('/').filter(s => s.length > 0).join('/');
     if (!fullPath && window.location.search) {
         fullPath = decodeURIComponent(window.location.search.substring(1));
@@ -1558,28 +1576,28 @@ async function init() {
     
     let autoFound = null;
 
-    // --- LOGICA DE ÎNCĂRCARE ---
     if (fullPath && ENABLE_DIRECT_LINKS) {
+        // Dacă este link extern (conține url/ sau url~)
         if (fullPath.startsWith('url/') || fullPath.startsWith('url~')) {
-            const decodedStream = decodePathToStream(fullPath);
+            const decodedData = decodePathToStream(fullPath); // Extragem {name, stream}
+            
             autoFound = {
-                name: "External Radio",
-                stream: decodedStream,
+                name: decodedData.name, // AFISĂM NUMELE DIN LINK
+                stream: decodedData.stream,
                 img: FALLBACK_IMG,
                 desc: "LIVE STREAM",
                 isAll: true,
                 isSearch: true 
             };
             
-            // IMPORTANT: Chiar dacă e extern, încărcăm lista 'Owned' în fundal
-            // ca să avem ce vedea când ne întoarcem la tab-ul Radio
+            // Populăm lista 'Owned' în fundal
             renderList('mine', document.getElementById('tab-mine'));
-            
-            // Adăugăm postul extern la începutul listei actuale ca să poată fi controlat
+            // Adăugăm postul extern la începutul listei actuale
             currentFilteredList = [autoFound, ...currentFilteredList];
             currentIdx = 0;
-        } else {
-            // Cazul postului implicit (ex: /hope)
+        } 
+        // Dacă este un post din lista ta (ex: /hope)
+        else {
             const cleanTarget = transliterate(decodeURIComponent(fullPath)).toLowerCase().replace(/\s+/g, '');
             autoFound = stations.find(s => {
                 const cleanStationName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
@@ -1597,36 +1615,33 @@ async function init() {
     await applyRandomItunesCover();
 
     if (autoFound) {
-        // Dacă am găsit ceva prin link direct:
         switchTab('player');
         loadStationInfo(currentIdx, true, false, false);
     } else {
-        // Pornire normală (fără link direct)
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
         loadStationInfo(currentIdx, true, false, true); 
         if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
-    // --- FINALIZARE SETUP ---
     document.body.classList.add('app-ready');
     
+    // Verificăm dacă butoanele trebuie să fie vizibile
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
-        // Verificăm ce ecran e activ pentru a afișa butoanele corecte
-        const isListVisible = document.getElementById('list-view').style.display !== 'none';
-        if (isListVisible) {
-            if (fabPlay) fabPlay.classList.add('visible');
-            if (fabSearch) fabSearch.classList.add('visible');
+        const isListActive = document.getElementById('list-view').style.display !== 'none';
+        if (isListActive) {
+            if (fabPlay) { fabPlay.style.display = 'flex'; fabPlay.classList.add('visible'); }
+            if (fabSearch) { fabSearch.style.display = 'flex'; fabSearch.classList.add('visible'); }
         }
     }, 400);
 
+    // Restul inițializărilor tale...
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
     await updateAllOwnedStations(); 
 
-    // Pornim intervalele de metadata
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1640,6 +1655,7 @@ async function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
