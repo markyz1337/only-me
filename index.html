@@ -1508,50 +1508,59 @@ async function init() {
     const fabPlay = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
 
-    const path = window.location.pathname;
+    // --- LOGICA REPARATĂ PENTRU DIRECT LINKS ---
+    // 1. Verificăm dacă avem ceva după "?" (venit din 404)
+    // 2. Dacă nu, verificăm pathname-ul direct
+    let queryParam = window.location.search.substring(1).replace(/\/$/, "");
+    let pathParam = window.location.pathname.substring(1).replace(/\/$/, "");
+    let targetSlug = queryParam || pathParam;
+    
     let autoFound = null;    
 
-    // Verificăm dacă avem un link direct la pornire
-    if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS && path !== "/" && path.length > 1) {
-        if (path.startsWith('/url/')) {
-            const targetSlug = path.replace('/url/', '');
-            autoFound = currentFilteredList.find(s => s.slug === targetSlug);
-            if (!autoFound && activeStationObject && activeStationObject.slug === targetSlug) {
-                autoFound = activeStationObject;
-            }
-        } else {
-            const targetName = path.substring(1).toLowerCase();
-            autoFound = stations.find(s => {
-                const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
-                return cleanName === targetName;
-            });
-        }
+    if (ENABLE_DIRECT_LINKS && targetSlug && targetSlug.length > 0) {
+        // Căutăm în toată lista 'stations'
+        autoFound = stations.find(s => {
+            // Generăm slug-ul stației exact cum ar apărea în URL
+            const stationSlug = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+            return stationSlug === targetSlug || (s.slug && s.slug === targetSlug);
+        });
     }
+    // --------------------------------------------
 
     await applyRandomItunesCover();
 
     if (autoFound) {
-        if (autoFound.isSearch) {
-            currentFilteredList = [autoFound];
-            currentIdx = 0;
-        } else {
-            const isActuallyMine = autoFound.isMine === true;
-            const tabId = isActuallyMine ? 'tab-mine' : 'tab-all';
-            renderList(isActuallyMine ? 'mine' : 'all', document.getElementById(tabId));
-            currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
-            if (currentIdx === -1) currentIdx = 0;
-        }
+        // Identificăm în ce tab ar trebui să fie (prioritate 'mine')
+        let mode = 'all';
+        if (autoFound.isMine) mode = 'mine';
+        else if (autoFound.isRussian) mode = 'russian';
+        else if (autoFound.isFav) mode = 'fav';
+
+        const tabEl = document.getElementById(`tab-${mode}`);
+        renderList(mode, tabEl);
+
+        // Găsim indexul în lista filtrată curentă
+        currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
+        if (currentIdx === -1) currentIdx = 0;
+
         switchTab('player');
         loadStationInfo(currentIdx, true, false, false);
+
+        // Curățăm URL-ul (eliminăm "?" și forțăm path-ul curat)
+        if (window.history.replaceState) {
+            const finalPath = "/" + targetSlug;
+            window.history.replaceState({}, "", finalPath);
+        }
     } else {
+        // Pornire standard pe tab-ul 'Owned'
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
-        loadStationInfo(currentIdx, true, false, true); 
-        if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS) {
-            window.history.replaceState({}, "", "/");
-        }
+        // Nu pornim sunetul automat la prima încărcare fără link direct (politici browser)
+        loadStationInfo(currentIdx, false, false, true); 
+        if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
+    // Inițializare UI & Evenimente
     document.body.classList.add('app-ready');
 
     setTimeout(() => {
@@ -1566,14 +1575,10 @@ async function init() {
     setupSwipe();
     setupFabSwipe();
     
+    // Pornim actualizarea periodică a metadatelor
     await updateAllOwnedStations(); 
 
-    stations.forEach((s, i) => {
-        if (!s.stream.includes("sergiumusic.duckdns.org")) {
-            setTimeout(() => fetchMetadata(s.stream, s), i * 150);
-        }
-    });
-
+    // Refresh metadate la intervale regulate
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1587,6 +1592,7 @@ async function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
