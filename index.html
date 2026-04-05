@@ -1539,8 +1539,15 @@ async function init() {
     const fabPlay = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
 
-    const pathSegments = window.location.pathname.split('/').filter(s => s.length > 0);
-    const fullPath = pathSegments.join('/'); // Ex: "url/123_45_67-8000" sau "hope"
+    // --- REPARAȚIA PENTRU REDIRECȚIONARE 404 ---
+    // Citim din query string (după ?) dacă pathname e gol
+    let fullPath = window.location.pathname.split('/').filter(s => s.length > 0).join('/');
+    
+    if (!fullPath && window.location.search) {
+        // Luăm ce e după "?" și decodificăm
+        fullPath = decodeURIComponent(window.location.search.substring(1));
+    }
+    // -------------------------------------------
     
     let autoFound = null;
 
@@ -1554,13 +1561,12 @@ async function init() {
                 img: FALLBACK_IMG,
                 desc: "LINK REDIRECT",
                 isAll: true,
-                isSearch: true // Marcat ca search pentru a păstra formatul URL-ului în player
+                isSearch: true 
             };
-            // Adăugăm postul temporar în lista curentă ca să aibă ce să cânte
             currentFilteredList = [autoFound];
             currentIdx = 0;
         } 
-        // CAZUL B: Este un post standard din lista ta (ex: /hope)
+        // CAZUL B: Este un post standard (ex: /hope)
         else {
             const cleanTarget = transliterate(decodeURIComponent(fullPath)).toLowerCase().replace(/\s+/g, '');
             autoFound = stations.find(s => {
@@ -1569,7 +1575,6 @@ async function init() {
             });
 
             if (autoFound) {
-                // Decidem în ce tab să-l arătăm în spate
                 const mode = autoFound.isMine ? 'mine' : 'all';
                 renderList(mode, document.getElementById('tab-' + mode));
                 currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
@@ -1577,15 +1582,12 @@ async function init() {
         }
     }
 
-    // Aplicăm fundalul random (doar dacă nu avem deja o imagine de post)
     await applyRandomItunesCover();
 
     if (autoFound) {
         switchTab('player');
-        // Pornim redarea. Dacă e extern, va folosi obiectul creat ad-hoc.
         loadStationInfo(currentIdx, true, false, false);
     } else {
-        // Pornire standard pe tab-ul "Owned" dacă nu e niciun link în URL
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
         loadStationInfo(currentIdx, true, false, true); 
@@ -1625,6 +1627,7 @@ async function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 const ENABLE_DIRECT_LINKS = true;
