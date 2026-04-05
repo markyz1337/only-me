@@ -549,20 +549,24 @@ function prev() {
 
 
 // Transformă: https://live.onefm.ro/stream.mp3 -> url/live_onefm_ro~stream_mp3
+// Transformă: https://live.onefm.ro/onefm.aacp -> live_onefm_ro~onefm_aacp
 function encodeStreamToPath(url) {
     try {
         let clean = url.replace('https://', '').replace('http://', '');
-        return "url/" + clean.replace(/\./g, '_').replace(/:/g, '-').replace(/\//g, '~');
+        // Nu adăugăm "url/" aici, îl adăugăm doar în momentul scrierii în bara de adrese
+        return clean.replace(/\./g, '_').replace(/:/g, '-').replace(/\//g, '~');
     } catch (e) {
-        return "url/external_radio";
+        return "external_radio";
     }
 }
 
-// Transformă: url/live_onefm_ro~stream_mp3 -> https://live.onefm.ro/stream.mp3
+// Transformă: url/live_onefm_ro~onefm_aacp -> https://live.onefm.ro/onefm.aacp
 function decodePathToStream(path) {
-    let clean = path.replace('url/', '');
+    // Curățăm orice prefix "url/" sau "url~" (pentru a evita bug-ul de refresh)
+    let clean = path.replace(/^url\//, '').replace(/^url~/, '');
     return "https://" + clean.replace(/_/g, '.').replace(/-/g, ':').replace(/~/g, '/');
 }
+
 
 
 
@@ -1043,14 +1047,16 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (ENABLE_DIRECT_LINKS && isPlayerVisible) {
         let finalPath = "";
         if (s.isSearch) {
-            finalPath = encodeStreamToPath(s.stream);
+            // Punem prefixul "url/" o singură dată aici
+            finalPath = "url/" + encodeStreamToPath(s.stream);
         } else {
+            // Posturile din lista ta rămân curate (ex: /hope)
             finalPath = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
         }
         window.history.replaceState({}, "", "/" + finalPath);
     }
 
-    // --- IMAGINI ȘI UI ---
+    // --- IMAGINI ȘI COPERȚI ---
     if (isInitial) {
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
@@ -1060,6 +1066,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
     
+    // Buton YouTube
     const ytBtn = document.getElementById('player-yt-btn');
     if (s.yt) { 
         ytBtn.href = s.yt; 
@@ -1068,7 +1075,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
         ytBtn.classList.add('yt-hidden'); 
     }
 
-    // --- AUDIO ȘI METADATA ---
+    // --- REDARE AUDIO ---
     if (metadataInterval) clearInterval(metadataInterval);
     audio.src = s.stream;
 
@@ -1083,6 +1090,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     }
     updateMediaSession();
 }
+
 
 
 
@@ -1534,7 +1542,7 @@ async function init() {
     const fabPlay = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
 
-    // Detectăm calea: fie direct din URL, fie din parametrul trimis de 404 (?...)
+    // 1. Preluăm calea din URL sau din Query String (după ?)
     let fullPath = window.location.pathname.split('/').filter(s => s.length > 0).join('/');
     if (!fullPath && window.location.search) {
         fullPath = decodeURIComponent(window.location.search.substring(1));
@@ -1543,8 +1551,8 @@ async function init() {
     let autoFound = null;
 
     if (fullPath && ENABLE_DIRECT_LINKS) {
-        // Dacă link-ul este de tip extern (/url/...)
-        if (fullPath.startsWith('url/')) {
+        // CAZUL A: Link Extern (/url/...)
+        if (fullPath.startsWith('url/') || fullPath.startsWith('url~')) {
             const decodedStream = decodePathToStream(fullPath);
             autoFound = {
                 name: "External Radio",
@@ -1557,7 +1565,7 @@ async function init() {
             currentFilteredList = [autoFound];
             currentIdx = 0;
         } 
-        // Dacă link-ul este un post de-al tău (/hope)
+        // CAZUL B: Post Implicit (/hope)
         else {
             const cleanTarget = transliterate(decodeURIComponent(fullPath)).toLowerCase().replace(/\s+/g, '');
             autoFound = stations.find(s => {
@@ -1586,6 +1594,7 @@ async function init() {
     }
 
     document.body.classList.add('app-ready');
+    // Animații UI
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
         if (document.getElementById('list-view').style.display !== 'none') {
@@ -1594,6 +1603,7 @@ async function init() {
         }
     }, 400);
 
+    // Event Listeners și Intervaluri
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
@@ -1612,6 +1622,7 @@ async function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
