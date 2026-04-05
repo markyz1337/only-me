@@ -1545,13 +1545,12 @@ function updateStationUI(name, desc) {
 }
 
 
-
 async function init() {
     const navBar = document.getElementById('main-nav');
     const fabPlay = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
 
-    // 1. Preluăm calea din URL sau din Query String (după ?)
+    // 1. Detectăm calea (Path sau Query)
     let fullPath = window.location.pathname.split('/').filter(s => s.length > 0).join('/');
     if (!fullPath && window.location.search) {
         fullPath = decodeURIComponent(window.location.search.substring(1));
@@ -1559,8 +1558,8 @@ async function init() {
     
     let autoFound = null;
 
+    // --- LOGICA DE ÎNCĂRCARE ---
     if (fullPath && ENABLE_DIRECT_LINKS) {
-        // CAZUL A: Link Extern (/url/...)
         if (fullPath.startsWith('url/') || fullPath.startsWith('url~')) {
             const decodedStream = decodePathToStream(fullPath);
             autoFound = {
@@ -1571,11 +1570,16 @@ async function init() {
                 isAll: true,
                 isSearch: true 
             };
-            currentFilteredList = [autoFound];
+            
+            // IMPORTANT: Chiar dacă e extern, încărcăm lista 'Owned' în fundal
+            // ca să avem ce vedea când ne întoarcem la tab-ul Radio
+            renderList('mine', document.getElementById('tab-mine'));
+            
+            // Adăugăm postul extern la începutul listei actuale ca să poată fi controlat
+            currentFilteredList = [autoFound, ...currentFilteredList];
             currentIdx = 0;
-        } 
-        // CAZUL B: Post Implicit (/hope)
-        else {
+        } else {
+            // Cazul postului implicit (ex: /hope)
             const cleanTarget = transliterate(decodeURIComponent(fullPath)).toLowerCase().replace(/\s+/g, '');
             autoFound = stations.find(s => {
                 const cleanStationName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
@@ -1593,31 +1597,36 @@ async function init() {
     await applyRandomItunesCover();
 
     if (autoFound) {
+        // Dacă am găsit ceva prin link direct:
         switchTab('player');
         loadStationInfo(currentIdx, true, false, false);
     } else {
+        // Pornire normală (fără link direct)
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
         loadStationInfo(currentIdx, true, false, true); 
         if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
+    // --- FINALIZARE SETUP ---
     document.body.classList.add('app-ready');
-    // Animații UI
+    
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
-        if (document.getElementById('list-view').style.display !== 'none') {
+        // Verificăm ce ecran e activ pentru a afișa butoanele corecte
+        const isListVisible = document.getElementById('list-view').style.display !== 'none';
+        if (isListVisible) {
             if (fabPlay) fabPlay.classList.add('visible');
             if (fabSearch) fabSearch.classList.add('visible');
         }
     }, 400);
 
-    // Event Listeners și Intervaluri
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
     await updateAllOwnedStations(); 
 
+    // Pornim intervalele de metadata
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1631,6 +1640,7 @@ async function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
