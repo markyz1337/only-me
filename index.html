@@ -576,63 +576,49 @@ async function openSearch() {
 
     const searchBtn = document.getElementById('fab-search');
     const originalIcon = searchBtn.innerHTML;
-    
-    // Feedback vizual: transformăm lupa în loader
     searchBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
     lucide.createIcons();
 
     try {
-        // Interogăm API-ul Radio Browser (limită 100 pentru varietate)
         const response = await fetch(`https://de1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(query)}?limit=100`);
         const results = await response.json();
-
-        // FILTRARE: Reținem doar fluxurile securizate (HTTPS) pentru a evita erorile de Mixed Content
         const secureResults = results.filter(r => r.url_resolved && r.url_resolved.startsWith('https'));
 
         if (secureResults.length === 0) {
-            alert("Niciun rezultat HTTPS găsit pentru această căutare.");
+            alert("Niciun rezultat HTTPS găsit.");
         } else {
             const newStations = secureResults.map(r => {
-                // Curățăm numele (eliminăm parantezele lungi de metadata)
                 let cleanName = r.name.split('[')[0].split('(')[0].trim();
                 if (cleanName.length > 28) cleanName = cleanName.substring(0, 25) + "...";
-
-                // Extragem Țara și Genul muzical pentru descriere
                 const country = r.countrycode ? r.countrycode.toUpperCase() : "INTL";
                 const tag = (r.tags || "Radio").split(',')[0].toUpperCase();
 
                 return {
                     name: cleanName,
                     stream: r.url_resolved,
-                    // Folosim favicon-ul radioului sau imaginea noastră de rezervă (FALLBACK_IMG)
                     img: (r.favicon && r.favicon.startsWith('http')) ? r.favicon : FALLBACK_IMG,
                     desc: `${country} | ${tag}`,
                     isAll: true,
-                    isSearch: true // <--- IMPORTANT: Activează logica de URL tip /url/hostname
+                    isSearch: true // Marcat ca extern
                 };
             });
 
-            // Actualizăm lista curentă și resetăm indexul
             currentFilteredList = newStations;
             currentIdx = 0;
-            
-            // Afișăm rezultatele în interfață
             renderSearchResults(newStations);
             
-            // Activăm vizual tab-ul "All" (ca punct de plecare pentru rezultate)
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            const tabAll = document.getElementById('tab-all');
-            if (tabAll) tabAll.classList.add('active');
+            document.getElementById('tab-all').classList.add('active');
         }
     } catch (error) {
         console.error("Search error:", error);
-        alert("Eroare la conexiunea cu baza de date radio.");
+        alert("Eroare la conexiune.");
     } finally {
-        // Restaurăm iconița originală de lupă
         searchBtn.innerHTML = originalIcon;
         lucide.createIcons();
     }
 }
+
 
 
 
@@ -1028,17 +1014,16 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
 
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
     
-    // --- FIX PENTRU LINK-URI COMPLETE ---
+    // --- LOGICA URL PENTRU IP COMPLET ---
     if (ENABLE_DIRECT_LINKS && sp && isPlayerVisible) {
         if (s.isSearch) {
             try {
                 const urlObj = new URL(s.stream);
-                // .host include și portul (ex: 192.168.1.1:8000)
-                // .hostname include doar IP-ul (ex: 192.168.1.1)
-                const hostPath = urlObj.host; 
-                window.history.replaceState({}, "", "/url/" + hostPath);
+                // host include IP + Port (ex: 80.20.14.12:8000)
+                const fullIP = encodeURIComponent(urlObj.host); 
+                window.history.replaceState({}, "", "/url/" + fullIP);
             } catch (e) {
-                window.history.replaceState({}, "", "/url/external-radio");
+                window.history.replaceState({}, "", "/url/external-error");
             }
         } else {
             const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
@@ -1077,6 +1062,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     }
     updateMediaSession();
 }
+
 
 
 
@@ -1156,7 +1142,6 @@ function updateMediaSession() {
 
 
 
-
 function switchTab(t) {
     const isPlayer = t === 'player';
     const navBar = document.getElementById('main-nav');
@@ -1178,11 +1163,10 @@ function switchTab(t) {
         if (ENABLE_DIRECT_LINKS && activeStationObject) {
             if (activeStationObject.isSearch) {
                 try {
-                    // Folosim .host pentru IP + Port complet
-                    const hostPath = new URL(activeStationObject.stream).host;
-                    window.history.replaceState({}, "", "/url/" + hostPath);
+                    const fullIP = encodeURIComponent(new URL(activeStationObject.stream).host);
+                    window.history.replaceState({}, "", "/url/" + fullIP);
                 } catch (e) {
-                    window.history.replaceState({}, "", "/url/external-radio");
+                    window.history.replaceState({}, "", "/url/external-error");
                 }
             } else {
                 const cleanName = transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
@@ -1193,13 +1177,11 @@ function switchTab(t) {
         if (fab) { fab.style.display = 'flex'; setTimeout(() => fab.classList.add('visible'), 50); }
         if (fabSearch) { fabSearch.style.display = 'flex'; setTimeout(() => fabSearch.classList.add('visible'), 50); }
         
-        if (ENABLE_DIRECT_LINKS) {
-            window.history.replaceState({}, "", "/");
-        }
+        if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
-
     checkHopeEffect();
 }
+
 
 
 
@@ -1529,84 +1511,74 @@ function updateStationUI(name, desc) {
 async function init() {
     const navBar = document.getElementById('main-nav');
     const fabPlay = document.getElementById('fab-play-pause');
-    const fabSearch = document.getElementById('fab-search'); // Referință către noul buton
+    const fabSearch = document.getElementById('fab-search');
 
-    const queryString = window.location.search.substring(1); 
     const pathSegments = window.location.pathname.split('/').filter(s => s.length > 0);
-    const lastPathSegment = pathSegments.pop();
-    const rawTarget = decodeURIComponent(queryString || lastPathSegment || "");
     
     let autoFound = null;
-    if (rawTarget && ENABLE_DIRECT_LINKS) {
-        const cleanTarget = transliterate(rawTarget).toLowerCase().replace(/\s+/g, '');
-        autoFound = stations.find(s => {
-            const cleanStationName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
-            return cleanStationName === cleanTarget;
-        });
+    let externalStream = null;
+
+    if (ENABLE_DIRECT_LINKS && pathSegments.length > 0) {
+        // DETECȚIE URL EXTERN: /url/ip%3Aport
+        if (pathSegments[0] === 'url' && pathSegments[1]) {
+            try {
+                const decodedHost = decodeURIComponent(pathSegments[1]);
+                externalStream = {
+                    name: "External Radio",
+                    stream: `https://${decodedHost}`, 
+                    img: FALLBACK_IMG,
+                    desc: decodedHost,
+                    isAll: true,
+                    isSearch: true
+                };
+                autoFound = externalStream;
+            } catch (e) { console.error("URL Decode Error"); }
+        } 
+        // DETECȚIE POST INTERN: /hope
+        else {
+            const target = transliterate(pathSegments[0]).toLowerCase().replace(/\s+/g, '');
+            autoFound = stations.find(s => {
+                const cleanStationName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+                return cleanStationName === target;
+            });
+        }
     }
 
-    // 1. Aplicăm fundalul random la pornire
     await applyRandomItunesCover();
 
     if (autoFound) {
-        // Dacă am găsit un post prin URL, selectăm tab-ul corespunzător
-        const isActuallyMine = autoFound.isMine === true;
-        if (isActuallyMine) {
-            renderList('mine', document.getElementById('tab-mine'));
+        if (externalStream) {
+            currentFilteredList = [externalStream];
+            currentIdx = 0;
         } else {
-            renderList('all', document.getElementById('tab-all'));
+            const isActuallyMine = autoFound.isMine === true;
+            renderList(isActuallyMine ? 'mine' : 'all', document.getElementById(isActuallyMine ? 'tab-mine' : 'tab-all'));
+            currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
         }
-        
-        currentIdx = currentFilteredList.findIndex(s => s.name === autoFound.name);
         if (currentIdx === -1) currentIdx = 0;
-
         switchTab('player');
-        // Încărcăm postul (fără silent start, deoarece userul a dat click pe un link specific)
         loadStationInfo(currentIdx, true, false, false);
     } else {
-        // Pornire standard pe tab-ul "Owned"
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
-        
-        // PORNIRE SILENȚIOASĂ (Păstrează fundalul random de la iTunes)
         loadStationInfo(currentIdx, true, false, true); 
-        
-        if (ENABLE_DIRECT_LINKS) {
-            window.history.replaceState({}, "", "/");
-        }
+        if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
-    // Marcăm aplicația ca fiind gata (trigger pentru opacitate)
     document.body.classList.add('app-ready');
-
-    // 2. Animații de intrare pentru interfață
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
-        
-        const isListVisible = document.getElementById('list-view').style.display !== 'none';
-        if (isListVisible) {
-            // Afișăm ambele butoane FAB dacă suntem în modul listă
+        if (document.getElementById('list-view').style.display !== 'none') {
             if (fabPlay) fabPlay.classList.add('visible');
             if (fabSearch) fabSearch.classList.add('visible');
         }
     }, 400);
 
-    // 3. Configurare controale și swipe
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
-    
-    // 4. Update metadata inițial pentru posturile proprii
     await updateAllOwnedStations(); 
-
-    // Pornim verificarea metadata pentru restul posturilor cu un mic delay
-    stations.forEach((s, i) => {
-        if (!s.stream.includes("sergiumusic.duckdns.org")) {
-            setTimeout(() => fetchMetadata(s.stream, s), i * 150);
-        }
-    });
-
-    // 5. Interval de refresh metadata (20 secunde)
+    
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1616,13 +1588,13 @@ async function init() {
         });
     }, 20000);
 
-    // Event listeners pentru starea audio
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
 
-const ENABLE_DIRECT_LINKS = true;
+
+const ENABLE_DIRECT_LINKS = false;
 
 
 init();
