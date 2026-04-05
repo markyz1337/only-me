@@ -1020,13 +1020,25 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
-    // --- LOGICA PENTRU URL /url/http(s)://... ---
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
+    
+    // --- LOGICA ACTUALIZATĂ PENTRU URL ---
     if (ENABLE_DIRECT_LINKS && sp && isPlayerVisible) {
-        // Folosim s.stream direct, fără nicio modificare (păstrează http/https)
-        window.history.replaceState({}, "", "/url/" + s.stream);
+        if (s.isSearch) {
+            // Dacă este un post extern (din căutare), folosim hostname-ul (IP sau domeniu)
+            try {
+                const urlObj = new URL(s.stream);
+                const hostPath = urlObj.hostname;
+                window.history.replaceState({}, "", "/url/" + hostPath);
+            } catch (e) {
+                window.history.replaceState({}, "", "/url/external-radio");
+            }
+        } else {
+            // Dacă este un post din lista ta (Owned/Favorites), folosim numele transliterat
+            const cleanName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
+            window.history.replaceState({}, "", "/" + cleanName);
+        }
     }
-    // --------------------------------------------
 
     // LOGICA DE IMAGINI
     if (isInitial) {
@@ -1146,6 +1158,7 @@ function switchTab(t) {
     const isPlayer = t === 'player';
     const navBar = document.getElementById('main-nav');
     const fab = document.getElementById('fab-play-pause');
+    const fabSearch = document.getElementById('fab-search');
     
     document.getElementById('list-view').style.display = isPlayer ? 'none' : 'flex';
     document.getElementById('player-view').style.display = isPlayer ? 'flex' : 'none';
@@ -1156,18 +1169,30 @@ function switchTab(t) {
     navBar.className = isPlayer ? 'nav-bar on-player visible' : 'nav-bar on-radio visible';
     
     if (isPlayer) {
-        fab.style.display = 'none';
-        fab.classList.remove('visible');
+        // Ascunde butoanele de acțiune în Player
+        if (fab) { fab.style.display = 'none'; fab.classList.remove('visible'); }
+        if (fabSearch) { fabSearch.style.display = 'none'; fabSearch.classList.remove('visible'); }
         
-        // MODIFICARE: Actualizăm URL-ul cu stream-ul complet la intrarea în player
+        // --- LOGICA ACTUALIZATĂ PENTRU URL ---
         if (ENABLE_DIRECT_LINKS && activeStationObject) {
-            window.history.replaceState({}, "", "/url/" + activeStationObject.stream);
+            if (activeStationObject.isSearch) {
+                try {
+                    const hostPath = new URL(activeStationObject.stream).hostname;
+                    window.history.replaceState({}, "", "/url/" + hostPath);
+                } catch (e) {
+                    window.history.replaceState({}, "", "/url/external-radio");
+                }
+            } else {
+                const cleanName = transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
+                window.history.replaceState({}, "", "/" + cleanName);
+            }
         }
     } else {
-        fab.style.display = 'flex';
-        setTimeout(() => { fab.classList.add('visible'); }, 50);
+        // Afișează butoanele de acțiune în Listă
+        if (fab) { fab.style.display = 'flex'; setTimeout(() => fab.classList.add('visible'), 50); }
+        if (fabSearch) { fabSearch.style.display = 'flex'; setTimeout(() => fabSearch.classList.add('visible'), 50); }
         
-        // Resetăm URL-ul la bază ("/") când ne întoarcem la listă
+        // Resetăm URL-ul la bază când ne întoarcem la listă
         if (ENABLE_DIRECT_LINKS) {
             window.history.replaceState({}, "", "/");
         }
