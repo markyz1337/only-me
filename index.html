@@ -726,6 +726,7 @@ function analyticalClean(artist, title) {
     let a = decodeEntities(fixEncoding(artist || "")).trim();
     let t = decodeEntities(fixEncoding(title || "")).trim();
 
+    // Listă de cuvinte "gunoi" care vor fi eliminate oriunde apar
     const garbage = [/Official\s*Video/gi, /Official\s*Audio/gi, /Cat\s*Music/gi, /Roton\s*Music/gi, /Global\s*Records/gi, /Premiere/gi, /Lyrics/gi, /Video/gi, /Audio/gi, /Muzica/gi, /HD/gi, /Radio\s*Edit/gi];
 
     // Elimină parantezele ( ) [ ] { }
@@ -740,9 +741,15 @@ function analyticalClean(artist, title) {
     let rawCombined = (cleanA && cleanT) ? `${cleanA} - ${cleanT}` : (cleanA || cleanT);
     let final = removeDuplicateNames(rawCombined);
 
-    // --- ADAUGĂ ACEASTĂ LINIE PENTRU GHILIMELE ---
+    // --- ZONA DE CURĂȚARE AVANSATĂ ---
+    
+    // 1. Elimină textul "KISS FM -" (indiferent de majuscule sau spații)
+    final = final.replace(/^kiss\s*fm\s*[\-\–\—\:]*\s*/gi, "");
+    
+    // 2. Elimină toate tipurile de ghilimele (" " „ ” « »)
     final = final.replace(/["“”„«»]/g, ""); 
-    // ---------------------------------------------
+
+    // ---------------------------------
 
     return final.replace(/\s+/g, ' ')
                 .replace(/\s*-\s*-+\s*/g, ' - ')
@@ -750,6 +757,7 @@ function analyticalClean(artist, title) {
                 .replace(/^[\s\-\.\/]+|[\s\-\.\/]+$/g, "")
                 .trim() || "Live Stream";
 }
+
 
 
 
