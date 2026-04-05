@@ -548,20 +548,22 @@ function prev() {
 }
 
 
+// Transformă: https://live.onefm.ro/stream.mp3 -> url/live_onefm_ro~stream_mp3
 function encodeStreamToPath(url) {
     try {
         let clean = url.replace('https://', '').replace('http://', '');
-        // Transformăm caracterele speciale în ceva sigur pentru URL bar
-        return clean.replace(/\./g, '_').replace(/:/g, '-').replace(/\//g, '~');
+        return "url/" + clean.replace(/\./g, '_').replace(/:/g, '-').replace(/\//g, '~');
     } catch (e) {
-        return "external_radio";
+        return "url/external_radio";
     }
 }
 
+// Transformă: url/live_onefm_ro~stream_mp3 -> https://live.onefm.ro/stream.mp3
 function decodePathToStream(path) {
-    // În caz că vei avea nevoie să citești link-ul la încărcarea paginii
-    return "https://" + path.replace(/_/g, '.').replace(/-/g, ':').replace(/~/g, '/');
+    let clean = path.replace('url/', '');
+    return "https://" + clean.replace(/_/g, '.').replace(/-/g, ':').replace(/~/g, '/');
 }
+
 
 
 
@@ -1036,32 +1038,24 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
-    // --- LOGICĂ URL DINAMICĂ (Funcția 3) ---
+    // --- LOGICĂ URL DINAMICĂ ---
     const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
     if (ENABLE_DIRECT_LINKS && isPlayerVisible) {
         let finalPath = "";
-        
         if (s.isSearch) {
-            // Dacă este un post din SEARCH -> /url/ip_sau_domeniu
-            finalPath = "url/" + encodeStreamToPath(s.stream);
+            finalPath = encodeStreamToPath(s.stream);
         } else {
-            // Dacă este un post standard (Owned/All) -> /nume-post
             finalPath = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
         }
-        
         window.history.replaceState({}, "", "/" + finalPath);
     }
-    // ---------------------------------------
 
-    // LOGICA DE IMAGINI
+    // --- IMAGINI ȘI UI ---
     if (isInitial) {
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
-        if (activeArtLayer === 1) {
-            art1.src = s.img || FALLBACK_IMG;
-        } else {
-            art2.src = s.img || FALLBACK_IMG;
-        }
+        if (activeArtLayer === 1) art1.src = s.img || FALLBACK_IMG;
+        else art2.src = s.img || FALLBACK_IMG;
     } else {
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
@@ -1074,6 +1068,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
         ytBtn.classList.add('yt-hidden'); 
     }
 
+    // --- AUDIO ȘI METADATA ---
     if (metadataInterval) clearInterval(metadataInterval);
     audio.src = s.stream;
 
@@ -1088,6 +1083,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     }
     updateMediaSession();
 }
+
 
 
 
@@ -1533,40 +1529,35 @@ function updateStationUI(name, desc) {
 
 
 
-
 async function init() {
     const navBar = document.getElementById('main-nav');
     const fabPlay = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
 
-    // --- REPARAȚIA PENTRU REDIRECȚIONARE 404 ---
-    // Citim din query string (după ?) dacă pathname e gol
+    // Detectăm calea: fie direct din URL, fie din parametrul trimis de 404 (?...)
     let fullPath = window.location.pathname.split('/').filter(s => s.length > 0).join('/');
-    
     if (!fullPath && window.location.search) {
-        // Luăm ce e după "?" și decodificăm
         fullPath = decodeURIComponent(window.location.search.substring(1));
     }
-    // -------------------------------------------
     
     let autoFound = null;
 
     if (fullPath && ENABLE_DIRECT_LINKS) {
-        // CAZUL A: Este un link de tip extern /url/ip_radio
+        // Dacă link-ul este de tip extern (/url/...)
         if (fullPath.startsWith('url/')) {
             const decodedStream = decodePathToStream(fullPath);
             autoFound = {
                 name: "External Radio",
                 stream: decodedStream,
                 img: FALLBACK_IMG,
-                desc: "LINK REDIRECT",
+                desc: "LIVE STREAM",
                 isAll: true,
                 isSearch: true 
             };
             currentFilteredList = [autoFound];
             currentIdx = 0;
         } 
-        // CAZUL B: Este un post standard (ex: /hope)
+        // Dacă link-ul este un post de-al tău (/hope)
         else {
             const cleanTarget = transliterate(decodeURIComponent(fullPath)).toLowerCase().replace(/\s+/g, '');
             autoFound = stations.find(s => {
@@ -1591,18 +1582,13 @@ async function init() {
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
         loadStationInfo(currentIdx, true, false, true); 
-        
-        if (ENABLE_DIRECT_LINKS) {
-            window.history.replaceState({}, "", "/");
-        }
+        if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
     document.body.classList.add('app-ready');
-
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
-        const isListVisible = document.getElementById('list-view').style.display !== 'none';
-        if (isListVisible) {
+        if (document.getElementById('list-view').style.display !== 'none') {
             if (fabPlay) fabPlay.classList.add('visible');
             if (fabSearch) fabSearch.classList.add('visible');
         }
@@ -1611,7 +1597,6 @@ async function init() {
     updateSliderText();
     setupSwipe();
     setupFabSwipe();
-    
     await updateAllOwnedStations(); 
 
     setInterval(() => {
@@ -1627,6 +1612,7 @@ async function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
