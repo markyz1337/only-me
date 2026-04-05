@@ -661,20 +661,33 @@ async function openSearch() {
 function renderSearchResults(results) {
     const list = document.getElementById('stations-list');
     const scrollContainer = document.querySelector('.content');
+    
+    // 1. Curățăm lista actuală
     list.innerHTML = "";
     
-    // CRITIC: Actualizăm lista globală cu rezultatele căutării
+    // 2. CRITIC: Actualizăm lista filtrată globală cu noile rezultate de căutare
+    // Acest pas este esențial pentru ca funcțiile next/prev și switchTab să aibă referință corectă
     currentFilteredList = results;
+
+    if (results.length === 0) {
+        list.innerHTML = "<div style='padding:20px; text-align:center; color:#777;'>Niciun rezultat găsit.</div>";
+        return;
+    }
 
     results.forEach((s, index) => {
         const item = document.createElement('div');
+        
+        // Verificăm dacă acest post este cel care rulează în prezent (pentru egalizator)
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.stream === s.stream && !audio.paused);
         
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name);
 
+        // Folosim imaginea de profil sau fallback-ul dacă lipsește
+        const thumbImg = s.img || FALLBACK_IMG;
+
         item.innerHTML = `
-            <img src="${s.img}" class="station-thumb" onerror="this.src='${FALLBACK_IMG}'" loading="lazy">
+            <img src="${thumbImg}" class="station-thumb" onerror="this.src='${FALLBACK_IMG}'" loading="lazy">
             <div style="flex:1">
                 <div class="station-name">${s.name}</div>
                 <div class="station-desc">${s.desc}</div>
@@ -684,24 +697,36 @@ function renderSearchResults(results) {
             </div>
         `;
 
+        // GESTIONARE CLICK PE REZULTAT
         item.onclick = () => {
+            // Sincronizăm indexul curent
             currentIdx = index;
-            // Setăm obiectul activ IMEDIAT înainte de load
-            activeStationObject = currentFilteredList[currentIdx];
             
+            // Setăm obiectul activ IMEDIAT (pentru ca switchTab să aibă datele pregătite)
+            activeStationObject = currentFilteredList[index];
+            
+            // Actualizăm textele din player (Slide-urile Prev/Current/Next)
             updateSliderText();
-            // Parametrul 'true' pornește play, 'false' la skipArt permite update-ul imaginii
+            
+            // Pornim redarea (true = autoPlay)
             loadStationInfo(currentIdx, true, false);
             
+            // Update vizual instant în listă (clasa de "playing")
             document.querySelectorAll('.station-item').forEach(el => el.classList.remove('is-playing'));
             item.classList.add('is-playing');
+
+            // --- COMUTARE AUTOMATĂ LA PLAYER ---
+            // Această funcție va declanșa acum modificarea URL-ului corect
+            switchTab('player');
         };
         
         list.appendChild(item);
     });
 
+    // Resetăm scroll-ul listei la început
     if (scrollContainer) scrollContainer.scrollTop = 0;
 }
+
 
 
 
@@ -1040,77 +1065,40 @@ function updateArtUI(newImg) {
 // --- CORE PLAYER ---
 function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (!currentFilteredList || currentFilteredList.length === 0) return;
-    
-    // 1. Identificăm stația curentă din lista filtrată activă
     const s = currentFilteredList[idx];
     if (!s) return;
 
-    // 2. Resetăm sursa de fundal dacă este o redare nouă și marcăm stația ca activă
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
-    activeStationObject = s;
+    activeStationObject = s; // Salvăm postul ca fiind cel activ
 
-    // 3. GENERARE URL IMEDIATĂ (Fix pentru link-ul extern de la primul click)
-    if (ENABLE_DIRECT_LINKS) {
-        let finalPath = "";
-        
-        // Verificăm dacă este un post din căutare sau un post predefinit
-        if (s.isSearch) {
-            // Folosește encoder-ul tău pentru a transforma URL-ul brut într-o cale prietenoasă
-            finalPath = "url/" + encodeStreamToPath(s.stream, s.name);
-        } else {
-            // Transformă numele (ex: "One FM") în format url (ex: "onefm")
-            finalPath = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
-        }
-        
-        // Actualizăm URL-ul în browser fără a reîncărca pagina
-        window.history.replaceState({}, "", "/" + finalPath);
-    }
-
-    // 4. ACTUALIZARE UI (Copertă și Butoane)
     if (isInitial) {
-        // La încărcarea aplicației, punem imaginea direct pe stratul activ
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
         if (activeArtLayer === 1) art1.src = s.img || FALLBACK_IMG;
         else art2.src = s.img || FALLBACK_IMG;
     } else {
-        // În timpul funcționării, folosim tranziția de cross-fade (dacă nu e skipArt)
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
     
-    // Gestionare buton YouTube (dacă există playlist asociat)
     const ytBtn = document.getElementById('player-yt-btn');
-    if (s.yt) { 
-        ytBtn.href = s.yt; 
-        ytBtn.classList.remove('yt-hidden'); 
-    } else { 
-        ytBtn.classList.add('yt-hidden'); 
-    }
+    if (s.yt) { ytBtn.href = s.yt; ytBtn.classList.remove('yt-hidden'); } 
+    else { ytBtn.classList.add('yt-hidden'); }
 
-    // 5. GESTIONARE AUDIO ȘI METADATE
     if (metadataInterval) clearInterval(metadataInterval);
-    
-    // Setăm sursa audio
     audio.src = s.stream;
-    
-    // Pornim verificarea metadatelor (Titlu/Artist) după o scurtă pauză de buffering
+
     setTimeout(() => { 
         fetchMetadata(s.stream, s); 
         metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
     }, 3000);
 
-    // 6. CONTROL REDARE (PLAY)
     if(sp) { 
-        updateUI('loading'); // Afișăm spinner-ul pe butoane
-        audio.play().catch(err => {
-            console.error("Playback error:", err);
-            updateUI(false); // Revenim la iconița de Play dacă browserul blochează auto-play
-        }); 
+        updateUI('loading'); 
+        audio.play().catch(() => updateUI(false)); 
     }
-
-    // Actualizăm MediaSession (controlul de pe ecranul blocat al telefonului)
     updateMediaSession();
 }
+
 
 
 
@@ -1200,51 +1188,45 @@ function switchTab(t) {
     const fab = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
     
-    // Comutare între ecrane
     document.getElementById('list-view').style.display = isPlayer ? 'none' : 'flex';
     document.getElementById('player-view').style.display = isPlayer ? 'flex' : 'none';
     
-    // Update meniu navigare (stare activă)
     document.getElementById('nav-list').classList.toggle('active', !isPlayer);
     document.getElementById('nav-player').classList.toggle('active', isPlayer);
     
-    // Update fundal meniu navigare
     navBar.className = isPlayer ? 'nav-bar on-player visible' : 'nav-bar on-radio visible';
     
     if (isPlayer) {
-        // Ascundem butoanele plutitoare în Player
         fab.style.display = 'none';
         fab.classList.remove('visible');
-        if(fabSearch) fabSearch.style.display = 'none'; // Ascunde Search
+        if(fabSearch) fabSearch.style.display = 'none';
 
-        // Update URL dacă suntem pe link-uri directe
+        // --- AICI SE ÎNTÂMPLĂ MAGIA ---
         if (ENABLE_DIRECT_LINKS && activeStationObject) {
             let finalPath = "";
+            // Verificăm dacă e rezultat din căutare sau post local
             if (activeStationObject.isSearch) {
-                finalPath = "url/" + encodeStreamToPath(activeStationObject.stream);
+                finalPath = "url/" + encodeStreamToPath(activeStationObject.stream, activeStationObject.name);
             } else {
                 finalPath = transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
             }
             window.history.replaceState({}, "", "/" + finalPath);
         }
     } else {
-        // --- REPARAȚIA ESTE AICI ---
-        // Afișăm butoanele plutitoare în Listă
         fab.style.display = 'flex';
         if(fabSearch) {
-            fabSearch.style.display = 'flex'; // REAFISARE SEARCH
-            // Opțional, îi dăm și clasa visible pentru animația de fade-in
+            fabSearch.style.display = 'flex';
             setTimeout(() => { fabSearch.classList.add('visible'); }, 50);
         }
-        
         setTimeout(() => { fab.classList.add('visible'); }, 50);
         
-        // Resetăm URL-ul la bază când suntem în listă
+        // Când ieșim din Player, curățăm URL-ul
         if (ENABLE_DIRECT_LINKS) {
             window.history.replaceState({}, "", "/");
         }
     }
 }
+
 
 
 
