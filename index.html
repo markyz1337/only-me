@@ -740,12 +740,17 @@ function analyticalClean(artist, title) {
     let rawCombined = (cleanA && cleanT) ? `${cleanA} - ${cleanT}` : (cleanA || cleanT);
     let final = removeDuplicateNames(rawCombined);
 
+    // --- ADAUGĂ ACEASTĂ LINIE PENTRU GHILIMELE ---
+    final = final.replace(/["“”„«»]/g, ""); 
+    // ---------------------------------------------
+
     return final.replace(/\s+/g, ' ')
                 .replace(/\s*-\s*-+\s*/g, ' - ')
                 .replace(/-+/g, '-')
                 .replace(/^[\s\-\.\/]+|[\s\-\.\/]+$/g, "")
                 .trim() || "Live Stream";
 }
+
 
 
 
