@@ -18,13 +18,14 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 <script type="text/javascript">
+    // Luăm path-ul (ex: /url/ip_radio)
     var path = window.location.pathname; 
     var segments = path.split('/').filter(function(s) { return s.length > 0; });
 
     if (segments.length > 0) {
-        // Reconstruim "url/link_radio" sau "nume_radio"
+        // Reconstruim string-ul fără slash-ul de început (ex: "url/ip_radio")
         var fullPath = segments.join('/');
-        // Trimitem către index.html sub formă de query string
+        // Redirecționăm cu semnul întrebării: site.ro/?url/ip_radio
         window.location.replace(window.location.origin + '/?' + encodeURIComponent(fullPath));
     } else {
         window.location.replace(window.location.origin);
