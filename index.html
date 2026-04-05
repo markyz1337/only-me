@@ -412,8 +412,8 @@ body {
     <div id="list-view" style="height:100%; display:flex; flex-direction:column;">
         <div class="header-tabs">
             <div class="tab" id="tab-all" onclick="renderList('all', this)">All</div>
-            <div class="tab" id="tab-fav" onclick="renderList('fav', this)">Favorites</div>
             <div class="tab active" id="tab-mine" onclick="renderList('mine', this)">Owned</div>
+            <div class="tab" id="tab-manele" onclick="renderList('manele', this)">Manele</div>
             <div class="tab" id="tab-russian" onclick="renderList('russian', this)">Russian</div>
         </div>
         <div class="content" id="stations-list"></div>
@@ -491,9 +491,9 @@ const stations = [
     { name: "Pro FM", stream: "https://edge126.rcs-rds.ro/profm/profm.mp3", img: "https://ws.shoutcast.com/images/contacts/f/ffa1/ffa1a969-76ac-4054-a370-f0948d187e70/radios/73abbab4-8afe-4a4a-95b5-f5b9565d267b/73abbab4-8afe-4a4a-95b5-f5b9565d267b.png", desc: "Mainstream Pop & Fresh Hits", isAll: true },
     { name: "Radio ZU", stream: "https://live4ro.antenaplay.ro/radiozu/radiozu-48000.m3u8", img: "https://static2.mytuner.mobi/media/tvos_radios/hPR6BnRfuQ.png", desc: "Hip-Hop, Trap & New Pop", isAll: true },
     { name: "Radio Hot Style", stream: "https://live.radiohot.ro/8000/stream", img: "https://play-lh.googleusercontent.com/Sqgl6FwfLDa1OoLBrugN4vnr0Un9R67YRw2i6dkvA_JGy0aa5eW3ZVRGumGOeeqXcg", desc: "Dance, House & Club Remixes", isAll: true },
-    { name: "Pro Manele", stream: "https://www.online-radio.ro/stream/radiopromanele", img: "https://play-lh.googleusercontent.com/ntYHyDu6zEZiNFWekQLzMTW9I1ZThs9r4b4naViWElzcoqe0jdd_nTowCuQABmW_yw4", desc: "Manele & Muzică de Petrecere", isAll: true },
-    { name: "Radio Manele", stream: "https://ssl.servereradio.ro/8054/stream", img: "https://yt3.googleusercontent.com/FYYm0eIL415GR3aXavpS5VuvGxzzoYjDmqeX8JDffVs4_Q5-yaKborox_anLUcYWJvcgZTthZQ=s900-c-k-c0x00ffffff-no-rj", desc: "Manele & Muzică de Petrecere", isAll: true },
-    { name: "Radio Taraf", stream: "https://ddos.radiotaraf.ro/8181/stream", img: "https://play-lh.googleusercontent.com/ZElprn4XnQwojyFnNAqOyXN0IDy8eNdFNKdVjEK0jwDTxZ5oOg4KXRT5xRrxB_5ygAg", desc: "Manele & Muzică de Petrecere", isAll: true },
+    { name: "Pro Manele", stream: "https://www.online-radio.ro/stream/radiopromanele", img: "https://play-lh.googleusercontent.com/ntYHyDu6zEZiNFWekQLzMTW9I1ZThs9r4b4naViWElzcoqe0jdd_nTowCuQABmW_yw4", desc: "Manele & Muzică de Petrecere", isAll: true, isManele: true },
+    { name: "Radio Manele", stream: "https://ssl.servereradio.ro/8054/stream", img: "https://yt3.googleusercontent.com/FYYm0eIL415GR3aXavpS5VuvGxzzoYjDmqeX8JDffVs4_Q5-yaKborox_anLUcYWJvcgZTthZQ=s900-c-k-c0x00ffffff-no-rj", desc: "Manele & Muzică de Petrecere", isAll: true, isManele: true },
+    { name: "Radio Taraf", stream: "https://ddos.radiotaraf.ro/8181/stream", img: "https://play-lh.googleusercontent.com/ZElprn4XnQwojyFnNAqOyXN0IDy8eNdFNKdVjEK0jwDTxZ5oOg4KXRT5xRrxB_5ygAg", desc: "Manele & Muzică de Petrecere", isAll: true, isManele: true },
     { name: "Radio Record", stream: "https://radiorecord.hostingradio.ru/rus96.aacp", img: "https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/0e/fe/53/0efe532a-3cee-6c89-1d8d-c9f18284c0f2/mza_5165669991707061934.jpg/1200x1200bf-60.jpg", desc: "RECORD RUSSIAN MIX", isRussian: true, isAll: true },
     { name: "Маруся ФМ", stream: "https://listen.vdfm.ru:8000/marusya", img: "https://cover.marus.fm/cover/default.jpg", desc: "RUSSIAN POP MIX", isRussian: true, isAll: true },
     { name: "Европа Плюс", stream: "http://ep256.hostingradio.ru:8052/europaplus256.mp3", img: "https://static2.mytuner.mobi/media/tvos_radios/Fs3ahQV6xT.png", desc: "EUROPE MIX", isRussian: true, isAll: true },
@@ -504,7 +504,7 @@ const stations = [
     { name: "Emisiuni 10s", stream: "https://sergiumusic.duckdns.org/emisiunivechi", img: "https://play-lh.googleusercontent.com/r6ymNUMhRQN9-V6DS0ZZziAKAZrnJKGEw5mIK4KNFV8XPpD5JBEmlEn2ptSx0RDAEMs", desc: "SERGIU | KISS FM • RADIO 21 • RADIO ZU", isMine: true, isFav: true, isAll: false},
     { name: "Pop Actual", stream: "https://sergiumusic.duckdns.org/popactual", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRrd73RzhRJNu8IQ94U9TPy4O_hB2qVefaiynqfIk4TfXZ2xdAsvI7ynw&s=10", desc: "Sergiu | POP 20s", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12h2VlBi5lPddOig7Ki-dE2S&si=4StSQYlR4uazgPKO" },
     { name: "Russian", stream: "https://sergiumusic.duckdns.org/russian", img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", desc: "Sergiu | RUS • POP", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12hUgv96dGWDN5_0zqyfwh1t&si=Ezw2KRYTNtJAAKnW" },
-    { name: "Manele", stream: "https://sergiumusic.duckdns.org/manele", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", desc: "Sergiu | Gypsy Team", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXtIaoNo0wKIH9q_BFCHw4S_&si=XPeFO_NctOno3Vbu" },
+    { name: "Manele", stream: "https://sergiumusic.duckdns.org/manele", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", desc: "Sergiu | Gypsy Team", isMine: true, isManele: true, isAll: false, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXtIaoNo0wKIH9q_BFCHw4S_&si=XPeFO_NctOno3Vbu" },
     { name: "Sad Songs", stream: "https://sergiumusic.duckdns.org/sadsong", img: "https://i1.sndcdn.com/artworks-Xo47FqDWMesb-0-t500x500.jpg", desc: "Sergiu | Sad Songs", isMine: true, isAll: false },
     { name: "Remixes", stream: "https://sergiumusic.duckdns.org/remixes", img: "https://i1.sndcdn.com/avatars-000227062977-ucv5bm-t1080x1080.jpg", desc: "Sergiu | Remixes", isMine: true, isAll: false },
     { name: "Generated Music", stream: "https://sergiumusic.duckdns.org/aimusic", img: "https://i.pinimg.com/236x/fd/fc/82/fdfc82753e4f8cbdd49184e9dea43d06.jpg", desc: "Sergiu | AI POP", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12jv_iNgO8ApKgjIO-9NSg85&si=Qs6H1Iogrp47YRuX" }
