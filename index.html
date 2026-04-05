@@ -761,14 +761,16 @@ function fixCase(str) {
     return str;
 }
 
+/** --- ENGINE DE CURĂȚARE TEXT (ULTRA SCRUBBER v8.2) --- **/
+
 function removeDuplicateNames(text) {
     let parts = text.split(/[,，|\-\u2013\u2014\/]|feat\.|ft\.|&| x /gi);
     let cleanParts = [];
     let seenNormalized = [];
 
     parts.forEach(p => {
+        // Înlocuim orice spațiu alb multiplu cu unul singur folosind Regex \s+
         let original = fixCase(p.trim().replace(/\s+/g, ' '));
-        // Normalizăm păstrând caracterele alfanumerice chirilice și latine
         let norm = original.toLowerCase()
                            .normalize("NFD")
                            .replace(/[\u0300-\u036f]/g, "")
@@ -784,14 +786,15 @@ function removeDuplicateNames(text) {
     return cleanParts.join(' - ');
 }
 
+
+/** --- ENGINE DE CURĂȚARE TEXT (ULTRA SCRUBBER v8.4) --- **/
+
 function analyticalClean(artist, title) {
     let a = decodeEntities(fixEncoding(artist || "")).trim();
     let t = decodeEntities(fixEncoding(title || "")).trim();
 
-    // Listă de cuvinte "gunoi" care vor fi eliminate oriunde apar
     const garbage = [/Official\s*Video/gi, /Official\s*Audio/gi, /Cat\s*Music/gi, /Roton\s*Music/gi, /Global\s*Records/gi, /Premiere/gi, /Lyrics/gi, /Video/gi, /Audio/gi, /Muzica/gi, /HD/gi, /Radio\s*Edit/gi];
 
-    // Elimină parantezele ( ) [ ] { }
     let cleanA = a.replace(/\(.*?\)|\[.*?\]|\{.*?\}/g, "");
     let cleanT = t.replace(/\(.*?\)|\[.*?\]|\{.*?\}/g, "");
     
@@ -805,20 +808,27 @@ function analyticalClean(artist, title) {
 
     // --- ZONA DE CURĂȚARE AVANSATĂ ---
     
-    // 1. Elimină textul "KISS FM -" (indiferent de majuscule sau spații)
+    // 1. Elimină prefixul "KISS FM -"
     final = final.replace(/^kissfm\s*[\-\–\--\:]*\s*/gi, "");
     
-    // 2. Elimină toate tipurile de ghilimele (" " „ " « »)
+    // 2. Elimină ghilimelele
     final = final.replace(/["""„«»]/g, ""); 
 
-    // ---------------------------------
+    // 3. ELIMINĂ AMBELE TIPURI DE BARE (Standard | și Full-width ｜)
+    final = final.replace(/[|｜]/g, "");
 
-    return final.replace(/\s+/g, ' ')
-                .replace(/\s*-\s*-+\s*/g, ' - ')
-                .replace(/-+/g, '-')
-                .replace(/^[\s\-\.\/]+|[\s\-\.\/]+$/g, "")
+    // 4. CURĂȚARE SPAȚII ȘI FINISAJE
+    // Această linie transformă orice grup de spații (chiar și 10 la rând) într-unul singur
+    final = final.replace(/\s+/g, ' ');
+
+    return final.replace(/\s*-\s*-+\s*/g, ' - ') 
+                .replace(/-+/g, '-')             
+                .replace(/^[\s\-\.\/|｜]+|[\s\-\.\/|｜]+$/g, "") 
                 .trim() || "Live Stream";
 }
+
+
+
 
 
 
