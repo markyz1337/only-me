@@ -1170,49 +1170,58 @@ function updateMediaSession() {
 
 
 
-
 function switchTab(t) {
     const isPlayer = t === 'player';
     const navBar = document.getElementById('main-nav');
     const fab = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
     
+    // Comutare între ecrane
     document.getElementById('list-view').style.display = isPlayer ? 'none' : 'flex';
     document.getElementById('player-view').style.display = isPlayer ? 'flex' : 'none';
     
+    // Update meniu navigare (stare activă)
     document.getElementById('nav-list').classList.toggle('active', !isPlayer);
     document.getElementById('nav-player').classList.toggle('active', isPlayer);
     
+    // Update fundal meniu navigare
     navBar.className = isPlayer ? 'nav-bar on-player visible' : 'nav-bar on-radio visible';
     
     if (isPlayer) {
+        // Ascundem butoanele plutitoare în Player
         fab.style.display = 'none';
         fab.classList.remove('visible');
-        if(fabSearch) fabSearch.style.display = 'none';
+        if(fabSearch) fabSearch.style.display = 'none'; // Ascunde Search
 
-        // --- MODIFICAREA AICI ---
+        // Update URL dacă suntem pe link-uri directe
         if (ENABLE_DIRECT_LINKS && activeStationObject) {
             let finalPath = "";
             if (activeStationObject.isSearch) {
-                // Dacă e radio căutat prin Search -> /url/ip_stream
                 finalPath = "url/" + encodeStreamToPath(activeStationObject.stream);
             } else {
-                // Dacă e radio din lista ta standard -> /nume-radio
                 finalPath = transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
             }
             window.history.replaceState({}, "", "/" + finalPath);
         }
-        // ------------------------
     } else {
+        // --- REPARAȚIA ESTE AICI ---
+        // Afișăm butoanele plutitoare în Listă
         fab.style.display = 'flex';
-        if(fabSearch) fabSearch.style.display = 'flex';
+        if(fabSearch) {
+            fabSearch.style.display = 'flex'; // REAFISARE SEARCH
+            // Opțional, îi dăm și clasa visible pentru animația de fade-in
+            setTimeout(() => { fabSearch.classList.add('visible'); }, 50);
+        }
+        
         setTimeout(() => { fab.classList.add('visible'); }, 50);
         
+        // Resetăm URL-ul la bază când suntem în listă
         if (ENABLE_DIRECT_LINKS) {
             window.history.replaceState({}, "", "/");
         }
     }
 }
+
 
 
 
