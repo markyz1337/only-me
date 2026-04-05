@@ -2,28 +2,35 @@
 <html lang="ro">
 <head>
     <meta charset="utf-8">
-    <title>Redirecționare Sergiu FM...</title>
+    <title>Sergiu FM | Redirecționare...</title>
     <style>
         body { background: #000; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #ff5e3a; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin-right: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
     <script type="text/javascript">
-        // Extragem segmentul din cale (ex: din /hope extragem "hope")
         var path = window.location.pathname;
-        var segments = path.split('/').filter(function(s) { return s.length > 0; });
-        var stationSlug = segments.length > 0 ? segments[segments.length - 1] : "";
+        var origin = window.location.origin;
 
-        if (stationSlug) {
-            // Trimitem către index.html cu semnul întrebării (ex: index.html?hope)
-            window.location.replace(window.location.origin + '/?' + stationSlug);
-        } else {
-            window.location.replace(window.location.origin);
+        // Cazul 1: Link EXTERN (din Search)
+        if (path.includes('/external/')) {
+            var externalUrl = path.split('/external/')[1];
+            window.location.replace(origin + '/?ext=' + encodeURIComponent(externalUrl));
+        } 
+        // Cazul 2: Stație FIXĂ (numele stației)
+        else {
+            var segments = path.split('/').filter(function(s) { return s.length > 0; });
+            var station = segments.length > 0 ? segments[segments.length - 1] : "";
+            if (station) {
+                window.location.replace(origin + '/?' + station);
+            } else {
+                window.location.replace(origin);
+            }
         }
     </script>
 </head>
 <body>
     <div class="loader"></div>
-    <p>Se caută postul radio...</p>
+    <p>Se încarcă stația radio...</p>
 </body>
 </html>
