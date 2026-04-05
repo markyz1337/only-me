@@ -976,22 +976,36 @@ async function fetchAlbumArt(title, stationRef) {
 
 
 async function fetchMetadata(url, station) {
-    if (url.includes("emisiunivechi")) return;
+    // Ignorăm posturile fără metadata (opțional)
+    if (url.includes("emisiunivechi") && !url.includes(".xspf")) return;
 
     let newTitle = "";
 
+    // VERIFICARE: Dacă este un post "Owned", citim din fișierul .xspf
     if (url.includes("sergiumusic.duckdns.org")) {
         try {
-            const mountPoint = url.split('/').pop();
-            const response = await fetch("https://sergiumusic.duckdns.org/status-json.xsl");
-            const data = await response.json();
-            if (data.icestats && data.icestats.source) {
-                let sources = Array.isArray(data.icestats.source) ? data.icestats.source : [data.icestats.source];
-                let sData = sources.find(s => s.listenurl.includes(mountPoint));
-                if (sData) newTitle = analyticalClean(sData.artist, sData.title);
+            // Construim URL-ul către fișierul .xspf (ex: /hope devine /hope.xspf)
+            const xspfUrl = url.endsWith('.xspf') ? url : `${url}.xspf`;
+            
+            const response = await fetch(xspfUrl);
+            const xmlText = await response.text();
+            
+            // Folosim DOMParser pentru a extrage titlul din XML
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            const titleNode = xmlDoc.querySelector("trackList track title");
+            
+            if (titleNode) {
+                newTitle = analyticalClean("", titleNode.textContent);
             }
-        } catch (e) { console.error("Error owned meta:", e); }
-    } else {
+        } catch (e) { 
+            console.error("Error reading XSPF:", e); 
+            // Fallback la metoda veche dacă XSPF e indisponibil
+        }
+    } 
+    
+    // LOGICA PENTRU POSTURI EXTERNE (Icecast/Icy)
+    if (!newTitle) {
         try {
             const response = await fetch(url, { headers: { "Icy-MetaData": "1" } });
             const reader = response.body.getReader();
@@ -1011,9 +1025,10 @@ async function fetchMetadata(url, station) {
                         if (buffer.length < metaInt + 1 + mLen) continue;
                         let mStr = decoder.decode(buffer.slice(metaInt + 1, metaInt + 1 + mLen));
                         let match = mStr.match(/StreamTitle='([^']*)'/);
-if (match && match[1]) {
-    newTitle = analyticalClean("", match[1].replace(/;/g, "")); 
-}                        break;
+                        if (match && match[1]) {
+                            newTitle = analyticalClean("", match[1].replace(/;/g, "")); 
+                        }
+                        break;
                     }
                 }
                 reader.cancel();
@@ -1021,13 +1036,14 @@ if (match && match[1]) {
         } catch(e) { console.log("Error external meta"); }
     }
 
+    // Actualizare UI dacă titlul s-a schimbat
     if (newTitle && station.desc !== newTitle) {
         station.desc = newTitle;
         updateStationUI(station.name, newTitle);
-        // Căutăm coperta imediat ce avem titlul
         fetchAlbumArt(newTitle, station);
     }
 }
+
 
 
 
@@ -1251,24 +1267,18 @@ function renderList(mode, el) {
     const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
     const newList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
     
-    // --- FIX PENTRU SWIPE PE FILĂ NOUĂ ---
-    // Verificăm dacă postul activ face parte din noua listă
+    currentFilteredList = newList;
+
+    // Sincronizare index dacă postul activ e în noua listă
     if (activeStationObject) {
         const foundIdx = newList.findIndex(s => s.name === activeStationObject.name);
-        if (foundIdx !== -1) {
-            currentIdx = foundIdx; // Păstrăm poziția dacă postul e în noua listă
-        } else {
-            currentIdx = -1; // Resetăm dacă postul curent nu e în noul tab
-        }
+        currentIdx = foundIdx !== -1 ? foundIdx : -1;
     } else {
         currentIdx = 0;
     }
-    
-    currentFilteredList = newList;
-    // -------------------------------------
 
-    // 3. Generare elemente
-    currentFilteredList.forEach((s) => {
+    // 3. Generare elemente și FORȚARE METADATA
+    currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
         
@@ -1290,16 +1300,23 @@ function renderList(mode, el) {
         `;
 
         item.onclick = () => { 
-            currentIdx = currentFilteredList.indexOf(s); 
+            currentIdx = i; 
             updateSliderText(); 
             loadStationInfo(currentIdx, true, false); 
         };
 
         list.appendChild(item);
+
+        // --- FORȚARE METADATA LA COMUTARE FILĂ ---
+        // Folosim un mic delay (i * 100) pentru a nu bloca browserul cu zeci de request-uri simultane
+        setTimeout(() => {
+            fetchMetadata(s.stream, s);
+        }, i * 100);
     });
 
     updateUI(!audio.paused);
 }
+
 
 
 
@@ -1458,37 +1475,18 @@ function updateFabVisuals(iconName) {
 
 
 async function updateAllOwnedStations() {
-    try {
-        const response = await fetch("https://sergiumusic.duckdns.org/status-json.xsl");
-        const data = await response.json();
-        
-        if (!data.icestats || !data.icestats.source) return;
-        let sources = Array.isArray(data.icestats.source) ? data.icestats.source : [data.icestats.source];
+    // Filtrăm doar stațiile deținute
+    const ownedStations = stations.filter(s => s.stream.includes("sergiumusic.duckdns.org"));
 
-        stations.forEach(station => {
-            if (station.stream.includes("sergiumusic.duckdns.org") && !station.stream.includes("emisiunivechi")) {
-                const mountPoint = station.stream.split('/').pop();
-                const sData = sources.find(s => s.listenurl.includes(mountPoint));
-
-                if (sData) {
-                    const cleanTitle = analyticalClean(sData.artist, sData.title);
-                    
-                    // Verificăm dacă titlul s-a schimbat
-                    if (station.desc !== cleanTitle) {
-                        station.desc = cleanTitle; 
-                        updateStationUI(station.name, cleanTitle);
-                        
-                        // 🔥 ACEASTA ESTE CHEIA: Căutăm coperta imediat ce titlul s-a schimbat
-                        fetchAlbumArt(cleanTitle, station);
-                    }
-                }
-            }
-        });
-        
-        updateSliderText();
-        
-    } catch (e) { console.error("Update Error:", e); }
+    for (const station of ownedStations) {
+        // Apelăm fetchMetadata care acum știe să citească .xspf
+        fetchMetadata(station.stream, station);
+    }
+    
+    // Actualizăm slider-ul după ce terminăm bucla
+    setTimeout(updateSliderText, 500);
 }
+
 
 
 
