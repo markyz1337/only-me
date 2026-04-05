@@ -663,10 +663,11 @@ function renderSearchResults(results) {
     const scrollContainer = document.querySelector('.content');
     list.innerHTML = "";
     
+    // CRITIC: Actualizăm lista globală cu rezultatele căutării
+    currentFilteredList = results;
+
     results.forEach((s, index) => {
         const item = document.createElement('div');
-        
-        // Verificăm dacă postul este cel care cântă acum
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.stream === s.stream && !audio.paused);
         
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
@@ -685,12 +686,13 @@ function renderSearchResults(results) {
 
         item.onclick = () => {
             currentIdx = index;
-            // Actualizăm textul din player (cele 3 slide-uri)
+            // Setăm obiectul activ IMEDIAT înainte de load
+            activeStationObject = currentFilteredList[currentIdx];
+            
             updateSliderText();
-            // Pornim stația
+            // Parametrul 'true' pornește play, 'false' la skipArt permite update-ul imaginii
             loadStationInfo(currentIdx, true, false);
             
-            // Update vizual instant în listă (pentru egalizator)
             document.querySelectorAll('.station-item').forEach(el => el.classList.remove('is-playing'));
             item.classList.add('is-playing');
         };
@@ -699,10 +701,8 @@ function renderSearchResults(results) {
     });
 
     if (scrollContainer) scrollContainer.scrollTop = 0;
-    
-    // Refresh la iconițe dacă e nevoie (deși aici folosim HTML pur pentru egalizator)
-    updateUI(!audio.paused);
 }
+
 
 
 
@@ -1039,54 +1039,79 @@ function updateArtUI(newImg) {
 
 // --- CORE PLAYER ---
 function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
-    if (currentFilteredList.length === 0) return;
-    const s = currentFilteredList[idx];
+    if (!currentFilteredList || currentFilteredList.length === 0) return;
     
+    // 1. Identificăm stația curentă din lista filtrată activă
+    const s = currentFilteredList[idx];
+    if (!s) return;
+
+    // 2. Resetăm sursa de fundal dacă este o redare nouă și marcăm stația ca activă
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s;
 
-    // --- LOGICA URL DIFERENȚIATĂ ---
-    const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
-    if (ENABLE_DIRECT_LINKS && isPlayerVisible) {
+    // 3. GENERARE URL IMEDIATĂ (Fix pentru link-ul extern de la primul click)
+    if (ENABLE_DIRECT_LINKS) {
         let finalPath = "";
         
+        // Verificăm dacă este un post din căutare sau un post predefinit
         if (s.isSearch) {
-            // EXTERN: sergiumusic.ro/url/Nume~~URL
+            // Folosește encoder-ul tău pentru a transforma URL-ul brut într-o cale prietenoasă
             finalPath = "url/" + encodeStreamToPath(s.stream, s.name);
         } else {
-            // IMPLICIT: sergiumusic.ro/hope
+            // Transformă numele (ex: "One FM") în format url (ex: "onefm")
             finalPath = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
         }
+        
+        // Actualizăm URL-ul în browser fără a reîncărca pagina
         window.history.replaceState({}, "", "/" + finalPath);
     }
 
-    // --- UI & AUDIO (Codul tău existent) ---
+    // 4. ACTUALIZARE UI (Copertă și Butoane)
     if (isInitial) {
+        // La încărcarea aplicației, punem imaginea direct pe stratul activ
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
         if (activeArtLayer === 1) art1.src = s.img || FALLBACK_IMG;
         else art2.src = s.img || FALLBACK_IMG;
     } else {
+        // În timpul funcționării, folosim tranziția de cross-fade (dacă nu e skipArt)
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
     
+    // Gestionare buton YouTube (dacă există playlist asociat)
     const ytBtn = document.getElementById('player-yt-btn');
-    if (s.yt) { ytBtn.href = s.yt; ytBtn.classList.remove('yt-hidden'); } 
-    else { ytBtn.classList.add('yt-hidden'); }
+    if (s.yt) { 
+        ytBtn.href = s.yt; 
+        ytBtn.classList.remove('yt-hidden'); 
+    } else { 
+        ytBtn.classList.add('yt-hidden'); 
+    }
 
+    // 5. GESTIONARE AUDIO ȘI METADATE
     if (metadataInterval) clearInterval(metadataInterval);
+    
+    // Setăm sursa audio
     audio.src = s.stream;
+    
+    // Pornim verificarea metadatelor (Titlu/Artist) după o scurtă pauză de buffering
     setTimeout(() => { 
         fetchMetadata(s.stream, s); 
         metadataInterval = setInterval(() => fetchMetadata(s.stream, s), 15000); 
     }, 3000);
 
+    // 6. CONTROL REDARE (PLAY)
     if(sp) { 
-        updateUI('loading'); 
-        audio.play().catch(() => updateUI(false)); 
+        updateUI('loading'); // Afișăm spinner-ul pe butoane
+        audio.play().catch(err => {
+            console.error("Playback error:", err);
+            updateUI(false); // Revenim la iconița de Play dacă browserul blochează auto-play
+        }); 
     }
+
+    // Actualizăm MediaSession (controlul de pe ecranul blocat al telefonului)
     updateMediaSession();
 }
+
 
 
 
