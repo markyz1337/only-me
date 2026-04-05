@@ -571,7 +571,7 @@ function getOptimizedImg(url) {
 
 
 async function openSearch() {
-    const query = prompt("Caută post de radio (Radio-Browser):");
+    const query = prompt("Caută post de radio:");
     if (!query || query.length < 2) return;
 
     const searchBtn = document.getElementById('fab-search');
@@ -580,16 +580,18 @@ async function openSearch() {
     lucide.createIcons();
 
     try {
-        // Folosim un Mirror stabil pentru API
-        const response = await fetch(`https://de1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(query)}?limit=40`);
+        // Interogăm API-ul Radio-Browser
+        const response = await fetch(`https://de1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(query)}?limit=100`);
         const results = await response.json();
 
-        if (results.length === 0) {
-            alert("Niciun rezultat găsit.");
+        // FILTRARE: Păstrăm doar rezultatele care au flux HTTPS
+        const secureResults = results.filter(r => r.url_resolved && r.url_resolved.startsWith('https'));
+
+        if (secureResults.length === 0) {
+            alert("Niciun rezultat HTTPS găsit pentru această căutare.");
         } else {
-            // Mapăm rezultatele și CURĂȚĂM titlurile lungi
-            const newStations = results.map(r => {
-                // Curățăm numele: eliminăm extensiile inutile și limităm lungimea
+            // Mapăm rezultatele filtrate
+            const newStations = secureResults.map(r => {
                 let cleanName = r.name.split('[')[0].split('(')[0].trim();
                 if (cleanName.length > 28) cleanName = cleanName.substring(0, 25) + "...";
 
@@ -606,10 +608,9 @@ async function openSearch() {
             currentFilteredList = newStations;
             currentIdx = 0;
             
-            // Randăm noua listă cu egalizator inclus
             renderSearchResults(newStations);
             
-            // Setăm vizual tab-ul All ca activ
+            // Setăm tab-ul All ca vizual activ
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-all').classList.add('active');
         }
@@ -621,6 +622,7 @@ async function openSearch() {
         lucide.createIcons();
     }
 }
+
 
 
 
