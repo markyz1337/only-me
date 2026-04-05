@@ -744,10 +744,10 @@ function analyticalClean(artist, title) {
     // --- ZONA DE CURĂȚARE AVANSATĂ ---
     
     // 1. Elimină textul "KISS FM -" (indiferent de majuscule sau spații)
-    final = final.replace(/^kiss\s*fm\s*[\-\–\—\:]*\s*/gi, "");
+    final = final.replace(/^kissfm\s*[\-\–\--\:]*\s*/gi, "");
     
-    // 2. Elimină toate tipurile de ghilimele (" " „ ” « »)
-    final = final.replace(/["“”„«»]/g, ""); 
+    // 2. Elimină toate tipurile de ghilimele (" " „ " « »)
+    final = final.replace(/["""„«»]/g, ""); 
 
     // ---------------------------------
 
@@ -952,8 +952,9 @@ async function fetchMetadata(url, station) {
                         if (buffer.length < metaInt + 1 + mLen) continue;
                         let mStr = decoder.decode(buffer.slice(metaInt + 1, metaInt + 1 + mLen));
                         let match = mStr.match(/StreamTitle='([^']*)'/);
-                        if (match && match[1]) newTitle = match[1].replace(/;/g, "").trim();
-                        break;
+if (match && match[1]) {
+    newTitle = analyticalClean("", match[1].replace(/;/g, "")); 
+}                        break;
                     }
                 }
                 reader.cancel();
@@ -1585,12 +1586,10 @@ async function init() {
     audio.addEventListener('pause', () => updateUI(false));
 }
 
-
-
+const ENABLE_DIRECT_LINKS = true;
 
 
 init();
-const ENABLE_DIRECT_LINKS = true; 
 </script>
 </body>
 </html>
