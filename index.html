@@ -576,58 +576,64 @@ async function openSearch() {
 
     const searchBtn = document.getElementById('fab-search');
     const originalIcon = searchBtn.innerHTML;
+    
+    // Feedback vizual: transformăm lupa în loader
     searchBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
     lucide.createIcons();
 
     try {
-        // Interogăm API-ul (limită 100 pentru a avea de unde filtra)
+        // Interogăm API-ul Radio Browser (limită 100 pentru varietate)
         const response = await fetch(`https://de1.api.radio-browser.info/json/stations/byname/${encodeURIComponent(query)}?limit=100`);
         const results = await response.json();
 
-        // FILTRARE: Doar fluxuri securizate HTTPS
+        // FILTRARE: Reținem doar fluxurile securizate (HTTPS) pentru a evita erorile de Mixed Content
         const secureResults = results.filter(r => r.url_resolved && r.url_resolved.startsWith('https'));
 
         if (secureResults.length === 0) {
-            alert("Niciun rezultat HTTPS găsit.");
+            alert("Niciun rezultat HTTPS găsit pentru această căutare.");
         } else {
             const newStations = secureResults.map(r => {
-                // Curățăm numele pentru a nu fi prea lung
+                // Curățăm numele (eliminăm parantezele lungi de metadata)
                 let cleanName = r.name.split('[')[0].split('(')[0].trim();
                 if (cleanName.length > 28) cleanName = cleanName.substring(0, 25) + "...";
 
-                // Extragere țară (ex: RO, RU, US) sau fallback dacă lipsește
+                // Extragem Țara și Genul muzical pentru descriere
                 const country = r.countrycode ? r.countrycode.toUpperCase() : "INTL";
-                // Extragere tag principal (gen muzical)
                 const tag = (r.tags || "Radio").split(',')[0].toUpperCase();
 
                 return {
                     name: cleanName,
                     stream: r.url_resolved,
+                    // Folosim favicon-ul radioului sau imaginea noastră de rezervă (FALLBACK_IMG)
                     img: (r.favicon && r.favicon.startsWith('http')) ? r.favicon : FALLBACK_IMG,
-                    // Format: "RO | POP"
                     desc: `${country} | ${tag}`,
                     isAll: true,
-                    isSearch: true
+                    isSearch: true // <--- IMPORTANT: Activează logica de URL tip /url/hostname
                 };
             });
 
+            // Actualizăm lista curentă și resetăm indexul
             currentFilteredList = newStations;
             currentIdx = 0;
             
+            // Afișăm rezultatele în interfață
             renderSearchResults(newStations);
             
-            // Activăm tab-ul All vizual
+            // Activăm vizual tab-ul "All" (ca punct de plecare pentru rezultate)
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-all').classList.add('active');
+            const tabAll = document.getElementById('tab-all');
+            if (tabAll) tabAll.classList.add('active');
         }
     } catch (error) {
         console.error("Search error:", error);
-        alert("Eroare la conexiune.");
+        alert("Eroare la conexiunea cu baza de date radio.");
     } finally {
+        // Restaurăm iconița originală de lupă
         searchBtn.innerHTML = originalIcon;
         lucide.createIcons();
     }
 }
+
 
 
 
