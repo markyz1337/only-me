@@ -45,6 +45,54 @@
 }
 
 
+/* Stil de bază pentru punctul On Air (PÂLPÂIT PERMANENT) */
+.live-dot {
+    height: 9px;
+    width: 9px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+    /* Animația se aplică mereu */
+    animation: blink-on-air 1.8s infinite ease-in-out;
+}
+
+/* STARE: Când NU ești pe tab-ul Owned (Roșu intens) */
+#tab-mine .live-dot {
+    background-color: #ff0000;
+    box-shadow: 0 0 10px 2px rgba(255, 0, 0, 0.7);
+}
+
+/* STARE: Când ești pe tab-ul Owned (Alb) */
+#tab-mine.active .live-dot {
+    background-color: #ffffff;
+    box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.6);
+}
+
+/* O singură animație care pulsează opacitatea și umbra */
+@keyframes blink-on-air {
+    0% { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+    50% { 
+        opacity: 0.35; 
+        transform: scale(0.9); 
+    }
+    100% { 
+        opacity: 1; 
+        transform: scale(1); 
+    }
+}
+
+.tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+
 
 
 
@@ -212,7 +260,7 @@ body {
 
 .tab { 
     background: var(--glass); 
-    padding: 8px 18px; 
+    padding: 8px 17px; 
     border-radius: 20px; 
     font-size: 13px; 
     backdrop-filter: blur(10px); 
@@ -222,7 +270,13 @@ body {
     font-weight: 800;
     transition: background-color 0.6s cubic-bezier(0.23, 1, 0.32, 1), transform 0.2s ease;
 }
-.tab.active { background: var(--accent); border-color: transparent; font-weight: 900; }
+.tab.active { 
+    /* Fundalul devine un alb translucid mai opac decât cel standard (care e 0.1) */
+    background: rgba(255, 255, 255, 0.19); 
+    border-color: rgba(255, 255, 255, 0.3); 
+    font-weight: 900; 
+    color: #ffffff; /* Asigură-te că textul rămâne alb */
+}
 .tab:active { transform: scale(0.95); }
 
 .content { 
@@ -412,7 +466,9 @@ body {
     <div id="list-view" style="height:100%; display:flex; flex-direction:column;">
         <div class="header-tabs">
             <div class="tab" id="tab-all" onclick="renderList('all', this)">All</div>
-            <div class="tab active" id="tab-mine" onclick="renderList('mine', this)">Owned</div>
+<div class="tab active" id="tab-mine" onclick="renderList('mine', this)">
+    <span class="live-dot"></span>Owned
+</div>
             <div class="tab" id="tab-manele" onclick="renderList('manele', this)">Manele</div>
             <div class="tab" id="tab-russian" onclick="renderList('russian', this)">Russian</div>
         </div>
@@ -1268,21 +1324,19 @@ function renderList(mode, el) {
     const list = document.getElementById('stations-list');
     const scrollContainer = document.querySelector('.content');
 
-    // 1. Gestionare Tab-uri (UI)
     if (el) {
         if (scrollContainer) scrollContainer.scrollTop = 0;
+        // Schimbăm clasa activă
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
 
-    // 2. Filtrare listă
+    // Filtrare și redare listă
     list.innerHTML = "";
     const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
     const newList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
-    
     currentFilteredList = newList;
 
-    // Sincronizare index dacă postul activ e în noua listă
     if (activeStationObject) {
         const foundIdx = newList.findIndex(s => s.name === activeStationObject.name);
         currentIdx = foundIdx !== -1 ? foundIdx : -1;
@@ -1290,11 +1344,9 @@ function renderList(mode, el) {
         currentIdx = 0;
     }
 
-    // 3. Generare elemente și FORȚARE METADATA
     currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
-        
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
 
@@ -1317,18 +1369,15 @@ function renderList(mode, el) {
             updateSliderText(); 
             loadStationInfo(currentIdx, true, false); 
         };
-
         list.appendChild(item);
 
-        // --- FORȚARE METADATA LA COMUTARE FILĂ ---
-        // Folosim un mic delay (i * 100) pentru a nu bloca browserul cu zeci de request-uri simultane
-        setTimeout(() => {
-            fetchMetadata(s.stream, s);
-        }, i * 100);
+        setTimeout(() => { fetchMetadata(s.stream, s); }, i * 100);
     });
 
     updateUI(!audio.paused);
 }
+
+
 
 
 
