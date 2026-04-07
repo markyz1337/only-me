@@ -74,32 +74,35 @@
 /* Stil pentru Mini-Player-ul din Listă (Varianta Compactă) */
 .mini-player-pill {
     position: absolute;
-    bottom: 115px; /* Ajustat pentru a sta fix deasupra nav-bar */
-    left: 100px;    /* Mai lat pentru a arăta mai bine când e scund */
+    bottom: 115px; 
+    left: 100px;    
     right: 100px;
-    height: 51px;  /* Înălțime redusă de la 56px */
+    height: 51px;  
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
-    border-radius: 24px; /* Jumătate din înălțime pentru margini rotunde perfecte */
+    border-radius: 24px; 
     border: 1px solid rgba(255, 255, 255, 0.12);
     display: flex;
     align-items: center;
     padding: 0 12px;
     z-index: 14;
+    
+    /* MODIFICĂRI AICI PENTRU ANIMAȚIE FLUIDĂ */
     opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+    
     pointer-events: none;
     box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
-
 .mini-player-pill.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     pointer-events: auto;
 }
+
 
 
 
@@ -1875,7 +1878,7 @@ async function init() {
     const fabSearch = document.getElementById('fab-search');
     const miniPill = document.getElementById('mini-player');
 
-    // 1. Logica pentru Direct Links (dacă sunt activate)
+    // 1. Logica pentru Direct Links
     let fullPath = window.location.pathname.split('/').filter(s => s.length > 0).join('/');
     if (!fullPath && window.location.search) {
         fullPath = decodeURIComponent(window.location.search.substring(1));
@@ -1884,7 +1887,6 @@ async function init() {
     let autoFound = null;
 
     if (fullPath && ENABLE_DIRECT_LINKS) {
-        // Cazul A: Link către un stream extern (URL codat)
         if (fullPath.startsWith('url/') || fullPath.startsWith('url~')) {
             const decodedData = decodePathToStream(fullPath);
             autoFound = {
@@ -1898,9 +1900,7 @@ async function init() {
             renderList('mine', document.getElementById('tab-mine'));
             currentFilteredList = [autoFound, ...currentFilteredList];
             currentIdx = 0;
-        } 
-        // Cazul B: Link către un post existent în baza de date locală
-        else {
+        } else {
             const cleanTarget = transliterate(decodeURIComponent(fullPath)).toLowerCase().replace(/\s+/g, '');
             autoFound = stations.find(s => {
                 const cleanStationName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
@@ -1915,45 +1915,60 @@ async function init() {
         }
     }
 
-    // 2. Aplicăm fundalul random și încărcăm imaginea de start
+    // 2. Aplicăm fundalul random
     await applyRandomItunesCover();
 
     if (autoFound) {
-        // Dacă am găsit un post prin link, intrăm direct în Player
         switchTab('player');
         loadStationInfo(currentIdx, true, false, false);
     } else {
-        // --- MODIFICARE AICI ---
-        // Randăm lista "Owned" (mine)
+        // Pornim pe tab-ul 'Owned' (mine) și activăm redarea (true)
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
-        
-        // Schimbăm al doilea parametru (sp) în TRUE pentru a forța pornirea (play)
+        // Al doilea parametru 'true' forțează redarea automată la pornire
         loadStationInfo(currentIdx, true, false, true); 
-
         if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
-    // 3. Activăm vizual aplicația
+    // 3. Activăm vizual aplicația (Fade-in container)
     document.body.classList.add('app-ready');
     
+    // 4. Secvențierea apariției elementelor (Animația de intrare)
     setTimeout(() => {
+        // Apare Nav Bar-ul
         if (navBar) navBar.classList.add('visible');
+        
         const isListActive = document.getElementById('list-view').style.display !== 'none';
         
         if (isListActive) {
-            if (fabPlay) { fabPlay.style.display = 'flex'; fabPlay.classList.add('visible'); }
-            if (fabSearch) { fabSearch.style.display = 'flex'; fabSearch.classList.add('visible'); }
+            // Apare Butonul Play (FAB)
+            if (fabPlay) { 
+                fabPlay.style.display = 'flex'; 
+                setTimeout(() => fabPlay.classList.add('visible'), 50); 
+            }
+            
+            // Apare Lupa de căutare
+            if (fabSearch) { 
+                fabSearch.style.display = 'flex'; 
+                setTimeout(() => fabSearch.classList.add('visible'), 150); 
+            }
+            
+            // Apare Mini-Player-ul cu o ușoară întârziere pentru a fi ultimul în secvență
+            if (miniPill && !audio.paused) {
+                setTimeout(() => {
+                    miniPill.classList.add('visible');
+                }, 400); // Apare la 400ms după restul pentru un efect de "cascade"
+            }
         }
     }, 400);
 
-    // 4. Configurare Controlere și Gesturi
+    // 5. Configurare Controlere și Gesturi
     updateSliderText();
     setupSwipe();           
     setupFabSwipe();        
     setupMiniPlayerSwipe(); 
 
-    // 5. Pornire sistem Metadata
+    // 6. Pornire sistem Metadata
     await updateAllOwnedStations(); 
 
     setInterval(() => {
@@ -1965,11 +1980,12 @@ async function init() {
         });
     }, 20000);
 
-    // 6. Evenimente Audio Engine
+    // 7. Evenimente Audio Engine
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
