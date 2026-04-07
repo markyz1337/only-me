@@ -1869,7 +1869,6 @@ function updateStationUI(name, desc) {
 
 
 
-
 async function init() {
     const navBar = document.getElementById('main-nav');
     const fabPlay = document.getElementById('fab-play-pause');
@@ -1924,10 +1923,14 @@ async function init() {
         switchTab('player');
         loadStationInfo(currentIdx, true, false, false);
     } else {
-        // Altfel, pornim pe tab-ul 'Owned' cu primul post, dar fără auto-play forțat (opțional)
+        // --- MODIFICARE AICI ---
+        // Randăm lista "Owned" (mine)
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
-        loadStationInfo(currentIdx, false, false, true); 
+        
+        // Schimbăm al doilea parametru (sp) în TRUE pentru a forța pornirea (play)
+        loadStationInfo(currentIdx, true, false, true); 
+
         if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
@@ -1941,20 +1944,18 @@ async function init() {
         if (isListActive) {
             if (fabPlay) { fabPlay.style.display = 'flex'; fabPlay.classList.add('visible'); }
             if (fabSearch) { fabSearch.style.display = 'flex'; fabSearch.classList.add('visible'); }
-            // Mini-player-ul va fi activat automat de updateUI dacă muzica pornește
         }
     }, 400);
 
     // 4. Configurare Controlere și Gesturi
     updateSliderText();
-    setupSwipe();           // Swipe în Player Full-Screen
-    setupFabSwipe();        // Swipe pe butonul alb de Play (Skip rapid)
-    setupMiniPlayerSwipe(); // Swipe pe pastila "Now Playing" din listă
+    setupSwipe();           
+    setupFabSwipe();        
+    setupMiniPlayerSwipe(); 
 
     // 5. Pornire sistem Metadata
     await updateAllOwnedStations(); 
 
-    // Interval de verificare metadata (la fiecare 20 secunde)
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1969,6 +1970,7 @@ async function init() {
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
