@@ -35,6 +35,114 @@
 }
 
 
+/* Stil pentru emoticonul Hope - Centrat Perfect */
+.hope-emoji {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 83%; 
+    vertical-align: middle; /* Aliniere cu centrul textului */
+    line-height: 1;
+    position: relative;
+    top: -1px; /* Ajustare fină pentru baseline-ul fontului Inter */
+    transition: opacity 0.8s ease-in-out, transform 0.7s ease-in-out;
+    will-change: opacity, transform;
+}
+
+.emoji-fade-out {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+
+
+
+
+
+
+/* Efect de tranziție pentru conținutul Mini-Playerului */
+#mini-player .mini-info, #mini-player .mini-thumb {
+    transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.3s ease;
+}
+
+/* Prevenim scroll-ul paginii când dăm swipe pe Mini-Player */
+.mini-player-pill {
+    touch-action: none; 
+}
+
+
+
+/* Stil pentru Mini-Player-ul din Listă (Varianta Compactă) */
+.mini-player-pill {
+    position: absolute;
+    bottom: 115px; /* Ajustat pentru a sta fix deasupra nav-bar */
+    left: 100px;    /* Mai lat pentru a arăta mai bine când e scund */
+    right: 100px;
+    height: 51px;  /* Înălțime redusă de la 56px */
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border-radius: 24px; /* Jumătate din înălțime pentru margini rotunde perfecte */
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    z-index: 14;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    pointer-events: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+
+.mini-player-pill.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+
+
+.mini-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.mini-thumb {
+    width: 32px;  /* Redus de la 36px */
+    height: 32px; /* Redus de la 36px */
+    border-radius: 8px;
+    margin-right: 12px;
+    object-fit: cover;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.mini-name {
+    font-size: 11px; /* Puțin mai mic */
+    font-weight: 800;
+    color: var(--accent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+}
+
+.mini-track {
+    font-size: 10px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.7;
+    line-height: 1.2;
+}
+
+
+
+
+
 /* Previne flash-ul de conținut la încărcare */
 .app-container {
     opacity: 0;
@@ -96,12 +204,7 @@
 
 
 
-/* Doar emoji-ul va face fade, textul "Hope" rămâne fix */
-#slide-current h2 span {
-    transition: opacity 0.6s ease-in-out;
-    display: inline-block;
-    will-change: opacity;
-}
+
 
 
 
@@ -480,6 +583,14 @@ body {
     <i data-lucide="search"></i>
 </div>
 
+<div class="mini-player-pill" id="mini-player" onclick="switchTab('player')">
+    <img src="" class="mini-thumb" id="mini-img" onerror="this.src=FALLBACK_IMG">
+    <div class="mini-info">
+        <div class="mini-name" id="mini-station-name">Post Radio</div>
+        <div class="mini-track" id="mini-track-title">Așteptare flux...</div>
+    </div>
+</div>
+
     </div> 
 
     <div id="player-view">
@@ -609,6 +720,71 @@ function prev() {
         updateSliderText();
     }
 }
+
+
+function setupMiniPlayerSwipe() {
+    const miniPill = document.getElementById('mini-player');
+    let mStartX = 0;
+    let mIsDragging = false;
+
+    miniPill.addEventListener('touchstart', e => {
+        mStartX = e.touches[0].clientX;
+        mIsDragging = true;
+        miniPill.style.transition = 'none';
+    }, {passive: true});
+
+    miniPill.addEventListener('touchmove', e => {
+        if (!mIsDragging) return;
+        const currentX = e.touches[0].clientX;
+        const diff = currentX - mStartX;
+        
+        // Limităm deplasarea vizuală pentru feedback (rezistență)
+        const move = diff / 4; 
+        miniPill.style.transform = `translateX(${move}px)`;
+        miniPill.style.opacity = 1 - (Math.abs(diff) / 500);
+    }, {passive: true});
+
+    miniPill.addEventListener('touchend', e => {
+        if (!mIsDragging) return;
+        mIsDragging = false;
+        const diff = e.changedTouches[0].clientX - mStartX;
+
+        // Resetăm stilul vizual
+        miniPill.style.transition = 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)';
+        miniPill.style.transform = 'translateX(0)';
+        miniPill.style.opacity = '1';
+
+        // Pragul de declanșare: 50 pixeli
+        if (diff > 50) {
+            // Swipe la Dreapta -> Postul Anterior
+            prev();
+            animateMiniPlayerChange();
+        } else if (diff < -50) {
+            // Swipe la Stânga -> Postul Următor
+            next();
+            animateMiniPlayerChange();
+        }
+    });
+}
+
+// Mică animație de "flash" la schimbarea postului
+function animateMiniPlayerChange() {
+    const content = document.querySelector('#mini-player .mini-info');
+    const thumb = document.querySelector('#mini-player .mini-thumb');
+    
+    [content, thumb].forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'scale(1)';
+        }, 250);
+    });
+}
+
+
+
+
 
 
 function encodeStreamToPath(url, name) {
@@ -901,60 +1077,41 @@ const hopeEmojis = ["🌅", "💛", "🥰", "❤️‍🔥", "💗", "💞", "�
 let lastHopeEmoji = ""; 
 let emojiInterval = null; 
 
+let currentHopeEmoji = "🌅";
+
 function rotateHopeEmoji() {
-    let availableEmojis = hopeEmojis.filter(e => e !== lastHopeEmoji);
-    const newEmoji = availableEmojis[Math.floor(Math.random() * availableEmojis.length)];
-    lastHopeEmoji = newEmoji;
+    const availableEmojis = hopeEmojis.filter(e => e !== currentHopeEmoji);
+    currentHopeEmoji = availableEmojis[Math.floor(Math.random() * availableEmojis.length)];
 
-    // 1. Update în LISTĂ
-    const listItemName = document.querySelector(`.station-item[data-name="Hope"] .station-name`);
-    if (listItemName) {
-        let listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
-        if (!listEmojiSpan) {
-            listItemName.innerHTML = `Hope <span class="list-hope-emoji" style="transition: opacity 0.6s ease-in-out; display: inline-block; margin-left: 5px; font-size: 13px;">${newEmoji}</span>`;
-            listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
-        }
-        listEmojiSpan.style.opacity = "0";
-        setTimeout(() => {
-            if(listEmojiSpan) {
-                listEmojiSpan.innerText = newEmoji;
-                listEmojiSpan.style.opacity = "1";
-            }
-        }, 650); 
-    }
+    const targets = [
+        { el: document.querySelector('#slide-current h2'), text: "Hope" },
+        { el: document.getElementById('mini-station-name'), text: "Hope" },
+        // Căutăm în toată lista de stații
+        ...Array.from(document.querySelectorAll('.station-item[data-name="Hope"] .station-name')).map(el => ({ el, text: "Hope" }))
+    ];
 
-    // 2. Update în PLAYER (Fix pentru "ope" și dispariție)
-    const isHopeActive = activeStationObject && activeStationObject.name === "Hope";
-    if (isHopeActive) {
-        const titleEl = document.querySelector('#slide-current h2');
-        if (titleEl) {
-            let playerEmojiSpan = titleEl.querySelector('span');
-            
-            // Verificăm dacă textul "Hope" există, dacă nu, îl resetăm corect
-            if (!titleEl.childNodes.length || titleEl.textContent.trim() === "") {
-                titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block; margin-left: 5px;">${newEmoji}</span>`;
-                playerEmojiSpan = titleEl.querySelector('span');
-            } 
-            // Dacă span-ul lipsește dar cuvântul Hope e acolo
-            else if (!playerEmojiSpan) {
-                titleEl.textContent = "Hope "; 
-                playerEmojiSpan = document.createElement('span');
-                playerEmojiSpan.style.transition = "opacity 0.6s ease-in-out";
-                playerEmojiSpan.style.display = "inline-block";
-                playerEmojiSpan.style.marginLeft = "5px";
-                titleEl.appendChild(playerEmojiSpan);
-            }
-            
-            playerEmojiSpan.style.opacity = "0";
+    targets.forEach(target => {
+        if (!target.el) return;
+
+        // Verificăm dacă span-ul există deja
+        let span = target.el.querySelector('.hope-emoji');
+        
+        if (!span) {
+            // Dacă nu există, forțăm desenarea lui imediată cu noul emoji
+            target.el.innerHTML = `${target.text} <span class="hope-emoji">${currentHopeEmoji}</span>`;
+        } else {
+            // Dacă există, facem tranziția lină
+            span.classList.add('emoji-fade-out');
             setTimeout(() => {
-                if(playerEmojiSpan) {
-                    playerEmojiSpan.innerText = newEmoji;
-                    playerEmojiSpan.style.opacity = "1";
-                }
-            }, 650);
+                span.innerText = currentHopeEmoji;
+                span.classList.remove('emoji-fade-out');
+            }, 450);
         }
-    }
+    });
 }
+
+
+
 
 
 function checkHopeEffect() {
@@ -963,9 +1120,8 @@ function checkHopeEffect() {
     
     if (isHope && isPlaying) {
         if (!emojiInterval) {
-            // Pornim imediat primul emoji, apoi setăm intervalul
-            rotateHopeEmoji(); 
-            emojiInterval = setInterval(rotateHopeEmoji, 5000);
+            rotateHopeEmoji(); // Pornim prima dată imediat
+            emojiInterval = setInterval(rotateHopeEmoji, 5000); // Apoi la fiecare 5 secunde
         }
     } else {
         stopHopeEffect();
@@ -973,16 +1129,20 @@ function checkHopeEffect() {
 }
 
 function stopHopeEffect() {
-    if (emojiInterval) { 
-        clearInterval(emojiInterval); 
-        emojiInterval = null; 
+    if (emojiInterval) {
+        clearInterval(emojiInterval);
+        emojiInterval = null;
     }
-    const titleEl = document.querySelector('#slide-current h2');
-    // Resetăm doar dacă postul curent afișat este Hope, pentru a nu suprascrie alte titluri
-    if (titleEl && activeStationObject && activeStationObject.name === "Hope") {
-        titleEl.innerText = "Hope"; 
+    
+    // Resetăm titlurile la text simplu când nu mai ascultăm Hope
+    const mainTitle = document.querySelector('#slide-current h2');
+    const miniTitle = document.getElementById('mini-station-name');
+    
+    if (mainTitle && activeStationObject && activeStationObject.name !== "Hope") {
+        // Nu resetăm dacă e Hope dar e pe pauză, lăsăm textul curat
     }
 }
+
 
 
 
@@ -1010,38 +1170,52 @@ function applyImageToUI(imgUrl, stationRef, isFallback) {
 }
 
 async function fetchAlbumArt(title, stationRef) {
-    if (!title || title.length < 3 || title === "Live Stream") return;
+    // Evităm căutările inutile pentru titluri generice sau prea scurte
+    if (!title || title.length < 3 || title === "Live Stream" || title.includes("Post Radio")) return;
 
     try {
+        // Căutăm piesa pe iTunes API
         const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(title)}&entity=song&limit=1`);
         const data = await res.json();
         
         if (data.results && data.results.length > 0) {
-            // Luăm URL-ul de înaltă rezoluție de la iTunes
-            const rawItunesImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '500x500bb.jpg');
+            // Extragem imaginea și o transformăm în rezoluție mare (600x600)
+            const rawItunesImg = data.results[0].artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
             
-            // Îl trecem prin proxy pentru WebP și compresie
-            const highResImg = getOptimizedImg(rawItunesImg) || rawItunesImg;
+            // Trecem imaginea prin proxy-ul de optimizare (WebP + Compresie)
+            const optimizedImg = getOptimizedImg(rawItunesImg) || rawItunesImg;
             
-            // Salvăm în obiectul stației pentru referință viitoare
-            stationRef.img = highResImg;
-            
-            // Update imagine în LISTĂ (dacă stația este vizibilă în tab-ul curent)
+            // Salvăm noua imagine în referința stației
+            stationRef.img = optimizedImg;
+
+            // Update vizual în LISTĂ (Thumbnail-ul mic de lângă nume)
             const stationThumb = document.querySelector(`.station-item[data-name="${stationRef.name}"] .station-thumb`);
             if (stationThumb) {
-                stationThumb.src = highResImg;
+                stationThumb.src = optimizedImg;
             }
 
-            // Update în PLAYER dacă este postul activ în acest moment
+            // Dacă această stație este cea activă, actualizăm interfața de redare
             if (activeStationObject && activeStationObject.name === stationRef.name) {
-                updateArtUI(highResImg);
-                updateMediaSession();
+                // 1. Schimbăm imaginea mare din Player și Fundalul blurat
+                updateArtUI(optimizedImg);
+
+                // 2. Schimbăm imaginea din Mini-Player (Pill)
+                const miniImg = document.getElementById('mini-img');
+                if (miniImg) miniImg.src = optimizedImg;
+
+                // 3. Actualizăm imaginea pe ecranul blocat (MediaSession)
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata.artwork = [
+                        { src: optimizedImg, sizes: '512x512', type: 'image/webp' }
+                    ];
+                }
             }
         }
     } catch (e) { 
-        console.log("iTunes Sync Error:", e); 
+        console.error("iTunes Sync Error for " + title, e); 
     }
 }
+
 
 
 
@@ -1206,20 +1380,72 @@ function togglePlay() {
 function updateUI(state) { 
     const b = document.getElementById('play-trigger');
     const f = document.getElementById('fab-play-pause');
+    const miniPill = document.getElementById('mini-player');
+    
     if(!b && !f) return;
+
+    // 1. Gestionare Iconițe (Play/Pause/Loading)
     const icons = { play: 'play', pause: 'pause', loading: 'loader-2' };
     let currentIcon = state === 'loading' ? icons.loading : (state === true ? icons.pause : icons.play);
+
     [b, f].forEach(el => {
         if(!el) return;
         el.innerHTML = `<i data-lucide="${currentIcon}" ${currentIcon === 'loader-2' ? 'class="spin"' : 'fill="currentColor"'} ></i>`;
-        state === true ? el.classList.add('playing') : el.classList.remove('playing');
+        
+        // Adăugăm clasa de puls/glow și în loading și în playing
+        if (state === true || state === 'loading') {
+            el.classList.add('playing');
+        } else {
+            el.classList.remove('playing');
+        }
     });
+
+    // 2. MODIFICARE EGALIZATOR: Vizibil în Loading SAU Playing
     document.querySelectorAll('.station-item').forEach(item => {
-        item.classList.toggle('is-playing', (state === true || state === 'loading') && activeStationObject && item.getAttribute('data-name') === activeStationObject.name);
+        const isThisStation = activeStationObject && item.getAttribute('data-name') === activeStationObject.name;
+        
+        // Dacă starea este 'loading' sau true (playing), afișăm egalizatorul
+        if (isThisStation && (state === true || state === 'loading')) {
+            item.classList.add('is-playing');
+        } else {
+            item.classList.remove('is-playing');
+        }
     });
-    checkHopeEffect();
+
+    // 3. Gestionare Mini-Player
+    if (miniPill) {
+        const isListView = document.getElementById('list-view').style.display !== 'none';
+        
+        // Afișăm mini-player-ul și în timpul încărcării
+        if (activeStationObject && state !== false && isListView) {
+            miniPill.classList.add('visible');
+            document.getElementById('mini-img').src = activeStationObject.img || FALLBACK_IMG;
+            
+            const miniNameEl = document.getElementById('mini-station-name');
+            miniNameEl.innerText = activeStationObject.name;
+            
+            // Dacă e în loading, putem schimba subtitlul scurt
+            const statusText = state === 'loading' ? "Se conectează..." : (activeStationObject.desc || "Live");
+            document.getElementById('mini-track-title').innerText = statusText;
+        } else {
+            miniPill.classList.remove('visible');
+        }
+    }
+
+    // 4. Gestionare Efect Hope (doar când cântă efectiv, pentru a nu roti emoji în loading)
+    if (state === true) {
+        setTimeout(() => { checkHopeEffect(); }, 50);
+    } else {
+        stopHopeEffect();
+    }
+    
     lucide.createIcons();
 }
+
+
+
+
+
 
 function updateMediaSession() {
     if ('mediaSession' in navigator && activeStationObject) {
@@ -1276,45 +1502,52 @@ function switchTab(t) {
     const navBar = document.getElementById('main-nav');
     const fab = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
+    const miniPill = document.getElementById('mini-player');
     
+    // Comutăm vizibilitatea containerelor principale
     document.getElementById('list-view').style.display = isPlayer ? 'none' : 'flex';
     document.getElementById('player-view').style.display = isPlayer ? 'flex' : 'none';
     
+    // Actualizăm starea link-urilor din nav-bar
     document.getElementById('nav-list').classList.toggle('active', !isPlayer);
     document.getElementById('nav-player').classList.toggle('active', isPlayer);
     
+    // Mutăm indicatorul din fundalul nav-bar-ului
     navBar.className = isPlayer ? 'nav-bar on-player visible' : 'nav-bar on-radio visible';
     
     if (isPlayer) {
-        fab.style.display = 'none';
-        fab.classList.remove('visible');
-        if(fabSearch) fabSearch.style.display = 'none';
+        // Ascundem elementele specifice Listei
+        if (fab) { fab.style.display = 'none'; fab.classList.remove('visible'); }
+        if (fabSearch) fabSearch.style.display = 'none';
+        if (miniPill) miniPill.classList.remove('visible');
 
-        // --- AICI SE ÎNTÂMPLĂ MAGIA ---
+        // Gestionare URL (Direct Links)
         if (ENABLE_DIRECT_LINKS && activeStationObject) {
-            let finalPath = "";
-            // Verificăm dacă e rezultat din căutare sau post local
-            if (activeStationObject.isSearch) {
-                finalPath = "url/" + encodeStreamToPath(activeStationObject.stream, activeStationObject.name);
-            } else {
-                finalPath = transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
-            }
+            let finalPath = activeStationObject.isSearch ? 
+                "url/" + encodeStreamToPath(activeStationObject.stream, activeStationObject.name) : 
+                transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
             window.history.replaceState({}, "", "/" + finalPath);
         }
     } else {
-        fab.style.display = 'flex';
-        if(fabSearch) {
+        // Revenim la Listă: afișăm butoanele FAB
+        if (fab) {
+            fab.style.display = 'flex';
+            setTimeout(() => { fab.classList.add('visible'); }, 50);
+        }
+        if (fabSearch) {
             fabSearch.style.display = 'flex';
             setTimeout(() => { fabSearch.classList.add('visible'); }, 50);
         }
-        setTimeout(() => { fab.classList.add('visible'); }, 50);
         
-        // Când ieșim din Player, curățăm URL-ul
-        if (ENABLE_DIRECT_LINKS) {
-            window.history.replaceState({}, "", "/");
+        // Re-afișăm Mini-Player-ul dacă muzica cântă
+        if (miniPill && !audio.paused && activeStationObject) {
+            miniPill.classList.add('visible');
         }
+        
+        if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 }
+
 
 
 
@@ -1330,12 +1563,10 @@ function renderList(mode, el) {
 
     if (el) {
         if (scrollContainer) scrollContainer.scrollTop = 0;
-        // Schimbăm clasa activă
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
 
-    // Filtrare și redare listă
     list.innerHTML = "";
     const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
     const newList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
@@ -1344,13 +1575,12 @@ function renderList(mode, el) {
     if (activeStationObject) {
         const foundIdx = newList.findIndex(s => s.name === activeStationObject.name);
         currentIdx = foundIdx !== -1 ? foundIdx : -1;
-    } else {
-        currentIdx = 0;
     }
 
     currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
+        
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
 
@@ -1374,12 +1604,21 @@ function renderList(mode, el) {
             loadStationInfo(currentIdx, true, false); 
         };
         list.appendChild(item);
+    });
 
-        setTimeout(() => { fetchMetadata(s.stream, s); }, i * 100);
+    // --- ACTUALIZARE METADATA LA SCHIMBAREA FILEI ---
+    // Această buclă forțează verificarea titlurilor imediat ce lista este afișată
+    currentFilteredList.forEach((s, index) => {
+        // Punem un mic delay între cereri pentru a nu bloca browserul (100ms per stație)
+        setTimeout(() => {
+            fetchMetadata(s.stream, s);
+        }, index * 100);
     });
 
     updateUI(!audio.paused);
 }
+
+
 
 
 
@@ -1600,26 +1839,44 @@ async function applyRandomItunesCover() {
 
 
 function updateStationUI(name, desc) {
-    // Update în listă
+    // 1. Update în lista de stații (pentru toate tab-urile)
     const items = document.querySelectorAll(`.station-item[data-name="${name}"]`);
     items.forEach(item => {
         const dEl = item.querySelector('.station-desc');
         if (dEl) dEl.innerText = desc;
     });
 
-    // Update în Player dacă e activ
+    // 2. Verificăm dacă stația actualizată este cea care rulează în prezent
     if (activeStationObject && activeStationObject.name === name) {
+        // Actualizăm obiectul global pentru a păstra consistența la navigare
+        activeStationObject.desc = desc;
+
+        // Update în Player-ul Full-Screen (Slide-ul central)
         const pDesc = document.querySelector('#slide-current p');
         if (pDesc) pDesc.innerText = desc;
+
+        // Update în Mini-Player (Pastila din interfața listei)
+        const miniTrack = document.getElementById('mini-track-title');
+        if (miniTrack) miniTrack.innerText = desc;
+
+        // Actualizăm și metadatele sistemului (Lockscreen / Notificări)
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata.title = desc;
+        }
     }
 }
+
+
+
 
 
 async function init() {
     const navBar = document.getElementById('main-nav');
     const fabPlay = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
+    const miniPill = document.getElementById('mini-player');
 
+    // 1. Logica pentru Direct Links (dacă sunt activate)
     let fullPath = window.location.pathname.split('/').filter(s => s.length > 0).join('/');
     if (!fullPath && window.location.search) {
         fullPath = decodeURIComponent(window.location.search.substring(1));
@@ -1628,7 +1885,7 @@ async function init() {
     let autoFound = null;
 
     if (fullPath && ENABLE_DIRECT_LINKS) {
-        // CAZUL 1: LINK EXTERN (Decoder activat)
+        // Cazul A: Link către un stream extern (URL codat)
         if (fullPath.startsWith('url/') || fullPath.startsWith('url~')) {
             const decodedData = decodePathToStream(fullPath);
             autoFound = {
@@ -1643,7 +1900,7 @@ async function init() {
             currentFilteredList = [autoFound, ...currentFilteredList];
             currentIdx = 0;
         } 
-        // CAZUL 2: LINK IMPLICIT (Căutare în stațiile tale)
+        // Cazul B: Link către un post existent în baza de date locală
         else {
             const cleanTarget = transliterate(decodeURIComponent(fullPath)).toLowerCase().replace(/\s+/g, '');
             autoFound = stations.find(s => {
@@ -1659,35 +1916,45 @@ async function init() {
         }
     }
 
-    // --- FINALIZARE SETUP ---
+    // 2. Aplicăm fundalul random și încărcăm imaginea de start
     await applyRandomItunesCover();
 
     if (autoFound) {
+        // Dacă am găsit un post prin link, intrăm direct în Player
         switchTab('player');
         loadStationInfo(currentIdx, true, false, false);
     } else {
+        // Altfel, pornim pe tab-ul 'Owned' cu primul post, dar fără auto-play forțat (opțional)
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
-        loadStationInfo(currentIdx, true, false, true); 
+        loadStationInfo(currentIdx, false, false, true); 
         if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
+    // 3. Activăm vizual aplicația
     document.body.classList.add('app-ready');
     
     setTimeout(() => {
         if (navBar) navBar.classList.add('visible');
         const isListActive = document.getElementById('list-view').style.display !== 'none';
+        
         if (isListActive) {
             if (fabPlay) { fabPlay.style.display = 'flex'; fabPlay.classList.add('visible'); }
             if (fabSearch) { fabSearch.style.display = 'flex'; fabSearch.classList.add('visible'); }
+            // Mini-player-ul va fi activat automat de updateUI dacă muzica pornește
         }
     }, 400);
 
+    // 4. Configurare Controlere și Gesturi
     updateSliderText();
-    setupSwipe();
-    setupFabSwipe();
+    setupSwipe();           // Swipe în Player Full-Screen
+    setupFabSwipe();        // Swipe pe butonul alb de Play (Skip rapid)
+    setupMiniPlayerSwipe(); // Swipe pe pastila "Now Playing" din listă
+
+    // 5. Pornire sistem Metadata
     await updateAllOwnedStations(); 
 
+    // Interval de verificare metadata (la fiecare 20 secunde)
     setInterval(() => {
         updateAllOwnedStations();
         stations.forEach((s, i) => {
@@ -1697,10 +1964,12 @@ async function init() {
         });
     }, 20000);
 
+    // 6. Evenimente Audio Engine
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
