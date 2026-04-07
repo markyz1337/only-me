@@ -1871,7 +1871,6 @@ function updateStationUI(name, desc) {
 
 
 
-
 async function init() {
     const navBar = document.getElementById('main-nav');
     const fabPlay = document.getElementById('fab-play-pause');
@@ -1915,60 +1914,70 @@ async function init() {
         }
     }
 
-    // 2. Aplicăm fundalul random
+    // 2. Aplicăm fundalul random (fără a bloca interfața prea mult)
     await applyRandomItunesCover();
 
+    // 3. Pregătirea stației (Fără a forța afișarea miniplayerului încă)
     if (autoFound) {
         switchTab('player');
         loadStationInfo(currentIdx, true, false, false);
     } else {
-        // Pornim pe tab-ul 'Owned' (mine) și activăm redarea (true)
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
-        // Al doilea parametru 'true' forțează redarea automată la pornire
+        
+        // Dezactivăm temporar vizibilitatea miniplayerului prin CSS inline 
+        // pentru a preveni activarea lui prematură de către updateUI()
+        if (miniPill) miniPill.style.opacity = "0"; 
+        
         loadStationInfo(currentIdx, true, false, true); 
         if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
-    // 3. Activăm vizual aplicația (Fade-in container)
+    // 4. Activăm vizual aplicația (Fade-in container)
     document.body.classList.add('app-ready');
     
-    // 4. Secvențierea apariției elementelor (Animația de intrare)
+    // 5. SECVENȚIEREA APARIȚIEI (The "Clean Entry")
     setTimeout(() => {
-        // Apare Nav Bar-ul
+        // Pas 1: Nav Bar-ul apare de jos
         if (navBar) navBar.classList.add('visible');
         
         const isListActive = document.getElementById('list-view').style.display !== 'none';
         
         if (isListActive) {
-            // Apare Butonul Play (FAB)
-            if (fabPlay) { 
-                fabPlay.style.display = 'flex'; 
-                setTimeout(() => fabPlay.classList.add('visible'), 50); 
-            }
+            // Pas 2: Apare Butonul Play principal
+            setTimeout(() => {
+                if (fabPlay) {
+                    fabPlay.style.display = 'flex';
+                    fabPlay.classList.add('visible');
+                }
+            }, 100);
             
-            // Apare Lupa de căutare
-            if (fabSearch) { 
-                fabSearch.style.display = 'flex'; 
-                setTimeout(() => fabSearch.classList.add('visible'), 150); 
-            }
+            // Pas 3: Apare Lupa de căutare
+            setTimeout(() => {
+                if (fabSearch) {
+                    fabSearch.style.display = 'flex';
+                    fabSearch.classList.add('visible');
+                }
+            }, 250);
             
-            // Apare Mini-Player-ul cu o ușoară întârziere pentru a fi ultimul în secvență
-            if (miniPill && !audio.paused) {
-                setTimeout(() => {
+            // Pas 4: Mini-Player-ul apare ultimul, fluid
+            setTimeout(() => {
+                if (miniPill && !audio.paused) {
+                    // Resetăm stilul inline și lăsăm clasa .visible din CSS să facă treaba
+                    miniPill.style.opacity = ""; 
                     miniPill.classList.add('visible');
-                }, 400); // Apare la 400ms după restul pentru un efect de "cascade"
-            }
+                }
+            }, 550); // Delay mai mare pentru a asigura ordinea vizuală
         }
     }, 400);
 
-    // 5. Configurare Controlere și Gesturi
+    // 6. Configurare Controlere și Gesturi
     updateSliderText();
     setupSwipe();           
     setupFabSwipe();        
     setupMiniPlayerSwipe(); 
 
-    // 6. Pornire sistem Metadata
+    // 7. Pornire sistem Metadata
     await updateAllOwnedStations(); 
 
     setInterval(() => {
@@ -1980,11 +1989,12 @@ async function init() {
         });
     }, 20000);
 
-    // 7. Evenimente Audio Engine
+    // 8. Evenimente Audio Engine
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
+
 
 
 
