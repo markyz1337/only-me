@@ -1395,7 +1395,6 @@ function updateUI(state) {
         if(!el) return;
         el.innerHTML = `<i data-lucide="${currentIcon}" ${currentIcon === 'loader-2' ? 'class="spin"' : 'fill="currentColor"'} ></i>`;
         
-        // Adăugăm clasa de puls/glow și în loading și în playing
         if (state === true || state === 'loading') {
             el.classList.add('playing');
         } else {
@@ -1403,11 +1402,9 @@ function updateUI(state) {
         }
     });
 
-    // 2. MODIFICARE EGALIZATOR: Vizibil în Loading SAU Playing
+    // 2. Gestionare Egalizator în listă
     document.querySelectorAll('.station-item').forEach(item => {
         const isThisStation = activeStationObject && item.getAttribute('data-name') === activeStationObject.name;
-        
-        // Dacă starea este 'loading' sau true (playing), afișăm egalizatorul
         if (isThisStation && (state === true || state === 'loading')) {
             item.classList.add('is-playing');
         } else {
@@ -1415,27 +1412,28 @@ function updateUI(state) {
         }
     });
 
-    // 3. Gestionare Mini-Player
+    // 3. MODIFICARE AICI: Gestionare Mini-Player (Pill)
     if (miniPill) {
         const isListView = document.getElementById('list-view').style.display !== 'none';
         
-        // Afișăm mini-player-ul și în timpul încărcării
-        if (activeStationObject && state !== false && isListView) {
-            miniPill.classList.add('visible');
+        // Condiție strictă: Afișăm mini-playerul DOAR dacă state este exact TRUE (redare activă)
+        // și suntem în vizualizarea de tip listă.
+        if (activeStationObject && state === true && isListView) {
+            
+            // Actualizăm datele înainte de a-l face vizibil
             document.getElementById('mini-img').src = activeStationObject.img || FALLBACK_IMG;
+            document.getElementById('mini-station-name').innerText = activeStationObject.name;
+            document.getElementById('mini-track-title').innerText = activeStationObject.desc || "Live";
             
-            const miniNameEl = document.getElementById('mini-station-name');
-            miniNameEl.innerText = activeStationObject.name;
-            
-            // Dacă e în loading, putem schimba subtitlul scurt
-            const statusText = state === 'loading' ? "Se conectează..." : (activeStationObject.desc || "Live");
-            document.getElementById('mini-track-title').innerText = statusText;
+            // Declanșăm animația de intrare
+            miniPill.classList.add('visible');
         } else {
+            // Dacă dăm pauză sau se încarcă, îl ascundem
             miniPill.classList.remove('visible');
         }
     }
 
-    // 4. Gestionare Efect Hope (doar când cântă efectiv, pentru a nu roti emoji în loading)
+    // 4. Gestionare Efect Hope
     if (state === true) {
         setTimeout(() => { checkHopeEffect(); }, 50);
     } else {
@@ -1444,6 +1442,7 @@ function updateUI(state) {
     
     lucide.createIcons();
 }
+
 
 
 
