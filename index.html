@@ -1871,13 +1871,14 @@ function updateStationUI(name, desc) {
 
 
 
+
 async function init() {
     const navBar = document.getElementById('main-nav');
     const fabPlay = document.getElementById('fab-play-pause');
     const fabSearch = document.getElementById('fab-search');
     const miniPill = document.getElementById('mini-player');
 
-    // 1. Logica pentru Direct Links
+    // 1. Logica pentru Direct Links (dacă sunt activate)
     let fullPath = window.location.pathname.split('/').filter(s => s.length > 0).join('/');
     if (!fullPath && window.location.search) {
         fullPath = decodeURIComponent(window.location.search.substring(1));
@@ -1886,6 +1887,7 @@ async function init() {
     let autoFound = null;
 
     if (fullPath && ENABLE_DIRECT_LINKS) {
+        // Cazul A: Link către un stream extern (URL codat)
         if (fullPath.startsWith('url/') || fullPath.startsWith('url~')) {
             const decodedData = decodePathToStream(fullPath);
             autoFound = {
@@ -1899,7 +1901,9 @@ async function init() {
             renderList('mine', document.getElementById('tab-mine'));
             currentFilteredList = [autoFound, ...currentFilteredList];
             currentIdx = 0;
-        } else {
+        } 
+        // Cazul B: Link către un post existent în baza de date locală
+        else {
             const cleanTarget = transliterate(decodeURIComponent(fullPath)).toLowerCase().replace(/\s+/g, '');
             autoFound = stations.find(s => {
                 const cleanStationName = transliterate(s.name).toLowerCase().replace(/\s+/g, '');
@@ -1914,70 +1918,45 @@ async function init() {
         }
     }
 
-    // 2. Aplicăm fundalul random (fără a bloca interfața prea mult)
+    // 2. Aplicăm fundalul random și încărcăm imaginea de start
     await applyRandomItunesCover();
 
-    // 3. Pregătirea stației (Fără a forța afișarea miniplayerului încă)
     if (autoFound) {
+        // Dacă am găsit un post prin link, intrăm direct în Player
         switchTab('player');
         loadStationInfo(currentIdx, true, false, false);
     } else {
+        // --- MODIFICARE AICI ---
+        // Randăm lista "Owned" (mine)
         renderList('mine', document.getElementById('tab-mine'));
         currentIdx = 0;
         
-        // Dezactivăm temporar vizibilitatea miniplayerului prin CSS inline 
-        // pentru a preveni activarea lui prematură de către updateUI()
-        if (miniPill) miniPill.style.opacity = "0"; 
-        
+        // Schimbăm al doilea parametru (sp) în TRUE pentru a forța pornirea (play)
         loadStationInfo(currentIdx, true, false, true); 
+
         if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
     }
 
-    // 4. Activăm vizual aplicația (Fade-in container)
+    // 3. Activăm vizual aplicația
     document.body.classList.add('app-ready');
     
-    // 5. SECVENȚIEREA APARIȚIEI (The "Clean Entry")
     setTimeout(() => {
-        // Pas 1: Nav Bar-ul apare de jos
         if (navBar) navBar.classList.add('visible');
-        
         const isListActive = document.getElementById('list-view').style.display !== 'none';
         
         if (isListActive) {
-            // Pas 2: Apare Butonul Play principal
-            setTimeout(() => {
-                if (fabPlay) {
-                    fabPlay.style.display = 'flex';
-                    fabPlay.classList.add('visible');
-                }
-            }, 100);
-            
-            // Pas 3: Apare Lupa de căutare
-            setTimeout(() => {
-                if (fabSearch) {
-                    fabSearch.style.display = 'flex';
-                    fabSearch.classList.add('visible');
-                }
-            }, 250);
-            
-            // Pas 4: Mini-Player-ul apare ultimul, fluid
-            setTimeout(() => {
-                if (miniPill && !audio.paused) {
-                    // Resetăm stilul inline și lăsăm clasa .visible din CSS să facă treaba
-                    miniPill.style.opacity = ""; 
-                    miniPill.classList.add('visible');
-                }
-            }, 550); // Delay mai mare pentru a asigura ordinea vizuală
+            if (fabPlay) { fabPlay.style.display = 'flex'; fabPlay.classList.add('visible'); }
+            if (fabSearch) { fabSearch.style.display = 'flex'; fabSearch.classList.add('visible'); }
         }
     }, 400);
 
-    // 6. Configurare Controlere și Gesturi
+    // 4. Configurare Controlere și Gesturi
     updateSliderText();
     setupSwipe();           
     setupFabSwipe();        
     setupMiniPlayerSwipe(); 
 
-    // 7. Pornire sistem Metadata
+    // 5. Pornire sistem Metadata
     await updateAllOwnedStations(); 
 
     setInterval(() => {
@@ -1989,13 +1968,11 @@ async function init() {
         });
     }, 20000);
 
-    // 8. Evenimente Audio Engine
+    // 6. Evenimente Audio Engine
     audio.addEventListener('waiting', () => updateUI('loading'));
     audio.addEventListener('playing', () => updateUI(true));
     audio.addEventListener('pause', () => updateUI(false));
 }
-
-
 
 
 
