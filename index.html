@@ -116,7 +116,7 @@
     height: 25px; /* Dimensiuni existente */
     margin-right: 9px;
     object-fit: cover;
-    border-radius: 50%; /* Cerc perfect */
+    border-radius: 30%; /* Cerc perfect */
     
     /* --- MODIFICĂRI PENTRU EFECTUL DE STRĂLUCIRE (GLOW) ALB --- */
     /* Eliminăm border-ul solid dacă l-ai adăugat anterior */
@@ -124,7 +124,7 @@
 
     /* Aplicăm box-shadow pentru efectul de halo alb */
     /* Sintaxa: x-offset y-offset blur-radius spread-radius culoare */
-    box-shadow: 0 0 3px 1px rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 9px 1px rgba(255, 255, 255, 0.3);
     
     /* Creștem opacitatea la 1 ca să nu se piardă efectul pe fundaluri gri */
     opacity: 0.9; 
@@ -518,7 +518,7 @@ body {
     display: none; 
     position: relative; 
     z-index: 10; 
-    height: 97%; 
+    height: 95%; 
     width: 100%;
     flex-direction: column; 
     align-items: center; 
@@ -2139,7 +2139,7 @@ async function init() {
 
 
 
-const ENABLE_DIRECT_LINKS = false;
+const ENABLE_DIRECT_LINKS = true;
 
 
 init();
