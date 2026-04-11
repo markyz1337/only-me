@@ -446,27 +446,48 @@ body {
 
 
 
-
 .tab { 
-    background: rgba(255,255,255,0.15); 
-    padding: 8px 17px; 
+    /* Fundal alb translucid foarte fin */
+    background: rgba(255, 255, 255, 0.05); 
+    padding: 8px 18px; 
     border-radius: 20px; 
     font-size: 13px; 
-    backdrop-filter: blur(10px); 
-    border: 1px solid rgba(255,255,255,0.1); 
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    
+    /* EFECTUL DE STICLĂ: Fiecare buton blurează ce e sub el */
+    backdrop-filter: blur(10px) saturate(1.5);
+    -webkit-backdrop-filter: blur(10px) saturate(1.5);
+    
+    /* Bordură fină care imită marginea sticlei */
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    
     cursor: pointer; 
     white-space: nowrap;
-    font-weight: 800;
-    transition: background-color 0.6s cubic-bezier(0.23, 1, 0.32, 1), transform 0.2s ease;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
+
+
+
+
 .tab.active { 
-    /* Fundalul devine un alb translucid mai opac decât cel standard (care e 0.1) */
-    background: rgba(250, 250, 250, 0.20); 
-    border-color: rgba(250, 250, 250, 0.30); 
-    font-weight: 900; 
-    color: #ffffff; /* Asigură-te că textul rămâne alb */
+    /* Un alb mai pronunțat, dar tot "glassy" */
+    background: rgba(255, 255, 255, 0.18); 
+    
+    /* Bordură mai luminoasă pentru contrast */
+    border: 1px solid rgba(255, 255, 255, 0.3); 
+    
+    /* Text clar și shadow pentru lizibilitate */
+    color: #ffffff;
+    font-weight: 800;
+    
+    /* Umbră discretă pentru a-l "ridica" de pe fundal */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), 
+                inset 0 0 10px rgba(255, 255, 255, 0.05);
+    
+    transform: scale(1.01); /* Îl mărim ușor pentru feedback vizual */
 }
-.tab:active { transform: scale(0.95); }
+
 
 /* Ajustăm lista să înceapă puțin mai sus pentru a se întâlni cu fade-ul */
 .content { 
@@ -2127,7 +2148,7 @@ async function init() {
 
 
 
-const ENABLE_DIRECT_LINKS = true;
+const ENABLE_DIRECT_LINKS = false;
 
 
 init();
