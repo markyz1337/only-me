@@ -373,11 +373,60 @@ body {
     will-change: opacity;
 }
 
+
+
+
 .header-tabs { 
-    position: relative; z-index: 10; 
-    padding: 15px 20px 10px; 
-    display: flex; gap: 10px; overflow-x: auto; 
+    position: absolute;
+    top: 0; 
+    /* Forțăm containerul să iasă din limitele părintelui */
+    left: -20px; 
+    right: -20px;
+    z-index: 20; 
+    
+    /* Padding lateral generos pentru ca butoanele să stea la locul lor, 
+       deși containerul e mai lat */
+    padding: 15px 40px 45px 40px; 
+    
+    display: flex; 
+    gap: 10px; 
+    overflow-x: auto; 
+    
+    /* Fundalul cu blur */
+    background: transparent; 
+    backdrop-filter: blur(20px) brightness(1.1);
+    -webkit-backdrop-filter: blur(20px) brightness(1.1);
+
+    /* MASCĂ DUALĂ: Fadeout și pe Orizontală și pe Verticală */
+    -webkit-mask-image: linear-gradient(to bottom, 
+        black 0%, 
+        black 60%, 
+        transparent 100%
+    );
+    mask-image: linear-gradient(to bottom, 
+        black 0%, 
+        black 60%, 
+        transparent 100%
+    );
+
+    /* Eliminăm orice limitare de lățime */
+    width: calc(100% + 40px);
 }
+
+/* Fix pentru a menține primul buton aliniat cu restul conținutului */
+.header-tabs .tab:first-child {
+    margin-left: 0;
+}
+
+/* Stil extra pentru fluiditate la scroll-ul butoanelor */
+.header-tabs::after {
+    content: '';
+    min-width: 20px; /* Spațiu de siguranță la finalul scroll-ului */
+}
+
+
+
+
 
 .tab { 
     background: var(--glass); 
@@ -400,11 +449,12 @@ body {
 }
 .tab:active { transform: scale(0.95); }
 
+/* Ajustăm lista să înceapă puțin mai sus pentru a se întâlni cu fade-ul */
 .content { 
     position: relative; 
     z-index: 10; 
     flex: 1; 
-    padding: 0 20px 140px 20px; 
+    padding: 60px 20px 140px 20px; 
     overflow-y: auto; 
     overscroll-behavior-y: contain; 
     -webkit-overflow-scrolling: touch; 
