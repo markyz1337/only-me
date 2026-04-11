@@ -112,14 +112,26 @@
 }
 
 .mini-thumb {
-    width: 25px;  /* Redus de la 36px */
-    height: 25px; /* Redus de la 36px */
-    opacity: 0.95;
-    border-radius: 140px;
+    width: 25px;  /* Dimensiuni existente */
+    height: 25px; /* Dimensiuni existente */
     margin-right: 9px;
     object-fit: cover;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    border-radius: 50%; /* Cerc perfect */
+    
+    /* --- MODIFICĂRI PENTRU EFECTUL DE STRĂLUCIRE (GLOW) ALB --- */
+    /* Eliminăm border-ul solid dacă l-ai adăugat anterior */
+    border: none; 
+
+    /* Aplicăm box-shadow pentru efectul de halo alb */
+    /* Sintaxa: x-offset y-offset blur-radius spread-radius culoare */
+    box-shadow: 0 0 3px 1px rgba(255, 255, 255, 0.3);
+    
+    /* Creștem opacitatea la 1 ca să nu se piardă efectul pe fundaluri gri */
+    opacity: 0.9; 
+    /* --------------------------------------------------------- */
 }
+
+
 
 .mini-name {
     font-size: 11px; /* Puțin mai mic */
@@ -132,6 +144,7 @@
     letter-spacing: 0.3px;
     line-height: 1.2;
     margin-bottom: 4px;
+    opacity: 0.9;
 }
 
 .mini-track {
@@ -140,8 +153,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0.7;
-    line-height: 1.2;
+    opacity: 0.6;
+    line-height: 1;
 }
 
 
@@ -1378,9 +1391,21 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
 
 
 function togglePlay() { 
-    if (audio.paused) loadStationInfo(currentIdx, true, false); 
-    else audio.pause(); 
+    if (audio.src) {
+        if (audio.paused) {
+            audio.play().catch(() => {
+                // Dacă browserul blochează play-ul (policy), reîncărcăm fluxul
+                loadStationInfo(currentIdx, true, false);
+            });
+        } else {
+            audio.pause();
+        }
+    } else {
+        // Prima rulare sau după un reset al sursei
+        loadStationInfo(currentIdx, true, false); 
+    }
 }
+
 
 function updateUI(state) { 
     const b = document.getElementById('play-trigger');
@@ -1521,19 +1546,31 @@ function switchTab(t) {
     
     if (isPlayer) {
         // Ascundem elementele specifice Listei
-        if (fab) { fab.style.display = 'none'; fab.classList.remove('visible'); }
-        if (fabSearch) fabSearch.style.display = 'none';
-        if (miniPill) miniPill.classList.remove('visible');
+        if (fab) { 
+            fab.style.display = 'none'; 
+            fab.classList.remove('visible'); 
+        }
+        if (fabSearch) {
+            fabSearch.style.display = 'none';
+            fabSearch.classList.remove('visible');
+        }
+        if (miniPill) {
+            miniPill.classList.remove('visible');
+        }
 
-        // Gestionare URL (Direct Links)
-        if (ENABLE_DIRECT_LINKS && activeStationObject) {
+        // --- ACTUALIZARE TEXT PLAYER LA INTRARE ---
+        // Forțăm playerul să afișeze datele corecte ale postului care cântă
+        updateSliderText();
+
+        // Gestionare URL (Direct Links) - Dacă este activat
+        if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS && activeStationObject) {
             let finalPath = activeStationObject.isSearch ? 
                 "url/" + encodeStreamToPath(activeStationObject.stream, activeStationObject.name) : 
                 transliterate(activeStationObject.name).toLowerCase().replace(/\s+/g, '');
             window.history.replaceState({}, "", "/" + finalPath);
         }
     } else {
-        // Revenim la Listă: afișăm butoanele FAB
+        // Revenim la Listă: afișăm butoanele FAB cu o mică întârziere pentru animație
         if (fab) {
             fab.style.display = 'flex';
             setTimeout(() => { fab.classList.add('visible'); }, 50);
@@ -1543,14 +1580,17 @@ function switchTab(t) {
             setTimeout(() => { fabSearch.classList.add('visible'); }, 50);
         }
         
-        // Re-afișăm Mini-Player-ul dacă muzica cântă
-        if (miniPill && !audio.paused && activeStationObject) {
+        // Re-afișăm Mini-Player-ul dacă muzica cântă și avem un post activ
+        if (miniPill && audio && !audio.paused && activeStationObject) {
             miniPill.classList.add('visible');
         }
         
-        if (ENABLE_DIRECT_LINKS) window.history.replaceState({}, "", "/");
+        if (typeof ENABLE_DIRECT_LINKS !== 'undefined' && ENABLE_DIRECT_LINKS) {
+            window.history.replaceState({}, "", "/");
+        }
     }
 }
+
 
 
 
@@ -1574,22 +1614,31 @@ function renderList(mode, el) {
     list.innerHTML = "";
     const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
     const newList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
-    currentFilteredList = newList;
+    
+    // --- FIX PENTRU SINCRONIZARE INDEX ---
+    currentFilteredList = newList; // Actualizăm lista vizibilă
 
     if (activeStationObject) {
-        const foundIdx = newList.findIndex(s => s.name === activeStationObject.name);
-        currentIdx = foundIdx !== -1 ? foundIdx : -1;
+        // Căutăm postul care cântă în noua listă selectată
+        const foundIdx = currentFilteredList.findIndex(s => s.stream === activeStationObject.stream);
+        if (foundIdx !== -1) {
+            currentIdx = foundIdx; // L-am găsit, setăm indexul corect
+        } else {
+            // Nu este în tab-ul curent, setăm -1 pentru a proteja Slider-ul
+            currentIdx = -1; 
+        }
+    } else {
+        currentIdx = 0;
     }
 
     currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
-        const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
+        const isCurrentlyPlaying = (activeStationObject && activeStationObject.stream === s.stream && !audio.paused);
         
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
 
-        const optimizedUrl = getOptimizedImg(s.img);
-        const finalImg = optimizedUrl || s.img || FALLBACK_IMG;
+        const finalImg = getOptimizedImg(s.img) || s.img || FALLBACK_IMG;
 
         item.innerHTML = `
             <img src="${finalImg}" class="station-thumb" loading="lazy" onerror="this.src='${FALLBACK_IMG}'">
@@ -1610,17 +1659,15 @@ function renderList(mode, el) {
         list.appendChild(item);
     });
 
-    // --- ACTUALIZARE METADATA LA SCHIMBAREA FILEI ---
-    // Această buclă forțează verificarea titlurilor imediat ce lista este afișată
+    // Pornire metadata pentru lista vizibilă
     currentFilteredList.forEach((s, index) => {
-        // Punem un mic delay între cereri pentru a nu bloca browserul (100ms per stație)
-        setTimeout(() => {
-            fetchMetadata(s.stream, s);
-        }, index * 100);
+        setTimeout(() => { fetchMetadata(s.stream, s); }, index * 100);
     });
 
     updateUI(!audio.paused);
 }
+
+
 
 
 
@@ -1664,26 +1711,44 @@ function animateTransition(dir) {
 
 function updateSliderText() {
     if (currentFilteredList.length === 0) return;
+
+    // --- PROTECȚIE: Dacă postul nu e în tab-ul curent, afișăm datele lui activeStationObject ---
+    if (currentIdx === -1 && activeStationObject) {
+        const slideCurrent = document.getElementById('slide-current');
+        const h2 = slideCurrent.querySelector('h2');
+        
+        if (activeStationObject.name === "Hope") {
+            if (!h2.textContent.includes("Hope")) h2.innerText = "Hope";
+        } else {
+            h2.innerText = activeStationObject.name;
+        }
+        slideCurrent.querySelector('p').innerText = activeStationObject.desc;
+        return; // Oprim aici, nu mai facem update la slide-urile Prev/Next deoarece nu avem context
+    }
+
+    // Logica normală când postul este găsit în listă
     const ids = ['slide-prev', 'slide-current', 'slide-next'];
-    const indices = [(currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length, currentIdx, (currentIdx + 1) % currentFilteredList.length];
+    const indices = [
+        (currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length, 
+        currentIdx, 
+        (currentIdx + 1) % currentFilteredList.length
+    ];
     
     ids.forEach((id, i) => {
         const el = document.getElementById(id);
         const data = currentFilteredList[indices[i]];
+        if (!data || !el) return;
+
         const h2 = el.querySelector('h2');
-        
         if (data.name === "Hope") {
-            // Dacă titlul nu conține deja "Hope", îl setăm. 
-            // Nu folosim innerText gol pentru a nu șterge span-ul de emoji dacă e prezent
-            if (!h2.textContent.includes("Hope")) {
-                h2.innerText = "Hope";
-            }
+            if (!h2.textContent.includes("Hope")) h2.innerText = "Hope";
         } else {
             h2.innerText = data.name;
         }
         el.querySelector('p').innerText = data.desc;
     });
 }
+
 
 
 function transliterate(t) {
