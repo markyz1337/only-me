@@ -234,7 +234,7 @@ body {
 }
 
 .app-container {
-    width: 100%; max-width:385px; height: 100.1%; position: relative;
+    width: 100%; max-width:400px; height: 100.1%; position: relative;
     display: flex; flex-direction: column;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
@@ -255,9 +255,9 @@ body {
 .header-tabs { 
     position: absolute;
     top: 0; 
-    left: -4; 
+    left: 0; 
     /* width: 100% asigură că blur-ul merge de la o margine la alta a ecranului */
-    width: 102%;
+    width: 100%;
     z-index: 20; 
     
     /* Padding-ul de sus pentru Dynamic Island */
@@ -335,7 +335,7 @@ body {
     position: relative; 
     z-index: 10; 
     flex: 1; 
-    padding: 0 20px 140px 20px; 
+    padding: 60px 20px 140px 20px; 
     overflow-y: auto; 
     overscroll-behavior-y: contain; 
     -webkit-overflow-scrolling: touch; 
@@ -593,6 +593,10 @@ const stations = [
     { name: "Millenium Hits", stream: "https://dc.digi.live.kissfm.ro/milleniumhits", img: "https://api.kissfm.ro/resized/streams/homepage/2024/10/07/homepage-logo-kiss-millenium-hits_bd81e49f11f3edfff722aecb28f9ae34.png", desc: "KISS MILLENIUM HITS", isAll: true },
     { name: "ONE FM DANCE", stream: "https://live.onefm.ro/onefm.aacp", img: "https://onefm.es/wp-content/uploads/2023/09/LOGO-2025.jpg", desc: "DANCE, HOUSE, TECHNO", isAll: true },
     { name: "Positively 10s", stream: "https://streaming.positivity.radio/pr/posi10s/icecast.audio", img: "https://cdn.autopo.st/images/coverart/r/Roll_Deep_-_Good_Times.jpg", desc: "10S HITS, POSITIVE", isAll: true },
+    { name: "HIT FM 00s", stream: "https://radio3.dixi.md/listen/hit_fm_2000s_hits/hitfm2000hit128.aac", img: "https://cdn-profiles.tunein.com/s341406/images/logog.png?t=366", desc: "00S HITS, POP", isAll: true },
+    { name: "HIT FM Best Hits", stream: "https://radio3.dixi.md/listen/hit_fm_best_hits/hitfm_besthits128.aac", img: "https://www.123live.com/img/radios/logo_Hit-FM-Best-Hits_20260223_163029.jpg", desc: "BEST POP HITS, DANCE", isAll: true },
+    { name: "HIT FM Dance", stream: "https://radio4.dixi.md/listen/hit_fm_dance_hits/hitfmdancehits128.aac", img: "https://play-lh.googleusercontent.com/Q34NV1_I43LVodUYyGpS6ifJXf20vmJT60nyVpawDOH56s0lIem_kE8n9sfrcJgoztU", desc: "DANCE MUSIC 24/7", isAll: true },
+    { name: "Radio Studentus", stream: "http://radiolive.studentus.md:8000/live", img: "https://radiomixer.net/images/2022/05/20/s2Q4Axkv1uAlnmO02cCZemDrCfRjAfutYVQoIX4A.jpg", desc: "#1 Moldova Pop Hits", isAll: true },
     { name: "PRO DJ RADIO", stream: "http://live.prodjradio.net:8000/;?type=http&nocache=4585", img: "https://yt3.googleusercontent.com/ytc/AIdro_kzkPgiLvOOACJ8JsiVWcgjbDaDftezak5j9Pv9KAp2cg=s900-c-k-c0x00ffffff-no-rj", desc: "DJ MIX, CLUB, DANCE", isAll: true },
     { name: "Kiss FM", stream: "https://live.kissfm.ro/kissfm.aacp", img: "https://moldova.mom-gmr.org/downloads/Archive/2024/MediaOutletLogos/MDA/4222.png", desc: "Pop, Dance, Reggaeton", isAll: true },
     { name: "Europa FM", stream: "https://astreaming.edi.ro:8443/EuropaFM_aac", img: "https://yt3.googleusercontent.com/ZQzcBtU39heTx5Kiw5PMHkNYnCztfWmPw1PJ_qTTbIqEfL5p8Hy_mQhasXkr6zPlbkSxhGVI=s900-c-k-c0x00ffffff-no-rj", desc: "Europa Pop Music", isAll: true },
@@ -610,14 +614,15 @@ const stations = [
     { name: "Европа Плюс", stream: "http://ep256.hostingradio.ru:8052/europaplus256.mp3", img: "https://static2.mytuner.mobi/media/tvos_radios/Fs3ahQV6xT.png", desc: "EUROPE MIX", isRussian: true, isAll: true },
     { name: "DFM Pop", stream: "https://dfm-popgold10.hostingradio.ru/popgold1096.aacp", img: "https://play-lh.googleusercontent.com/Ib-OXFvEaaofa9bErURv9zbr3CrU4Xik37fRu9AWuxRK2GHJCGsVObOWhmnscCu6jv25UmC0vYhzvT0vSl9lWbg", desc: "POP GOLD, HITS", isRussian: true, isAll: true },
     { name: "DFM DANCE", stream: "https://dfm-dancegold10.hostingradio.ru/dancegold1096.aacp", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIoi_I2LWM0BpqHgWDPIjwxIF_E3POxwYL4YCBgQrepVIodIXXbv2zvAh4&s=10", desc: "DANCE GOLD, 90S", isRussian: true, isAll: true },
-    { name: "Muzică 10s", stream: "https://sergiumusic.duckdns.org/muzicaveche", img: "https://mosaic.scdn.co/640/ab67616d00001e021badc66d1c9de6a98d376946ab67616d00001e022b605014f0cf0ca5e3c46b64ab67616d00001e02baa7a73c40a30e2c780c6841ab67616d00001e02ce26853f4b61f0924446f683", desc: "Sergiu | Childhood", isMine: true, isFav: true, isAll: false, yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J" },
+    { name: "Nostalgie", stream: "https://sergiumusic.duckdns.org/muzicaveche", img: "https://mosaic.scdn.co/640/ab67616d00001e021badc66d1c9de6a98d376946ab67616d00001e022b605014f0cf0ca5e3c46b64ab67616d00001e02baa7a73c40a30e2c780c6841ab67616d00001e02ce26853f4b61f0924446f683", desc: "Sergiu | Childhood", isMine: true, isFav: true, isAll: false, yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J" },
+    { name: "Emisiuni Radio 2010s", stream: "https://sergiumusic.duckdns.org/emisiunivechi", img: "https://play-lh.googleusercontent.com/r6ymNUMhRQN9-V6DS0ZZziAKAZrnJKGEw5mIK4KNFV8XPpD5JBEmlEn2ptSx0RDAEMs", desc: "SERGIU | KISS FM • RADIO 21 • RADIO ZU", isMine: true, isFav: true, isAll: false},
     { name: "Hope", stream: "https://sergiumusic.duckdns.org/hope", img: "https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/icons/radio_hope.PNG", desc: "Sergiu | Lovefool Pop", isMine: true, isFav: true, isAll: false, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXuwf5SEEH9vhwwSci67SNnU&si=NclZd61NGrsZ0UCm" },
-    { name: "Emisiuni 10s", stream: "https://sergiumusic.duckdns.org/emisiunivechi", img: "https://play-lh.googleusercontent.com/r6ymNUMhRQN9-V6DS0ZZziAKAZrnJKGEw5mIK4KNFV8XPpD5JBEmlEn2ptSx0RDAEMs", desc: "SERGIU | KISS FM • RADIO 21 • RADIO ZU", isMine: true, isFav: true, isAll: false},
-    { name: "Pop Actual", stream: "https://sergiumusic.duckdns.org/popactual", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQRrd73RzhRJNu8IQ94U9TPy4O_hB2qVefaiynqfIk4TfXZ2xdAsvI7ynw&s=10", desc: "Sergiu | POP 20s", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12h2VlBi5lPddOig7Ki-dE2S&si=4StSQYlR4uazgPKO" },
-    { name: "Russian", stream: "https://sergiumusic.duckdns.org/russian", img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", desc: "Sergiu | RUS • POP", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12hUgv96dGWDN5_0zqyfwh1t&si=Ezw2KRYTNtJAAKnW" },
+    { name: "Europe Pop", stream: "https://sergiumusic.duckdns.org/europop", img: "https://i.scdn.co/image/ab67616d0000b273e585119372e61c71d135647f", desc: "Best European Pop Music 10-20s", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12jzCtuSCkEzfMScH-95il1-&si=p7P8feldxlAOWBHi" },
+    { name: "Romania Pop", stream: "https://sergiumusic.duckdns.org/romaniapop", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84ba8559b7a336f0ba646cff3d", desc: "Best Romanian Pop Music", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12h2VlBi5lPddOig7Ki-dE2S&si=4StSQYlR4uazgPKO" },
+    { name: "Sad Love", stream: "https://sergiumusic.duckdns.org/sadsong", img: "https://i1.sndcdn.com/artworks-Xo47FqDWMesb-0-t500x500.jpg", desc: "Sergiu | Sad Songs", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12i8JU4vMXaq-a3TsZkRnOBa&si=NVC6oUgzBVr3ZGwv" },
     { name: "Manele", stream: "https://sergiumusic.duckdns.org/manele", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842dd25b4dde6d46673b953a6e", desc: "Sergiu | Gypsy Team", isMine: true, isManele: true, isAll: false, yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXtIaoNo0wKIH9q_BFCHw4S_&si=XPeFO_NctOno3Vbu" },
-    { name: "Sad Songs", stream: "https://sergiumusic.duckdns.org/sadsong", img: "https://i1.sndcdn.com/artworks-Xo47FqDWMesb-0-t500x500.jpg", desc: "Sergiu | Sad Songs", isMine: true, isAll: false },
     { name: "Remixes", stream: "https://sergiumusic.duckdns.org/remixes", img: "https://i1.sndcdn.com/avatars-000227062977-ucv5bm-t1080x1080.jpg", desc: "Sergiu | Remixes", isMine: true, isAll: false },
+    { name: "Russian", stream: "https://sergiumusic.duckdns.org/russian", img: "https://play-lh.googleusercontent.com/ImX8wknuPUzGOnAWHRgPJZtd2ehV0Uq37lTTTWov2B9yW6isYJoDn7poSCpyU-J-Uw", desc: "Sergiu | RUS • POP", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12hUgv96dGWDN5_0zqyfwh1t&si=Ezw2KRYTNtJAAKnW" },
     { name: "Generated Music", stream: "https://sergiumusic.duckdns.org/aimusic", img: "https://i.pinimg.com/236x/fd/fc/82/fdfc82753e4f8cbdd49184e9dea43d06.jpg", desc: "Sergiu | AI POP", isMine: true, isAll: false, yt: "https://youtube.com/playlist?list=PLju_tYPLb12jv_iNgO8ApKgjIO-9NSg85&si=Qs6H1Iogrp47YRuX" }
 ]
 
@@ -1757,7 +1762,7 @@ async function init() {
 
 
 
-const ENABLE_DIRECT_LINKS = false;
+const ENABLE_DIRECT_LINKS = true;
 
 
 init();
