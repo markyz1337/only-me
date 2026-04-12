@@ -1804,7 +1804,6 @@ function closeExternalSearchPopup(e) {
 }
 
 function redirectToSearch(platform) {
-    // Gestionăm cazul special pentru Playlist-ul postului
     if (platform === 'playlist') {
         if (activeStationObject && activeStationObject.yt) {
             window.open(activeStationObject.yt, '_blank');
@@ -1813,46 +1812,69 @@ function redirectToSearch(platform) {
         return;
     }
 
-    // Verificăm dacă avem metadata pentru restul platformelor
     if (!activeStationObject || !activeStationObject.desc || activeStationObject.desc.includes("Radio Player")) {
         alert("Melodia nu a fost identificată încă.");
         return;
     }
 
-    const query = encodeURIComponent(activeStationObject.desc);
+    // 1. Curățare totală: eliminăm cratimele (-) și plusurile (+) din textul original
+    let cleanText = activeStationObject.desc
+        .replace(/[+\-]/g, ' ')   // Înlocuiește + și - cu spațiu
+        .replace(/\s+/g, ' ')     // Elimină spațiile duble
+        .trim();
+
+    // 2. Encodăm pentru URL folosind %20 (spațiu real)
+    const queryForWeb = encodeURIComponent(cleanText).replace(/%20/g, '%20');
+
     let url = "";
 
     switch(platform) {
-        case 'apple':
-            url = `music://search?term=${query}`;
-            setTimeout(() => { window.location.href = `https://music.apple.com/search?term=${query}`; }, 800);
+        case 'spotify':
+            // Link-ul specific cerut de tine
+            url = `spotify:search:${queryForWeb}`; 
+            setTimeout(() => { 
+                window.location.href = `https://open.spotify.com/search/results/${queryForWeb}`; 
+            }, 800);
             break;
             
-        case 'spotify':
-            url = `spotify:search:${query}`; 
-            setTimeout(() => { window.location.href = `https://open.spotify.com/search/${query}`; }, 800);
+        case 'apple':
+            url = `music://search?term=${queryForWeb}`;
+            setTimeout(() => { 
+                window.location.href = `https://music.apple.com/search?term=${queryForWeb}`; 
+            }, 800);
             break;
             
         case 'ytmusic':
-            url = `youtubemusic://search?q=${query}`;
-            setTimeout(() => { window.location.href = `https://music.youtube.com/search?q=${query}`; }, 800);
+            url = `youtubemusic://search?q=${queryForWeb}`;
+            setTimeout(() => { 
+                window.location.href = `https://music.youtube.com/search?q=${queryForWeb}`; 
+            }, 800);
             break;
             
         case 'youtube':
-            url = `youtube://www.youtube.com/results?search_query=${query}`;
-            setTimeout(() => { window.location.href = `https://www.youtube.com/results?search_query=${query}`; }, 800);
+            url = `youtube://www.youtube.com/results?search_query=${queryForWeb}`;
+            setTimeout(() => { 
+                window.location.href = `https://www.youtube.com/results?search_query=${queryForWeb}`; 
+            }, 800);
             break;
             
         case 'deezer':
-            url = `deezer://www.deezer.com/search/${query}`;
-            setTimeout(() => { window.location.href = `https://www.deezer.com/search/${query}`; }, 800);
+            url = `deezer://www.deezer.com/search/${queryForWeb}`;
+            setTimeout(() => { 
+                window.location.href = `https://www.deezer.com/search/${queryForWeb}`; 
+            }, 800);
             break;
     }
 
-    // Încercăm deschiderea aplicației
     window.location.href = url;
     closeExternalSearchPopup();
 }
+
+
+
+
+
+
 
 
 
