@@ -303,7 +303,7 @@ body {
     z-index: 10; 
     flex: 1; 
     /* Padding-ul de sus trebuie să fie suficient de mare ca să nu înceapă lista sub tab-uri */
-    padding: 60px 20px 140px 20px; 
+    padding: 55px 20px 140px 20px; 
     overflow-y: auto; 
     overscroll-behavior-y: contain; 
     -webkit-overflow-scrolling: touch; 
@@ -1235,9 +1235,20 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
 
 
 function togglePlay() { 
-    if (audio.paused) loadStationInfo(currentIdx, true, false); 
-    else audio.pause(); 
+    if (!audio.paused) {
+        audio.pause();
+    } else {
+        // Dacă avem deja o sursă setată și este aceeași cu postul curent, doar dăm Play
+        if (audio.src && activeStationObject && audio.src === activeStationObject.stream) {
+            updateUI('loading');
+            audio.play().catch(() => updateUI(false));
+        } else {
+            // Altfel, încărcăm postul (cazul primei porniri)
+            loadStationInfo(currentIdx, true, false);
+        }
+    }
 }
+
 
 function updateUI(state) { 
     const b = document.getElementById('play-trigger');
@@ -1745,7 +1756,7 @@ async function init() {
 
 
 
-const ENABLE_DIRECT_LINKS = false;
+const ENABLE_DIRECT_LINKS = true;
 
 
 init();
