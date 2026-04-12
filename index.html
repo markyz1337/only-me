@@ -45,6 +45,93 @@
 }
 
 
+
+/* Butonul mic de căutare deasupra copertei */
+.search-trigger-btn {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    z-index: 40;
+    transition: all 0.3s ease;
+}
+
+.search-trigger-btn:active { transform: translateX(-50%) scale(0.95); background: rgba(255, 255, 255, 0.2); }
+
+/* Popup Morphglassic */
+.search-popup-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.search-popup-content {
+    background: rgba(40, 40, 40, 0.4);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    width: 280px;
+    border-radius: 24px;
+    padding: 20px;
+    transform: scale(0.8);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.search-popup-overlay.active { display: flex; opacity: 1; }
+.search-popup-overlay.active .search-popup-content { transform: scale(1); }
+
+.search-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-option:last-child { margin-bottom: 0; }
+.search-option:active { background: rgba(255, 255, 255, 0.15); }
+
+.search-option img { 
+    width: 28px; 
+    height: 28px; 
+    object-fit: cover; /* Asigură că imaginea umple spațiul fără să se deformeze */
+    
+    /* MODIFICĂRILE PENTRU COLȚURI: */
+    border-radius: 8.5px; /* Pentru colțuri ușor rotunjite (stil aplicație) */
+    /* SAU folosește: border-radius: 50%; pentru iconițe perfect rotunde */
+    
+    flex-shrink: 0; /* Previne turtirea iconiței dacă textul e prea lung */
+}
+.search-option span { font-weight: 500; font-size: 14px; }
+
+
+
 /* Stil de bază pentru punctul On Air (PÂLPÂIT PERMANENT) */
 .live-dot {
     height: 9px;
@@ -199,39 +286,13 @@ body {
     touch-action: pan-y;
 }
 
-.player-yt-link {
-    position: absolute;
-    right: 11px;
-    bottom: 11px;
-    z-index: 35;
-    display: flex;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(5px);
-    border-radius: 16px;
-    padding: 4px;
-    transition: transform 0.3s ease, opacity 0.5s ease, visibility 0.5s ease;
-    opacity: 0.8;
-    visibility: visible;
-    text-decoration: none;
-}
 
-.player-yt-link img {
-    width: 29px;
-    height: 29px;
-    display: block;
-    object-fit: contain;
-}
 
-.player-yt-link:active {
-    transform: scale(0.9);
-}
 
-.yt-hidden {
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none;
-    transform: scale(0.7);
-}
+
+
+
+
 
 .app-container {
     width: 100%; max-width:400px; height: 100.1%; position: relative;
@@ -518,13 +579,66 @@ body {
     </div> 
 
     <div id="player-view">
-        <div class="art-container" id="swipe-zone-art">
-            <img src="" class="main-art art-visible" id="player-img-1" onerror="this.src=FALLBACK_IMG">
-            <img src="" class="main-art art-hidden" id="player-img-2" onerror="this.src=FALLBACK_IMG">
-            <a id="player-yt-btn" href="#" target="_blank" class="player-yt-link yt-hidden">
-                <img src="https://cdn-icons-png.flaticon.com/512/10610/10610674.png" alt="YouTube Link">
-            </a>
-        </div>
+<div class="art-container" id="swipe-zone-art">
+    <div class="search-trigger-btn" onclick="openExternalSearchPopup()">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" style="width:12px; filter:invert(1);" alt="">
+        Search on Apple Music
+    </div>
+
+    <img src="" class="main-art art-visible" id="player-img-1" onerror="this.src=FALLBACK_IMG">
+    <img src="" class="main-art art-hidden" id="player-img-2" onerror="this.src=FALLBACK_IMG">
+   
+</div>
+
+
+
+
+<div class="search-popup-overlay" id="searchPopup" onclick="closeExternalSearchPopup(event)">
+<div class="search-popup-content" onclick="event.stopPropagation()">
+    
+    <div class="search-option" onclick="redirectToSearch('apple')">
+        <img src="https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/icons/apple_icon.JPEG" alt="Apple">
+        <span>Apple Music</span>
+    </div>
+
+    <div class="search-option" onclick="redirectToSearch('spotify')">
+        <img src="https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/icons/spotify_icon.JPEG" alt="Spotify">
+        <span>Spotify</span>
+    </div>
+
+    <div class="search-option" onclick="redirectToSearch('ytmusic')">
+        <img src="https://github.com/markyz1337/only-me/raw/refs/heads/main/icons/youtubemusic_icon.JPG" alt="YT Music">
+        <span>YouTube Music</span>
+    </div>
+
+    <div class="search-option" onclick="redirectToSearch('youtube')">
+        <img src="https://github.com/markyz1337/only-me/raw/refs/heads/main/icons/youtube_icon.JPG" alt="YouTube">
+        <span>YouTube</span>
+    </div>
+
+    <div class="search-option" onclick="redirectToSearch('deezer')">
+        <img src="https://github.com/markyz1337/only-me/raw/refs/heads/main/icons/deezer_icon.PNG" alt="Deezer">
+        <span>Deezer</span>
+    </div>
+
+    <div id="playlist-divider" style="display: none; height: 1px; width: 100%; margin: 15px 0; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);"></div>
+
+    <div class="search-option" id="search-option-playlist" onclick="redirectToSearch('playlist')" style="display: none;">
+        <img src="https://github.com/markyz1337/only-me/raw/refs/heads/main/icons/youtube_icon.JPG" alt="Playlist">
+        <span style="color: var(--accent); font-weight: 600;">Open Radio Playlist</span>
+    </div>
+
+</div>
+
+
+
+
+</div>
+
+
+
+        
+        
         <div class="track-viewport" id="swipe-zone-text">
             <div class="track-slider-wrapper" id="info-wrapper">
                 <div class="track-info-slide" id="slide-prev"><h2>Post Anterior</h2><p>Gen</p></div>
@@ -1194,7 +1308,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (!s) return;
 
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
-    activeStationObject = s; // Salvăm postul ca fiind cel activ
+    activeStationObject = s; 
 
     if (isInitial) {
         const art1 = document.getElementById('player-img-1');
@@ -1204,10 +1318,6 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     } else {
         if (sp || !skipArt) updateArtUI(s.img || FALLBACK_IMG);
     }
-    
-    const ytBtn = document.getElementById('player-yt-btn');
-    if (s.yt) { ytBtn.href = s.yt; ytBtn.classList.remove('yt-hidden'); } 
-    else { ytBtn.classList.add('yt-hidden'); }
 
     if (metadataInterval) clearInterval(metadataInterval);
     audio.src = s.stream;
@@ -1223,6 +1333,7 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     }
     updateMediaSession();
 }
+
 
 
 
@@ -1660,6 +1771,92 @@ function updateStationUI(name, desc) {
         if (pDesc) pDesc.innerText = desc;
     }
 }
+
+
+function openExternalSearchPopup() {
+    const playlistOption = document.getElementById('search-option-playlist');
+    const playlistDivider = document.getElementById('playlist-divider');
+    
+    // Verificăm dacă obiectul stației are proprietatea "yt"
+    if (activeStationObject && activeStationObject.yt) {
+        playlistOption.style.display = 'flex';
+        playlistDivider.style.display = 'block'; // Aici îl facem vizibil
+    } else {
+        playlistOption.style.display = 'none';
+        playlistDivider.style.display = 'none'; // Aici îl ascundem
+    }
+
+    document.getElementById('searchPopup').style.display = 'flex';
+    setTimeout(() => {
+        document.getElementById('searchPopup').classList.add('active');
+    }, 10);
+}
+
+
+
+
+
+function closeExternalSearchPopup(e) {
+    document.getElementById('searchPopup').classList.remove('active');
+    setTimeout(() => {
+        document.getElementById('searchPopup').style.display = 'none';
+    }, 300);
+}
+
+function redirectToSearch(platform) {
+    // Gestionăm cazul special pentru Playlist-ul postului
+    if (platform === 'playlist') {
+        if (activeStationObject && activeStationObject.yt) {
+            window.open(activeStationObject.yt, '_blank');
+        }
+        closeExternalSearchPopup();
+        return;
+    }
+
+    // Verificăm dacă avem metadata pentru restul platformelor
+    if (!activeStationObject || !activeStationObject.desc || activeStationObject.desc.includes("Radio Player")) {
+        alert("Melodia nu a fost identificată încă.");
+        return;
+    }
+
+    const query = encodeURIComponent(activeStationObject.desc);
+    let url = "";
+
+    switch(platform) {
+        case 'apple':
+            url = `music://search?term=${query}`;
+            setTimeout(() => { window.location.href = `https://music.apple.com/search?term=${query}`; }, 800);
+            break;
+            
+        case 'spotify':
+            url = `spotify:search:${query}`; 
+            setTimeout(() => { window.location.href = `https://open.spotify.com/search/${query}`; }, 800);
+            break;
+            
+        case 'ytmusic':
+            url = `youtubemusic://search?q=${query}`;
+            setTimeout(() => { window.location.href = `https://music.youtube.com/search?q=${query}`; }, 800);
+            break;
+            
+        case 'youtube':
+            url = `youtube://www.youtube.com/results?search_query=${query}`;
+            setTimeout(() => { window.location.href = `https://www.youtube.com/results?search_query=${query}`; }, 800);
+            break;
+            
+        case 'deezer':
+            url = `deezer://www.deezer.com/search/${query}`;
+            setTimeout(() => { window.location.href = `https://www.deezer.com/search/${query}`; }, 800);
+            break;
+    }
+
+    // Încercăm deschiderea aplicației
+    window.location.href = url;
+    closeExternalSearchPopup();
+}
+
+
+
+
 
 
 async function init() {
