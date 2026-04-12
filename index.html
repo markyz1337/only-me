@@ -256,66 +256,33 @@ body {
     position: absolute;
     top: 0; 
     left: 0; 
-    /* width: 100% asigură că blur-ul merge de la o margine la alta a ecranului */
     width: 100%;
-    z-index: 20; 
-    
-    /* Padding-ul de sus pentru Dynamic Island */
+    z-index: 30;
     padding-top: calc(env(safe-area-inset-top) + 15px);
-    /* Padding-ul de jos extins pentru a "întinde" gradientul de fadeout */
-    padding-bottom: 40px; 
+    padding-bottom: 20px; 
     
+    /* MODIFICĂRILE PENTRU CENTRARE: */
     display: flex; 
+    justify-content: center; /* Centrează tab-urile orizontal */
+    flex-wrap: wrap;         /* Permite trecerea pe rândul nou dacă sunt multe */
     gap: 10px; 
-    overflow-x: auto; 
     
-    /* Fundal transparent pentru a evita stratul dublu de alb/gri */
     background: transparent; 
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-
-    /* Gradient de mască mult mai fin */
-    -webkit-mask-image: linear-gradient(to bottom, 
-        black 0%, 
-        black 50%, 
-        rgba(0,0,0,0.4) 80%, 
-        transparent 100%
-    );
-    mask-image: linear-gradient(to bottom, 
-        black 0%, 
-        black 50%, 
-        rgba(0,0,0,0.4) 80%, 
-        transparent 100%
-    );
-
-    /* Această proprietate ascunde bara de scroll orizontală a taburilor */
-    -ms-overflow-style: none;
-    scrollbar-width: none;
     pointer-events: none;
 }
 
-/* Stilăm tab-urile în interiorul header-ului complet */
+
 .header-tabs .tab {
-    pointer-events: auto;
+    pointer-events: auto; /* Reactivăm click-ul doar pe butoane */
 }
 
-/* Primul tab are nevoie de un mic spațiu la stânga ca să nu stea lipit de marginea ecranului */
-.header-tabs .tab:first-child {
-    margin-left: 20px;
-}
-
-/* Adăugăm un element invizibil la final pentru spațiu la scroll dreapta */
-.header-tabs::after {
-    content: '';
-    min-width: 20px;
-}
 
 .tab { 
-    background: rgba(250, 250, 250, 0.20); 
+    background: rgba(250, 250, 250, 0.11); 
     padding: 8px 17px; 
     border-radius: 20px; 
     font-size: 13px; 
-    backdrop-filter: blur(100px); 
+    backdrop-filter: blur(10px); 
     border: 1px solid rgba(250,250,250,0.1); 
     cursor: pointer; 
     white-space: nowrap;
@@ -324,8 +291,8 @@ body {
 }
 .tab.active { 
     /* Fundalul devine un alb translucid mai opac decât cel standard (care e 0.1) */
-    background: rgba(250, 250, 250, 0.25); 
-    border-color: rgba(250, 250, 250, 0.35); 
+    background: rgba(250, 250, 250, 0.16); 
+    border-color: rgba(250, 250, 250, 0.18); 
     font-weight: 900; 
     color: #ffffff; /* Asigură-te că textul rămâne alb */
 }
@@ -335,11 +302,27 @@ body {
     position: relative; 
     z-index: 10; 
     flex: 1; 
+    /* Padding-ul de sus trebuie să fie suficient de mare ca să nu înceapă lista sub tab-uri */
     padding: 60px 20px 140px 20px; 
     overflow-y: auto; 
     overscroll-behavior-y: contain; 
     -webkit-overflow-scrolling: touch; 
+
+    /* Efectul de Fadeout */
+    -webkit-mask-image: linear-gradient(to bottom, 
+        transparent 0%, 
+        black 15%, 
+        black 90%, 
+        transparent 100%
+    );
+    mask-image: linear-gradient(to bottom, 
+        transparent 0%, 
+        black 15%, 
+        black 90%, 
+        transparent 100%
+    );
 }
+
 
 .station-item { 
     display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid transparent;
@@ -1762,7 +1745,7 @@ async function init() {
 
 
 
-const ENABLE_DIRECT_LINKS = true;
+const ENABLE_DIRECT_LINKS = false;
 
 
 init();
