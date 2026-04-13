@@ -46,12 +46,11 @@
 
 
 
-/* Butonul mic de căutare deasupra copertei */
 .search-trigger-btn {
     position: absolute;
     bottom: 15px;
     left: 20%;
-    transform: translateX(-5%);
+    transform: translateX(-5%) scale(0.9);
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -66,12 +65,38 @@
     gap: 6px;
     cursor: pointer;
     z-index: 40;
-    transition: all 0.3s ease;
+
+    /* Starea inițială (Ascuns) */
+    opacity: 0;
+    visibility: hidden;
+    /* La ieșire (FadeOut): Tranziție liniară și simplă pentru fluiditate */
+    transition: opacity 0.5s ease-in-out, 
+                transform 0.5s ease-in-out, 
+                visibility 0.5s;
 }
 
-.search-trigger-btn:active { transform: translateX(-50%) scale(0.95); background: rgba(255, 255, 255, 0.2); }
+.search-trigger-btn.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-5%) scale(1);
+    /* La intrare (FadeIn): Efect elastic "premium" */
+    transition: opacity 0.6s ease-out, 
+                transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
-/* Popup Morphglassic */
+
+/* Efect de apăsare */
+.search-trigger-btn:active { 
+    transform: translateX(-5%) scale(0.95); 
+    background: rgba(255, 255, 255, 0.2); 
+}
+
+
+
+
+
+
+/* Popup Overlay - Modificat pentru a-l urca mai sus */
 .search-popup-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -80,8 +105,14 @@
     -webkit-backdrop-filter: blur(15px);
     z-index: 1000;
     display: none;
-    align-items: center;
+    
+    /* MODIFICARE: Aliniere spre partea de sus */
+    align-items: flex-start; 
     justify-content: center;
+    
+    /* MODIFICARE: Spațiu de la marginea de sus (ajustează 15% după preferință) */
+    padding-top: 13vh; 
+    
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -94,10 +125,19 @@
     width: 280px;
     border-radius: 24px;
     padding: 20px;
-    transform: scale(0.8);
+    
+    /* MODIFICARE: Pornim de la o poziție puțin mai joasă pentru animația de urcare */
+    transform: translateY(20px) scale(0.8);
+    
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow: 0 20px 50px rgba(0,0,0,0.5);
 }
+
+/* Când este activ, ajunge la poziția finală */
+.search-popup-overlay.active .search-popup-content { 
+    transform: translateY(0) scale(1); 
+}
+
 
 .search-popup-overlay.active { display: flex; opacity: 1; }
 .search-popup-overlay.active .search-popup-content { transform: scale(1); }
@@ -1310,6 +1350,10 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
     if (sp) stations.forEach(st => st.isInitialBgSource = false);
     activeStationObject = s; 
 
+    // Fade Out forțat la schimbarea postului
+    const searchBtn = document.querySelector('.search-trigger-btn');
+    if (searchBtn) searchBtn.classList.remove('is-visible');
+
     if (isInitial) {
         const art1 = document.getElementById('player-img-1');
         const art2 = document.getElementById('player-img-2');
@@ -1332,7 +1376,12 @@ function loadStationInfo(idx, sp = true, skipArt = false, isInitial = false) {
         audio.play().catch(() => updateUI(false)); 
     }
     updateMediaSession();
+    
+    // Verificăm vizibilitatea (dacă metadata existau deja, se face Fade In)
+    updateSearchBtnVisibility();
 }
+
+
 
 
 
@@ -1758,19 +1807,22 @@ async function applyRandomItunesCover() {
 
 
 function updateStationUI(name, desc) {
-    // Update în listă
     const items = document.querySelectorAll(`.station-item[data-name="${name}"]`);
     items.forEach(item => {
         const dEl = item.querySelector('.station-desc');
         if (dEl) dEl.innerText = desc;
     });
 
-    // Update în Player dacă e activ
     if (activeStationObject && activeStationObject.name === name) {
         const pDesc = document.querySelector('#slide-current p');
         if (pDesc) pDesc.innerText = desc;
+        
+        // Aici declanșăm animația de Fade In / Fade Out
+        updateSearchBtnVisibility();
     }
 }
+
+
 
 
 function openExternalSearchPopup() {
@@ -1873,6 +1925,22 @@ function redirectToSearch(platform) {
 
 
 
+function updateSearchBtnVisibility() {
+    const searchBtn = document.querySelector('.search-trigger-btn');
+    if (!searchBtn || !activeStationObject) return;
+
+    // Verificăm dacă descrierea actuală este diferită de cea originală (implicită)
+    // și dacă nu este un text generic de tip "Radio Player"
+    const hasMetadata = activeStationObject.desc !== activeStationObject.originalDesc && 
+                        activeStationObject.desc !== "Radio Player" &&
+                        activeStationObject.desc !== "LIVE STREAM";
+
+    if (hasMetadata) {
+        searchBtn.classList.add('is-visible');
+    } else {
+        searchBtn.classList.remove('is-visible');
+    }
+}
 
 
 
