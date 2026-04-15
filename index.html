@@ -595,22 +595,23 @@ body {
 
 
 
+/* Containerul de scalare */
 #app-scaler {
     width: 100vw;
     height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 9999;
-    /* Transformarea va fi injectată de JS */
-    transform-origin: center center;
-    transition: transform 0.2s ease-out; /* Adaugă un efect fin la redimensionare */
+    
+    /* MODIFICĂ VALOAREA DE MAI JOS (ex: 0.8 pentru 80%, 1.1 pentru 110%) */
+    transform: scale(0.5); 
+    
+    /* Asigură-te că scalarea pornește din centru */
+    transform-origin: center center; 
+    
+    /* Previne scroll-ul nedorit cauzat de scalare */
+    overflow: hidden; 
 }
-
 
 /* Ajustare Body pentru a suporta scalarea corect */
 body {
@@ -832,37 +833,6 @@ function prev() {
         updateSliderText();
     }
 }
-
-
-function updateAppScale() {
-    const scaler = document.getElementById('app-scaler');
-    
-    // 1. Definim înălțimea de referință (în pixeli).
-    // Aceasta este înălțimea la care designul tău arată "normal" (ex: 850px).
-    const referenceHeight = 950; 
-    
-    // 2. Calculăm înălțimea actuală a ferestrei
-    const currentHeight = window.innerHeight;
-    
-    // 3. Calculăm raportul (scale)
-    // De exemplu: dacă ecranul are 425px, scala va fi 0.5
-    let scaleFactor = currentHeight / referenceHeight;
-    
-    // Opțional: Putem limita scalarea maximă (să nu se mărească exagerat pe ecrane uriașe)
-    // if (scaleFactor > 1.2) scaleFactor = 1.2;
-
-    // 4. Aplicăm transformarea
-    scaler.style.transform = `scale(${scaleFactor})`;
-}
-
-// Executăm funcția la încărcare
-window.addEventListener('load', updateAppScale);
-
-// Executăm funcția de fiecare dată când fereastra își schimbă dimensiunea (ex: rotire ecran)
-window.addEventListener('resize', updateAppScale);
-
-
-
 
 
 function encodeStreamToPath(url, name) {
