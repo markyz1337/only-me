@@ -2037,6 +2037,60 @@ async function init() {
 }
 
 
+// --- LOGICĂ TELECOMANDĂ / SMART TV ---
+document.addEventListener('keydown', (e) => {
+    // Detectăm dacă suntem în Player sau în Listă
+    const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
+
+    switch(e.key) {
+        case "ArrowRight": 
+            // Săgeată Dreapta -> Următoarea piesă
+            next();
+            break;
+            
+        case "ArrowLeft": 
+            // Săgeată Stânga -> Piesa anterioară
+            prev();
+            break;
+            
+        case "Enter":
+        case "OK":
+        case "Select":
+            // Butonul OK/Enter -> Play/Pause
+            togglePlay();
+            break;
+            
+        case "ArrowUp":
+            // Săgeată Sus -> Comută la Player (dacă ești în listă)
+            if (!isPlayerVisible) switchTab('player');
+            break;
+            
+        case "ArrowDown":
+        case "Back":
+        case "Escape":
+        case "BrowserBack":
+            // Săgeată Jos sau Back -> Revine la Listă
+            if (isPlayerVisible) {
+                switchTab('list');
+                e.preventDefault(); // Previne ieșirea din browser pe unele TV-uri
+            }
+            break;
+            
+        case "MediaPlayPause":
+        case " ":
+            // Butonul Play/Pause dedicat de pe unele telecomenzi sau Space
+            togglePlay();
+            break;
+            
+        case "MediaTrackNext":
+            next();
+            break;
+            
+        case "MediaTrackPrevious":
+            prev();
+            break;
+    }
+});
 
 
 
