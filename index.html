@@ -880,8 +880,8 @@ function applySmartScaling() {
     const docH = 693;
 
     // Calculăm cât la sută din ecran ocupă designul (lăsăm 4% margine de siguranță)
-    const scaleHeight = (winH * 0.96) / docH;
-    const scaleWidth = (winW * 0.96) / docW;
+    const scaleHeight = (winH * 0.99) / docH;
+    const scaleWidth = (winW * 0.95) / docW;
 
     // Alegem valoarea cea mai mică pentru a fi siguri că încape și pe lățime și pe înălțime
     const finalScale = Math.min(scaleHeight, scaleWidth);
