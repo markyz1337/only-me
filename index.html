@@ -46,65 +46,43 @@
 
 
 
-.art-container { 
-    height: 32vh; /* Aceasta rămâne înălțimea ta de bază */
-    aspect-ratio: 1 / 1; 
-    position: relative; 
-    margin: 0 auto 25px auto;
-    
-    /* ADAUGĂM ACESTEA PENTRU CENTRARE PERFECTĂ A COPIILOR */
-    display: flex;
-    justify-content: center; /* Centrează butonul pe orizontală */
-}
-
 .search-trigger-btn {
     position: absolute;
-    top: 8%; /* Îl coborâm puțin mai mult pentru estetică */
-    
-    /* --- CENTRARE REPARATĂ --- */
-    /* Nu mai avem nevoie de left: 50% și transform pentru că părintele e Flex */
-    
-    /* --- FONT STABILIZAT --- */
-    /* clamp(minim, preferat, maxim) -> nu scade sub 10px, nu crește peste 14px */
-    font-size: clamp(10px, 3.5vh, 14px); 
-    
-    padding: 0.6em 1.2em;
-    border-radius: 20px; /* Colțuri rotunjite clasic */
-    
-    background: rgba(255, 255, 255, 0.15); /* Puțin mai vizibil */
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    top: 15px;
+    left: 30%;
+    transform: translateX(-5%) scale(0.9);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 11px;
     font-weight: 600;
-    color: #ffffff;
-    
+    color: rgba(255, 255, 255, 0.8);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     cursor: pointer;
     z-index: 40;
-    white-space: nowrap;
-    
-    /* ANIMAȚII */
+
+    /* Starea inițială (Ascuns) */
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-5px) scale(0.9);
-    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* La ieșire (FadeOut): Tranziție liniară și simplă pentru fluiditate */
+    transition: opacity 0.5s ease-in-out, 
+                transform 0.5s ease-in-out, 
+                visibility 0.5s;
 }
 
 .search-trigger-btn.is-visible {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0) scale(1);
+    transform: translateX(-5%) scale(1);
+    /* La intrare (FadeIn): Efect elastic "premium" */
+    transition: opacity 0.6s ease-out, 
+                transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-
-/* Fix pentru iconița din interior */
-.search-trigger-btn img {
-    width: 1.2em;
-    height: auto;
-    filter: brightness(0) invert(1); /* Se asigură că logo-ul e alb */
-}
-
 
 
 /* Efect de apăsare */
@@ -475,7 +453,7 @@ body {
 
 #player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
 
-
+.art-container { width: 250px; height: 250px; position: relative; margin-bottom: 25px; }
 .main-art { 
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     border-radius: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.7); object-fit: cover; 
