@@ -454,16 +454,24 @@ body {
 #player-view { display: none; position: relative; z-index: 10; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 100px 0; }
 
 .art-container { 
-    /* Eliminăm lățimea fixă de 250px */
-    height: 35vh; /* Ocupă 35% din înălțimea ecranului (ajustează valoarea dacă vrei mai mare/mic) */
-    aspect-ratio: 1 / 1; /* Forțează lățimea să fie egală cu înălțimea */
-    position: relative; 
-    margin-bottom: 25px; 
+    /* Eliminăm lățimea fixă */
+    width: auto; 
     
-    /* Centrare în cazul în care containerul părinte e mai lat */
+    /* Păstrăm înălțimea adaptabilă la ecran prin unități relative */
+    /* Dacă vrei să fie exact ca înainte dar dinamică, folosim vh (viewport height) */
+    height: 30vh; 
+    
+    /* Aceasta este "magia": lățimea va deveni egală cu înălțimea automat */
+    aspect-ratio: 1 / 1; 
+    
+    position: relative; 
+    margin-bottom: 25px;
+    
+    /* Centrare orizontală */
     margin-left: auto;
     margin-right: auto;
 }
+
 
 .main-art { 
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
