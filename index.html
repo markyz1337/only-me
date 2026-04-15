@@ -336,7 +336,7 @@ body {
 
 /* Obiectul aplicației - Dimensiuni fixe 9:16 */
 .app-container {
-    width: 406px; 
+    width: 395px; 
     height: 750px; 
     position: relative;
     display: flex; 
@@ -363,7 +363,7 @@ body {
     top: 0; left: 0; width: 100%; height: 100%;
     background-size: cover; 
     background-position: center;
-    filter: blur(40px) brightness(0.4) saturate(1.2);
+    filter: blur(40px) brightness(0.35) saturate(1.2);
     z-index: 0; 
     opacity: 0;
     transition: opacity 1.5s ease-in-out;
@@ -871,12 +871,12 @@ function applySmartScaling() {
     const winH = window.innerHeight;
     
     // Dimensiunile tale de referință
-    const docW = 406;
+    const docW = 395;
     const docH = 750;
 
     // Calculăm cât la sută din ecran ocupă designul (lăsăm 4% margine de siguranță)
-    const scaleHeight = (winH * 1) / docH;
-    const scaleWidth = (winW * 1) / docW;
+    const scaleHeight = (winH * 0.98) / docH;
+    const scaleWidth = (winW * 0.98) / docW;
 
     // Alegem valoarea cea mai mică pentru a fi siguri că încape și pe lățime și pe înălțime
     const finalScale = Math.min(scaleHeight, scaleWidth);
