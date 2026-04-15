@@ -1537,17 +1537,18 @@ function renderList(mode, el) {
 
     if (el) {
         if (scrollContainer) scrollContainer.scrollTop = 0;
-        // Schimbăm clasa activă
+        // Schimbăm clasa activă pe tab-uri
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
 
-    // Filtrare și redare listă
+    // Filtrare listă în funcție de categoria selectată
     list.innerHTML = "";
     const key = `is${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
     const newList = stations.filter(s => s[key] || (mode === 'all' && s.isAll));
     currentFilteredList = newList;
 
+    // Sincronizăm indexul dacă un post rulează deja
     if (activeStationObject) {
         const foundIdx = newList.findIndex(s => s.name === activeStationObject.name);
         currentIdx = foundIdx !== -1 ? foundIdx : -1;
@@ -1558,8 +1559,12 @@ function renderList(mode, el) {
     currentFilteredList.forEach((s, i) => {
         const item = document.createElement('div');
         const isCurrentlyPlaying = (activeStationObject && activeStationObject.name === s.name && !audio.paused);
+        
+        // --- MODIFICĂRI PENTRU ANDROID TV ---
         item.className = `station-item ${isCurrentlyPlaying ? 'is-playing' : ''}`;
         item.setAttribute('data-name', s.name); 
+        item.setAttribute('tabindex', '0'); // Permite selectarea cu D-pad (Săgeți)
+        // ------------------------------------
 
         const optimizedUrl = getOptimizedImg(s.img);
         const finalImg = optimizedUrl || s.img || FALLBACK_IMG;
@@ -1575,18 +1580,31 @@ function renderList(mode, el) {
             </div>
         `;
 
+        // Click pentru ecrane tactile / Mouse
         item.onclick = () => { 
             currentIdx = i; 
             updateSliderText(); 
             loadStationInfo(currentIdx, true, false); 
         };
+
+        // --- SUPORT PENTRU TELECOMANDĂ (Butonul OK/Enter) ---
+        item.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                item.click();
+            }
+        };
+        // ----------------------------------------------------
+
         list.appendChild(item);
 
+        // Actualizare metadata în fundal pentru fiecare item
         setTimeout(() => { fetchMetadata(s.stream, s); }, i * 100);
     });
 
     updateUI(!audio.paused);
 }
+
 
 
 
@@ -2037,60 +2055,6 @@ async function init() {
 }
 
 
-// --- LOGICĂ TELECOMANDĂ / SMART TV ---
-document.addEventListener('keydown', (e) => {
-    // Detectăm dacă suntem în Player sau în Listă
-    const isPlayerVisible = document.getElementById('player-view').style.display === 'flex';
-
-    switch(e.key) {
-        case "ArrowRight": 
-            // Săgeată Dreapta -> Următoarea piesă
-            next();
-            break;
-            
-        case "ArrowLeft": 
-            // Săgeată Stânga -> Piesa anterioară
-            prev();
-            break;
-            
-        case "Enter":
-        case "OK":
-        case "Select":
-            // Butonul OK/Enter -> Play/Pause
-            togglePlay();
-            break;
-            
-        case "ArrowUp":
-            // Săgeată Sus -> Comută la Player (dacă ești în listă)
-            if (!isPlayerVisible) switchTab('player');
-            break;
-            
-        case "ArrowDown":
-        case "Back":
-        case "Escape":
-        case "BrowserBack":
-            // Săgeată Jos sau Back -> Revine la Listă
-            if (isPlayerVisible) {
-                switchTab('list');
-                e.preventDefault(); // Previne ieșirea din browser pe unele TV-uri
-            }
-            break;
-            
-        case "MediaPlayPause":
-        case " ":
-            // Butonul Play/Pause dedicat de pe unele telecomenzi sau Space
-            togglePlay();
-            break;
-            
-        case "MediaTrackNext":
-            next();
-            break;
-            
-        case "MediaTrackPrevious":
-            prev();
-            break;
-    }
-});
 
 
 
