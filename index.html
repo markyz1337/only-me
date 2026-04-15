@@ -337,13 +337,13 @@ body {
 /* Obiectul aplicației - Dimensiuni fixe 9:16 */
 .app-container {
     width: 390px; 
-    height: 693px; 
+    height: 750px; 
     position: relative;
     display: flex; 
     flex-direction: column;
     background: #000;
     border-radius: 40px; 
-    border: 8px solid #1a1a1a;
+    border: 7px solid #1a1a1a;
     box-shadow: 0 0 50px rgba(0,0,0,0.8);
     overflow: hidden;
     
@@ -375,15 +375,11 @@ body {
     left: 0; 
     width: 100%;
     z-index: 30;
-    padding-top: calc(env(safe-area-inset-top) + 15px);
+    padding-top: 25px; /* Spațiu fix de sus */
     padding-bottom: 20px; 
-    
-    /* MODIFICĂRILE PENTRU CENTRARE: */
     display: flex; 
-    justify-content: center; /* Centrează tab-urile orizontal */
-    flex-wrap: wrap;         /* Permite trecerea pe rândul nou dacă sunt multe */
+    justify-content: center;
     gap: 10px; 
-    
     background: transparent; 
     pointer-events: none;
 }
@@ -419,22 +415,21 @@ body {
     position: relative; 
     z-index: 10; 
     flex: 1; 
-    /* Padding-ul de sus trebuie să fie suficient de mare ca să nu înceapă lista sub tab-uri */
-    padding: 55px 20px 140px 20px; 
+    /* Padding fix: sus (pentru tab-uri), lateral, jos (pentru nav bar) */
+    padding: 65px 20px 100px 20px; 
     overflow-y: auto; 
     overscroll-behavior-y: contain; 
     -webkit-overflow-scrolling: touch; 
 
-    /* Efectul de Fadeout */
     -webkit-mask-image: linear-gradient(to bottom, 
         transparent 0%, 
-        black 15%, 
+        black 10%, 
         black 90%, 
         transparent 100%
     );
     mask-image: linear-gradient(to bottom, 
         transparent 0%, 
-        black 15%, 
+        black 10%, 
         black 90%, 
         transparent 100%
     );
@@ -877,11 +872,11 @@ function applySmartScaling() {
     
     // Dimensiunile tale de referință
     const docW = 390;
-    const docH = 693;
+    const docH = 750;
 
     // Calculăm cât la sută din ecran ocupă designul (lăsăm 4% margine de siguranță)
-    const scaleHeight = (winH * 0.95) / docH;
-    const scaleWidth = (winW * 0.95) / docW;
+    const scaleHeight = (winH * 0.96) / docH;
+    const scaleWidth = (winW * 0.96) / docW;
 
     // Alegem valoarea cea mai mică pentru a fi siguri că încape și pe lățime și pe înălțime
     const finalScale = Math.min(scaleHeight, scaleWidth);
