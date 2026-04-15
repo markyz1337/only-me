@@ -334,23 +334,35 @@ body {
 
 
 
+/* Forțăm dimensiunea 9:16 (Exemplu: 390px lățime x 693px înălțime) */
 .app-container {
-    width: 100%; max-width:400px; height: 100.1%; position: relative;
-    display: flex; flex-direction: column;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    width: 390px; 
+    height: 693px; 
+    position: relative;
+    display: flex; 
+    flex-direction: column;
+    background: #000;
+    border-radius: 40px; /* Opțional: colțuri rotunjite ca un telefon */
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    border: 8px solid #1a1a1a; /* Opțional: bordură tip carcasă */
+    
+    /* Eliminăm padding-ul env() deoarece avem dimensiune fixă acum */
+    padding-top: 20px;
+    padding-bottom: 0;
 }
 
+
+/* Ajustăm fundalul blurat să stea în interiorul containerului fix */
 .bg-blur {
     position: absolute; 
-    top: -10%; left: -10%; width: 120%; height: 120%;
+    top: 0; left: 0; width: 100%; height: 100%;
     background-size: cover; 
     background-position: center;
     filter: blur(40px) brightness(0.4) saturate(1.2);
     z-index: 0; 
     opacity: 0;
     transition: opacity 1.5s ease-in-out;
-    will-change: opacity;
 }
 
 .header-tabs { 
@@ -604,7 +616,7 @@ body {
     align-items: center;
     
     /* MODIFICĂ VALOAREA DE MAI JOS (ex: 0.8 pentru 80%, 1.1 pentru 110%) */
-    transform: scale(0.5); 
+    transform: scale(1); 
     
     /* Asigură-te că scalarea pornește din centru */
     transform-origin: center center; 
