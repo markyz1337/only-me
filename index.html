@@ -345,7 +345,6 @@ body {
     
     /* Fundal semi-transparent cu blur intern (Glassmorphism) */
     
-    border-radius: 40px; 
     overflow: hidden; /* Conținutul listelor rămâne tăiat corect de ramă */
     
     transform-origin: center center;
@@ -361,13 +360,14 @@ body {
     z-index: 1; /* Stă sub telefon */
     
     /* Dimensiuni raportate la baza de 395x750px */
-    width: calc(405px * 0.98);  /* 130% Lățime */
+    width: calc(405px * 0.88);  /* 130% Lățime */
     height: calc(750px * 0.88); /* 120% Înălțime */
+
     
     background-size: cover; 
     background-position: center;
     filter: blur(50px) brightness(0.5) saturate(1.4);
-    border-radius: 80px; /* Urmează forma telefonului dar mai difuz */
+    border-radius: 20px; /* Urmează forma telefonului dar mai difuz */
     
     opacity: 0;
     transition: opacity 1.5s ease-in-out;
