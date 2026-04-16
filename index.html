@@ -532,7 +532,7 @@ body {
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 .nav-bar { 
-    position: absolute; bottom: 20px; left: 15px; right: 15px; z-index: 50; 
+    position: absolute; bottom: 20px; left: 17px; right: 17px; z-index: 50; 
     background: rgba(25,25,25,0.7); /* Fundal mai opac la start */
     backdrop-filter: blur(25px); 
     -webkit-backdrop-filter: blur(25px); /* Fix pentru Safari/iOS */
@@ -561,19 +561,19 @@ body {
 .nav-bar.on-radio::before { transform: translateX(100%); }
 .nav-bar.on-player::before { transform: translateX(0%); }
 
-.nav-link { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0; width: 50%; color: #777; cursor: pointer; font-size: 13px; }
+.nav-link { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0; width: 50%; color: #777; cursor: pointer; font-size: 13px; font-weight: 800; }
 .nav-link.active { color: #fff; }
 .nav-link.active i { color: var(--accent); }
 
 .fab { 
     position: absolute; 
-    bottom: 135px; 
+    bottom: 130px; 
     right: 21px; 
     background: #fff; 
     color: #000;      
-    width: 65px; 
+    width: 60px; 
     cursor: pointer;
-    height: 65px; 
+    height: 60px; 
     border-radius: 50%; 
     display: flex; 
     align-items: center; 
