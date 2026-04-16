@@ -885,8 +885,8 @@ function applySmartScaling() {
     const docW = 405;
     const docH = 750;
 
-    const scaleHeight = (winH * 1) / docH;
-    const scaleWidth = (winW * 1) / docW;
+    const scaleHeight = (winH * 1.02) / docH;
+    const scaleWidth = (winW * 1.02) / docW;
     const finalScale = Math.min(scaleHeight, scaleWidth);
 
     // Aplicăm aceeași scalare și telefonului și fundalului din spate
