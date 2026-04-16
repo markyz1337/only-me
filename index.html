@@ -336,7 +336,7 @@ body {
 
 /* Modificări la Containerul Telefonului */
 .app-container {
-    width: 395px; 
+    width: 405px; 
     height: 750px; 
     position: relative;
     z-index: 10; /* Stă deasupra aurei */
@@ -345,11 +345,9 @@ body {
     
     /* Fundal semi-transparent cu blur intern (Glassmorphism) */
     background: rgba(0, 0, 0, 0.5); 
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     
     border-radius: 40px; 
-    border: 7px solid #1a1a1a;
+    border: 0px solid #1a1a1a;
     box-shadow: 0 0 50px rgba(0,0,0,0.8);
     overflow: hidden; /* Conținutul listelor rămâne tăiat corect de ramă */
     
@@ -887,11 +885,11 @@ function applySmartScaling() {
     const winW = window.innerWidth;
     const winH = window.innerHeight;
     
-    const docW = 395;
+    const docW = 405;
     const docH = 750;
 
-    const scaleHeight = (winH * 0.90) / docH;
-    const scaleWidth = (winW * 0.90) / docW;
+    const scaleHeight = (winH * 1) / docH;
+    const scaleWidth = (winW * 1) / docW;
     const finalScale = Math.min(scaleHeight, scaleWidth);
 
     // Aplicăm aceeași scalare și telefonului și fundalului din spate
