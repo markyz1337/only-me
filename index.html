@@ -1167,65 +1167,70 @@ function analyticalClean(artist, title) {
 
 
 
-// --- LOGICA HOPE EMOJI ÎMBUNĂTĂȚITĂ (ANTI-REPETARE ȘI FIX DISPARIȚIE) ---
-const hopeEmojis = ["🌅", "💛", "🥰", "❤️‍🔥", "💗", "💞", "✨", "⭐️", "🌙", "🌕", "🌼", "🌸", "🐝", "🌷", "🪐", "💫", "🌠", "🌌", "🌇", "🌃", "🌆", "💒"];
-let lastHopeEmoji = ""; 
+// --- LOGICA HOPE GIF STABILIZATĂ ---
+const hopeGifs = [];
+for (let i = 1; i <= 58; i++) {
+    hopeGifs.push(`https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/animated_emojis/A${i}.GIF`);
+}
+
+let lastHopeGif = ""; 
 let emojiInterval = null; 
 
 function rotateHopeEmoji() {
-    let availableEmojis = hopeEmojis.filter(e => e !== lastHopeEmoji);
-    const newEmoji = availableEmojis[Math.floor(Math.random() * availableEmojis.length)];
-    lastHopeEmoji = newEmoji;
+    let availableGifs = hopeGifs.filter(g => g !== lastHopeGif);
+    const newGif = availableGifs[Math.floor(Math.random() * availableGifs.length)];
+    lastHopeGif = newGif;
 
     // 1. Update în LISTĂ
     const listItemName = document.querySelector(`.station-item[data-name="Hope"] .station-name`);
     if (listItemName) {
         let listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
         if (!listEmojiSpan) {
-            listItemName.innerHTML = `Hope <span class="list-hope-emoji" style="transition: opacity 0.6s ease-in-out; display: inline-block; margin-left: 5px; font-size: 13px;">${newEmoji}</span>`;
+            // Adăugăm un container cu lățime fixă (20px) ca să nu miște textul
+            listItemName.innerHTML = `Hope <span class="list-hope-emoji" style="transition: opacity 0.6s ease-in-out; display: inline-block; width: 20px; margin-left: 5px; vertical-align: middle; text-align: center;"></span>`;
             listEmojiSpan = listItemName.querySelector('.list-hope-emoji');
         }
         listEmojiSpan.style.opacity = "0";
         setTimeout(() => {
             if(listEmojiSpan) {
-                listEmojiSpan.innerText = newEmoji;
+                listEmojiSpan.innerHTML = `<img src="${newGif}" style="height: 18px; width: auto; display: inline-block;">`;
                 listEmojiSpan.style.opacity = "1";
             }
         }, 650); 
     }
 
-    // 2. Update în PLAYER (Fix pentru "ope" și dispariție)
+    // 2. Update în PLAYER (Aici e problema de centrare)
     const isHopeActive = activeStationObject && activeStationObject.name === "Hope";
     if (isHopeActive) {
         const titleEl = document.querySelector('#slide-current h2');
         if (titleEl) {
             let playerEmojiSpan = titleEl.querySelector('span');
             
-            // Verificăm dacă textul "Hope" există, dacă nu, îl resetăm corect
-            if (!titleEl.childNodes.length || titleEl.textContent.trim() === "") {
-                titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block; margin-left: 5px;">${newEmoji}</span>`;
+            if (!playerEmojiSpan) {
+                // IMPORTANT: "display: inline-flex" și o lățime minimă asigură că spațiul e rezervat mereu
+                titleEl.style.display = "flex";
+                titleEl.style.justifyContent = "center";
+                titleEl.style.alignItems = "center";
+                
+                titleEl.innerHTML = `Hope <span style="transition: opacity 0.6s ease-in-out; display: inline-block; width: 40px; margin-left: 8px; flex-shrink: 0; text-align: left;"></span>`;
                 playerEmojiSpan = titleEl.querySelector('span');
-            } 
-            // Dacă span-ul lipsește dar cuvântul Hope e acolo
-            else if (!playerEmojiSpan) {
-                titleEl.textContent = "Hope "; 
-                playerEmojiSpan = document.createElement('span');
-                playerEmojiSpan.style.transition = "opacity 0.6s ease-in-out";
-                playerEmojiSpan.style.display = "inline-block";
-                playerEmojiSpan.style.marginLeft = "5px";
-                titleEl.appendChild(playerEmojiSpan);
             }
             
             playerEmojiSpan.style.opacity = "0";
             setTimeout(() => {
                 if(playerEmojiSpan) {
-                    playerEmojiSpan.innerText = newEmoji;
+                    // Setăm imaginea
+                    playerEmojiSpan.innerHTML = `<img src="${newGif}" style="height: 30px; width: auto; display: inline-block; vertical-align: middle;">`;
                     playerEmojiSpan.style.opacity = "1";
                 }
             }, 650);
         }
     }
 }
+
+
+
+
 
 
 function checkHopeEffect() {
