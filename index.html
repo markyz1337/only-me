@@ -45,6 +45,40 @@
 }
 
 
+.mesaj-secret-white {
+    color: #ffffff;
+    font-weight: 800;
+    opacity: 0.8;
+    letter-spacing: 1.5px;
+    background: transparent !important;
+    display: inline-block;
+
+    /* Glow Alb - Straturi succesive pentru intensitate */
+    text-shadow: 
+        0 0 5px  rgba(255, 255, 255, 0.1),  /* Nucleul textului */
+        0 0 15px rgba(255, 255, 255, 0.1),  /* Aura medie */
+        0 0 25px rgba(255, 255, 255, 0.1);  /* Difuzie externă */
+
+    animation: whiteNeonPulse 5.5s infinite ease-in-out;
+}
+
+@keyframes whiteNeonPulse {
+    0%, 100% {
+        text-shadow: 
+            0 0 5px  rgba(255, 255, 255, 0.1),
+            0 0 5px rgba(255, 255, 255, 0.1),
+        transform: scale(1);
+    }
+    50% {
+        text-shadow: 
+            0 0 8px rgba(255, 255, 255, 1),
+            0 0 8px rgba(255, 255, 255, 0.5),
+        transform: scale(1.01); /* O creștere foarte fină */
+    }
+}
+
+
+
 
 .search-trigger-btn {
     position: absolute;
@@ -1717,23 +1751,52 @@ function updateSliderText() {
     const ids = ['slide-prev', 'slide-current', 'slide-next'];
     const indices = [(currentIdx - 1 + currentFilteredList.length) % currentFilteredList.length, currentIdx, (currentIdx + 1) % currentFilteredList.length];
     
+    const acum = new Date();
+    const esteZiuaSecretă = (acum.getDate() === 2);
+
     ids.forEach((id, i) => {
         const el = document.getElementById(id);
+        if (!el) return;
+
         const data = currentFilteredList[indices[i]];
         const h2 = el.querySelector('h2');
+        const pDesc = el.querySelector('p');
         
-        if (data.name === "Hope") {
-            // Dacă titlul nu conține deja "Hope", îl setăm. 
-            // Nu folosim innerText gol pentru a nu șterge span-ul de emoji dacă e prezent
-            if (!h2.textContent.includes("Hope")) {
-                h2.innerText = "Hope";
+        // --- LOGICĂ TITLU (H2) ---
+        if (h2) {
+            // Verificăm dacă textul din interior (indiferent de span-uri) este diferit
+            // Folosim .textContent pentru a ignora structura HTML la verificare
+            if (h2.textContent.trim() !== data.name) {
+                // DOAR dacă numele s-a schimbat radical (altă piesă), scriem textul
+                // Atenție: Dacă GIF-urile tale sunt puse prin HTML, aici ar trebui 
+                // să le re-inserezi dacă e nevoie. 
+                h2.innerText = data.name; 
             }
-        } else {
-            h2.innerText = data.name;
+            // Dacă textul e același, NU FACEM NIMIC. Browserul lasă GIF-urile în pace.
         }
-        el.querySelector('p').innerText = data.desc;
+        
+        // --- LOGICĂ DESCRIERE (P) ---
+        if (pDesc) {
+            if (data.name === "Hope" && esteZiuaSecretă) {
+                // Verificăm dacă span-ul nostru de glow există deja
+                if (!pDesc.querySelector('.mesaj-secret-white')) {
+                    pDesc.innerHTML = `<span class="mesaj-secret-white">E ziua noastră. Te iubesc! 💛<br>code: "W"</span>`;
+                    pDesc.classList.add('mesaj-secret-white-container');
+                }
+            } else {
+                // Resetăm la descrierea originală doar dacă e piesa greșită sau nu e ziua 2
+                if (pDesc.classList.contains('mesaj-secret-white-container') || pDesc.textContent.trim() !== data.desc) {
+                    pDesc.innerText = data.desc;
+                    pDesc.classList.remove('mesaj-secret-white-container');
+                }
+            }
+        }
     });
 }
+
+
+
+
 
 
 function transliterate(t) {
