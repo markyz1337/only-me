@@ -187,7 +187,7 @@
   .lyrics-inner::-webkit-scrollbar-thumb{background:var(--hairline); border-radius:3px}
 
   /* ---------- CHANNEL RAIL ---------- */
-  .rail-section{max-width:760px; margin:34px auto 0; padding:0 0 40px}
+  .rail-section{max-width:760px; margin:16px auto 0; padding:0 0 40px}
   .rail-label{
     font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
     color:var(--ink-faint); padding:0 22px; margin-bottom:14px;
@@ -714,6 +714,29 @@ function toggleLyrics(){
   document.getElementById('lyricsPanel').classList.toggle('open', lyricsOpen);
   if(lyricsOpen) fetchLyricsFor(current);
 }
+async function tryLrclib(artist, title){
+  try{
+    const res = await fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`);
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(Array.isArray(data) && data.length){
+      const withText = data.find(d => d.plainLyrics && d.plainLyrics.trim());
+      if(withText) return withText.plainLyrics.trim();
+    }
+  }catch(e){}
+  return null;
+}
+
+async function tryLyricsOvh(artist, title){
+  try{
+    const res = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`);
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(data.lyrics && data.lyrics.trim()) return data.lyrics.trim();
+  }catch(e){}
+  return null;
+}
+
 async function fetchLyricsFor(station){
   const box = document.getElementById('lyricsContent');
   if(!station || !station.trackTitle){
@@ -731,18 +754,23 @@ async function fetchLyricsFor(station){
   const title = parts.slice(1).join(' - ').trim();
   box.textContent = 'Se caută versurile...';
   box.classList.add('is-empty');
-  try{
-    const res = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`);
-    if(!res.ok) throw new Error('not found');
-    const data = await res.json();
-    if(data.lyrics){
-      box.textContent = data.lyrics.trim();
-      box.classList.remove('is-empty');
+
+  let lyrics = await tryLrclib(artist, title);
+  if(lyrics){
+    console.log(`%c[Versuri] Sursa: lrclib.net`, 'color:#4fbf9e;font-weight:bold', `— ${artist} - ${title}`);
+  }else{
+    lyrics = await tryLyricsOvh(artist, title);
+    if(lyrics){
+      console.log(`%c[Versuri] Sursa: lyrics.ovh (rezervă)`, 'color:#d9a55a;font-weight:bold', `— ${artist} - ${title}`);
     }else{
-      box.textContent = 'Versuri indisponibile pentru această piesă.';
-      box.classList.add('is-empty');
+      console.log(`%c[Versuri] Negăsite pe niciuna dintre surse`, 'color:#c4525b;font-weight:bold', `— ${artist} - ${title}`);
     }
-  }catch(e){
+  }
+
+  if(lyrics){
+    box.textContent = lyrics;
+    box.classList.remove('is-empty');
+  }else{
     box.textContent = 'Versuri indisponibile pentru această piesă.';
     box.classList.add('is-empty');
   }
@@ -767,6 +795,15 @@ renderRail();
 initMediaSessionHandlers();
 document.getElementById('rail').addEventListener('scroll', onRailScroll, {passive:true});
 window.addEventListener('resize', ()=>requestAnimationFrame(updateTileScale));
+function firstInteractionStart(){
+  if(audio.paused) audio.play().catch(()=>{});
+  ['click','touchstart','scroll','pointerdown'].forEach(ev=>{
+    document.removeEventListener(ev, firstInteractionStart, true);
+  });
+}
+['click','touchstart','scroll','pointerdown'].forEach(ev=>{
+  document.addEventListener(ev, firstInteractionStart, { capture:true, passive:true });
+});
 setInterval(()=>{ stations.forEach(s=>fetchMetadata(s)); }, 15000);
 stations.forEach(s=>fetchMetadata(s));
 </script>
