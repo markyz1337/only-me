@@ -171,9 +171,40 @@
     transition:max-height .4s ease, border-color .3s ease, background-color .3s ease;
   }
   .lyrics-panel.open{
-    max-height:360px; border-color:var(--hairline); background-color:var(--glass);
+    max-height:300px; border-color:var(--hairline); background-color:var(--glass);
   }
-  .lyrics-inner{padding:18px 20px; max-height:320px; overflow-y:auto}
+  .lyrics-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px 0;
+  }
+  .lyrics-copy-btn{
+    display:flex; align-items:center; gap:6px;
+    background:var(--glass); border:1px solid var(--hairline); color:var(--ink-dim);
+    font-family:var(--sans); font-size:11.5px; font-weight:500;
+    padding:7px 12px; border-radius:20px; cursor:pointer;
+    transition:background .18s, border-color .18s, color .18s;
+  }
+  .lyrics-copy-btn:hover{background:var(--glass-strong); color:var(--ink); border-color:var(--metal)}
+  .lyrics-copy-btn.copied{color:var(--metal); border-color:var(--metal)}
+  .lyrics-copy-btn svg{width:13px;height:13px}
+  .lyrics-scroll-btns{display:flex; gap:6px}
+  .scroll-btn{
+    width:28px;height:28px; border-radius:50%;
+    border:1px solid var(--hairline); background:var(--glass); color:var(--ink-dim);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:background .18s, color .18s, border-color .18s;
+    -webkit-user-select:none; user-select:none; touch-action:none;
+  }
+  .scroll-btn:hover{background:var(--glass-strong); color:var(--ink); border-color:var(--metal)}
+  .scroll-btn:active{transform:scale(0.92)}
+  .scroll-btn svg{width:13px;height:13px}
+  .lyrics-inner{
+    padding:10px 20px 20px; max-height:240px;
+    overflow-y:hidden; touch-action:pan-y;
+    -webkit-user-select:text; user-select:text;
+  }
+
+
   #lyricsContent{white-space:pre-line; font-size:13.5px; line-height:1.75; color:var(--ink-dim)}
   #lyricsContent.is-empty{
     white-space:nowrap; overflow:hidden; text-align:center;
@@ -183,8 +214,6 @@
     animation:lyricsBreathe 2.4s ease-in-out infinite;
   }
   @keyframes lyricsBreathe{0%,100%{opacity:0.55}50%{opacity:1}}
-  .lyrics-inner::-webkit-scrollbar{width:5px}
-  .lyrics-inner::-webkit-scrollbar-thumb{background:var(--hairline); border-radius:3px}
 
   /* ---------- CHANNEL RAIL ---------- */
   .rail-section{max-width:760px; margin:16px auto 0; padding:0 0 40px}
@@ -337,7 +366,22 @@
 
 <div class="lyrics-wrap">
   <div class="lyrics-panel" id="lyricsPanel">
-    <div class="lyrics-inner">
+    <div class="lyrics-header">
+      <button class="lyrics-copy-btn" id="lyricsCopyBtn" onclick="copyLyrics()" aria-label="Copiază versurile">
+        <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+        <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M5 12l5 5L20 7"/></svg>
+        <span id="copyLabel">Copiază</span>
+      </button>
+      <div class="lyrics-scroll-btns">
+        <button class="scroll-btn" id="scrollUpBtn" aria-label="Scroll sus">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+        <button class="scroll-btn" id="scrollDownBtn" aria-label="Scroll jos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="lyrics-inner" id="lyricsInner">
       <div id="lyricsContent" class="is-empty">Versurile apar automat când e detectată o piesă la canalul curent.</div>
     </div>
   </div>
@@ -709,11 +753,15 @@ function openChannelPlaylist(){
 
 // --- VERSURI (lyrics.ovh, fără cheie API) ---
 let lyricsOpen = false;
+let lyricsRawText = "";
+let lyricsRequestId = 0;
+
 function toggleLyrics(){
   lyricsOpen = !lyricsOpen;
   document.getElementById('lyricsPanel').classList.toggle('open', lyricsOpen);
   if(lyricsOpen) fetchLyricsFor(current);
 }
+
 async function tryLrclib(artist, title){
   try{
     const res = await fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`);
@@ -739,21 +787,35 @@ async function tryLyricsOvh(artist, title){
 
 async function fetchLyricsFor(station){
   const box = document.getElementById('lyricsContent');
+  const inner = document.getElementById('lyricsInner');
+  const myRequestId = ++lyricsRequestId;
+
   if(!station || !station.trackTitle){
+    if(myRequestId !== lyricsRequestId) return;
     box.textContent = 'Versurile apar automat când e detectată o piesă la canalul curent.';
     box.classList.add('is-empty');
+    lyricsRawText = "";
+    inner.scrollTop = 0;
     return;
   }
   const parts = station.trackTitle.split(' - ');
   if(parts.length < 2){
+    if(myRequestId !== lyricsRequestId) return;
     box.textContent = 'Nu am putut identifica artist și titlu pentru versuri.';
     box.classList.add('is-empty');
+    lyricsRawText = "";
+    inner.scrollTop = 0;
     return;
   }
   const artist = parts[0].trim();
   const title = parts.slice(1).join(' - ').trim();
-  box.textContent = 'Se caută versurile...';
-  box.classList.add('is-empty');
+
+  if(myRequestId === lyricsRequestId){
+    box.textContent = 'Se caută versurile...';
+    box.classList.add('is-empty');
+    lyricsRawText = "";
+    inner.scrollTop = 0;
+  }
 
   let lyrics = await tryLrclib(artist, title);
   if(lyrics){
@@ -767,14 +829,88 @@ async function fetchLyricsFor(station){
     }
   }
 
+  // dacă între timp s-a pornit o cerere mai nouă (canal schimbat), ignorăm acest rezultat
+  if(myRequestId !== lyricsRequestId) return;
+
   if(lyrics){
     box.textContent = lyrics;
     box.classList.remove('is-empty');
+    lyricsRawText = lyrics;
   }else{
     box.textContent = 'Versuri indisponibile pentru această piesă.';
     box.classList.add('is-empty');
+    lyricsRawText = "";
+  }
+  inner.scrollTop = 0;
+}
+
+
+// --- COPIERE VERSURI ---
+function copyLyrics(){
+  if(!lyricsRawText) return;
+  const doCopy = ()=>{
+    const btn = document.getElementById('lyricsCopyBtn');
+    const label = document.getElementById('copyLabel');
+    const iconCopy = btn.querySelector('.icon-copy');
+    const iconCheck = btn.querySelector('.icon-check');
+    btn.classList.add('copied');
+    iconCopy.style.display = 'none';
+    iconCheck.style.display = 'inline-flex';
+    const prevLabel = label.textContent;
+    label.textContent = 'Copiat';
+    setTimeout(()=>{
+      btn.classList.remove('copied');
+      iconCopy.style.display = '';
+      iconCheck.style.display = 'none';
+      label.textContent = prevLabel;
+    }, 1600);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(lyricsRawText).then(doCopy).catch(()=>{
+      fallbackCopy(lyricsRawText); doCopy();
+    });
+  }else{
+    fallbackCopy(lyricsRawText); doCopy();
   }
 }
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+// --- SCROLL DOAR CU BUTOANE (fără scroll cu degetul) ---
+let lyricsScrollInterval = null;
+const LYRICS_SCROLL_STEP = 4;
+const LYRICS_SCROLL_TICK = 16;
+
+function startLyricsScroll(direction){
+  stopLyricsScroll();
+  const inner = document.getElementById('lyricsInner');
+  lyricsScrollInterval = setInterval(()=>{
+    inner.scrollTop += direction * LYRICS_SCROLL_STEP;
+  }, LYRICS_SCROLL_TICK);
+}
+function stopLyricsScroll(){
+  if(lyricsScrollInterval){ clearInterval(lyricsScrollInterval); lyricsScrollInterval = null; }
+}
+function initLyricsScrollButtons(){
+  const up = document.getElementById('scrollUpBtn');
+  const down = document.getElementById('scrollDownBtn');
+  const bind = (btn, dir)=>{
+    btn.addEventListener('mousedown', (e)=>{ e.preventDefault(); startLyricsScroll(dir); });
+    btn.addEventListener('touchstart', (e)=>{ e.preventDefault(); startLyricsScroll(dir); }, {passive:false});
+    ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>btn.addEventListener(ev, stopLyricsScroll));
+  };
+  bind(up, -1);
+  bind(down, 1);
+}
+
 
 function heroTap(e){
   if(e.target.closest('button')) return;
@@ -793,6 +929,7 @@ function initStation(){
 initStation();
 renderRail();
 initMediaSessionHandlers();
+initLyricsScrollButtons();
 document.getElementById('rail').addEventListener('scroll', onRailScroll, {passive:true});
 window.addEventListener('resize', ()=>requestAnimationFrame(updateTileScale));
 function firstInteractionStart(){
