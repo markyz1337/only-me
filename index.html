@@ -429,8 +429,10 @@
   .modal-close{
     background:var(--glass); border:1px solid var(--hairline); width:32px; height:32px;
     border-radius:50%; display:flex; align-items:center; justify-content:center;
-    cursor:pointer; color:var(--ink); flex-shrink:0;
+    cursor:pointer; color:var(--ink); flex-shrink:0; overflow:hidden;
   }
+  .modal-close svg{width:15px;height:15px;flex-shrink:0}
+
   .modal-options{display:flex; flex-direction:column; gap:10px}
   .modal-option{
     display:flex; align-items:center; gap:12px;
@@ -457,9 +459,10 @@
   .rp-modal-list{
     display:flex; flex-direction:column; gap:8px;
     overflow-y:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; -ms-overflow-style:none;
   }
-  .rp-modal-list::-webkit-scrollbar{width:5px}
-  .rp-modal-list::-webkit-scrollbar-thumb{background:var(--hairline); border-radius:3px}
+  .rp-modal-list::-webkit-scrollbar{display:none}
+
   .rp-row{
     display:flex; align-items:center; gap:11px;
     padding:9px 10px; border-radius:12px;
