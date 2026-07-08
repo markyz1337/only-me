@@ -2,8 +2,12 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0c0f">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" id="webManifest">
 <title>Sergiu</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -40,9 +44,10 @@
   .topbar{
     position:relative; z-index:2;
     display:flex; align-items:center; gap:12px;
-    padding:26px 22px 0;
+    padding:calc(26px + env(safe-area-inset-top)) 22px 0;
     max-width:760px; margin:0 auto;
   }
+
   .mark{width:30px;height:30px;flex-shrink:0}
   .wordmark{
     font-family:var(--display); font-weight:600; font-size:18px; letter-spacing:-0.01em;
@@ -306,7 +311,8 @@
   @keyframes lyricsBreathe{0%,100%{opacity:0.55}50%{opacity:1}}
 
   /* ---------- CHANNEL RAIL ---------- */
-  .rail-section{max-width:760px; margin:16px auto 0; padding:0 0 40px}
+.rail-section{max-width:760px; margin:16px auto 0; padding:0 0 calc(40px + env(safe-area-inset-bottom))}
+
   .rail-label{
     font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
     color:var(--ink-faint); padding:0 22px; margin-bottom:14px;
@@ -676,6 +682,26 @@
 
 
 <script>
+// --- WEB APP MANIFEST (generat dinamic, pentru "Adaugă pe ecranul principal") ---
+(function(){
+  const manifest = {
+    name: "Sergiu Radio",
+    short_name: "Sergiu",
+    start_url: ".",
+    scope: ".",
+    display: "standalone",
+    background_color: "#0b0c0f",
+    theme_color: "#0b0c0f",
+    icons: [
+      { src: "https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/favicon.png", sizes: "192x192", type: "image/png" },
+      { src: "https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/favicon.png", sizes: "512x512", type: "image/png" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  const link = document.getElementById('webManifest');
+  if(link) link.setAttribute('href', URL.createObjectURL(blob));
+})();
+
 // Blochează dublu-tap zoom și pinch zoom (necesar mai ales pe Safari/iOS)
 let lastTouchEnd = 0;
 document.addEventListener('touchend', function(e){
@@ -933,7 +959,7 @@ function initRpModalEvents(){
 const stations = [
   { name: "Nostalgie", stream: "https://sergiumusic.duckdns.org/muzicaveche", img: "https://mosaic.scdn.co/640/ab67616d00001e021badc66d1c9de6a98d376946ab67616d00001e022b605014f0cf0ca5e3c46b64ab67616d00001e02baa7a73c40a30e2c780c6841ab67616d00001e02ce26853f4b61f0924446f683", desc: "Sergiu | Childhood", yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J", color: "#d9a55a" },
   { name: "Emisiuni Radio 2010s", stream: "https://sergiumusic.duckdns.org/emisiunivechi", img: "https://play-lh.googleusercontent.com/r6ymNUMhRQN9-V6DS0ZZziAKAZrnJKGEw5mIK4KNFV8XPpD5JBEmlEn2ptSx0RDAEMs", desc: "SERGIU | KISS FM • RADIO 21 • RADIO ZU", color: "#6e7b9b", lockMeta: true },
-  { name: "Hope", stream: "https://sergiumusic.duckdns.org/hope", img: "https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/icons/radio_hope.PNG", desc: "Sergiu | Lovefool Pop", yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXuwf5SEEH9vhwwSci67SNnU&si=NclZd61NGrsZ0UCm", color: "#dd7a93" },
+  { name: "Hope", stream: "https://sergiumusic.duckdns.org/hope", img: "https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/favicon.png", desc: "Sergiu | Lovefool Pop", yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXuwf5SEEH9vhwwSci67SNnU&si=NclZd61NGrsZ0UCm", color: "#dd7a93" },
   { name: "Europe Pop", stream: "https://sergiumusic.duckdns.org/europop", img: "https://i.scdn.co/image/ab67616d0000b273e585119372e61c71d135647f", desc: "Best European Pop Music 10-20s", yt: "https://youtube.com/playlist?list=PLju_tYPLb12jzCtuSCkEzfMScH-95il1-&si=p7P8feldxlAOWBHi", color: "#7c86e8" },
   { name: "Romania Pop", stream: "https://sergiumusic.duckdns.org/romaniapop", img: "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84ba8559b7a336f0ba646cff3d", desc: "Best Romanian Pop Music", yt: "https://youtube.com/playlist?list=PLju_tYPLb12h2VlBi5lPddOig7Ki-dE2S&si=4StSQYlR4uazgPKO", color: "#c4525b" },
   { name: "Sad Love", stream: "https://sergiumusic.duckdns.org/sadsong", img: "https://i1.sndcdn.com/artworks-Xo47FqDWMesb-0-t500x500.jpg", desc: "Sergiu | Sad Songs", yt: "https://youtube.com/playlist?list=PLju_tYPLb12i8JU4vMXaq-a3TsZkRnOBa&si=NVC6oUgzBVr3ZGwv", color: "#5b5fa6" },
