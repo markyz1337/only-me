@@ -44,8 +44,34 @@
     max-width:760px; margin:0 auto;
   }
   .mark{width:30px;height:30px;flex-shrink:0}
-  .wordmark{font-family:var(--display); font-weight:600; font-size:18px; letter-spacing:-0.01em}
-  .subline{font-family:var(--mono); font-size:10.5px; color:var(--ink-faint); letter-spacing:0.1em; text-transform:uppercase; margin-top:1px}
+  .wordmark{
+    font-family:var(--display); font-weight:600; font-size:18px; letter-spacing:-0.01em;
+    background:linear-gradient(90deg, var(--ink) 0%, var(--metal) 45%, var(--ink) 65%, var(--metal) 100%);
+    background-size:220% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:wordmarkShimmer 6s ease-in-out infinite;
+  }
+  @keyframes wordmarkShimmer{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+  }
+  .subline{
+    font-family:var(--mono); font-size:10.5px; color:var(--ink-faint); letter-spacing:0.1em; text-transform:uppercase; margin-top:1px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .subline::before{
+    content:'';
+    width:4px; height:4px; border-radius:50%;
+    background:var(--metal);
+    animation:pulse 1.8s ease-in-out infinite;
+    flex-shrink:0;
+  }
+  @media (prefers-reduced-motion:reduce){
+    .wordmark{animation:none}
+    .subline::before{animation:none}
+  }
+
 
   /* ---------- HERO ---------- */
   .hero{
@@ -87,7 +113,9 @@
   .hero-content{
     position:absolute; left:0; right:0; bottom:0;
     padding:22px 22px 24px;
+    z-index:3;
   }
+
   .cover-thumb{
     width:60px; height:60px; border-radius:14px; overflow:hidden;
     border:1px solid var(--hairline); margin-bottom:14px;
@@ -112,14 +140,17 @@
   @keyframes sig{0%,100%{height:3px}50%{height:11px}}
 
   /* ---------- RECENTLY PLAYED BUTTON ---------- */
-  .rp-toggle-btn{
+.rp-toggle-btn{
     display:inline-flex; align-items:center; gap:6px;
     background:var(--glass); border:1px solid var(--hairline); color:var(--ink-dim);
     font-family:var(--sans); font-size:11px; font-weight:500;
     padding:7px 13px; border-radius:20px; cursor:pointer;
     margin-bottom:14px;
+    backdrop-filter:blur(14px) saturate(1.4);
+    -webkit-backdrop-filter:blur(14px) saturate(1.4);
     transition:background .18s, border-color .18s, color .18s;
   }
+
   .rp-toggle-btn:hover{background:var(--glass-strong); color:var(--ink); border-color:var(--metal)}
   .rp-toggle-btn:active{transform:scale(0.97)}
   .rp-toggle-btn svg{width:13px;height:13px}
@@ -433,14 +464,19 @@
     display:flex; align-items:center; gap:11px;
     padding:9px 10px; border-radius:12px;
     border:1px solid var(--hairline); background:var(--glass);
+    cursor:pointer;
   }
+
   .rp-row img{width:38px;height:38px;border-radius:9px; object-fit:cover; flex-shrink:0}
   .rp-row-info{flex:1; min-width:0}
   .rp-row-track{
     font-size:13px; color:var(--ink); font-weight:500;
     white-space:nowrap; overflow:hidden;
     display:block;
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
   }
+
   .rp-row-track .rp-row-inner{display:inline-flex}
 
   .rp-row-track .rp-row-clone{display:none}
@@ -464,6 +500,19 @@
   .rp-empty-msg{
     text-align:center; color:var(--ink-faint); font-size:12.5px; padding:24px 0;
   }
+
+  .copy-toast{
+    position:fixed; left:50%; bottom:26px; z-index:200;
+    transform:translate(-50%, 12px);
+    background:rgba(20,21,26,0.92); border:1px solid var(--hairline);
+    color:var(--ink); font-family:var(--sans); font-size:12.5px; font-weight:500;
+    padding:10px 18px; border-radius:20px;
+    backdrop-filter:blur(10px);
+    opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  .copy-toast.show{opacity:1; transform:translate(-50%, 0)}
+
 </style>
 </head>
 <body>
@@ -517,7 +566,8 @@
         Recently Played
       </button>
 
-      <h2 id="nowTitle">Atinge un canal mai jos</h2>
+      <h2 id="nowTitle" onclick="copyMainTitle(event)" style="cursor:pointer">Atinge un canal mai jos</h2>
+
 
       <div class="transport">
         <button onclick="prev()" aria-label="Canalul anterior">
@@ -619,6 +669,8 @@
 </div>
 
 <audio id="audio"></audio>
+<div class="copy-toast" id="copyToast">Copiat</div>
+
 
 <script>
 // Blochează dublu-tap zoom și pinch zoom (necesar mai ales pe Safari/iOS)
@@ -645,23 +697,30 @@ const RP_FETCH_LIMIT = 150;
 const RP_RETRY_DELAY = 3000;
 let recentlyPlayedList = [];
 
+let rpLoadedOnce = false;
+
 async function fetchRecentlyPlayed(){
   try{
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/${RP_TABLE}?select=*&order=played_at.desc&limit=${RP_FETCH_LIMIT}`,
       { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
     );
-    if(!res.ok) return;
+    if(!res.ok) throw new Error("status " + res.status);
     const data = (await res.json()) || [];
     // combină în loc să suprascrie: păstrează orice item local adăugat între timp
     const existingKeys = new Set(data.map(d => `${d.station_name}|${d.track_title}`));
     const localOnly = recentlyPlayedList.filter(
       item => !existingKeys.has(`${item.station_name}|${item.track_title}`)
     );
-    recentlyPlayedList = [...localOnly, ...data];
+    recentlyPlayedList = dedupeRecentlyPlayed([...localOnly, ...data]);
     refreshRpUI();
-  }catch(e){}
+
+    rpLoadedOnce = true;
+  }catch(e){
+    setTimeout(fetchRecentlyPlayed, 3000);
+  }
 }
+
 
 async function insertRecentlyPlayed(stationName, trackTitle, trackImage, attempt){
   attempt = attempt || 1;
@@ -691,16 +750,58 @@ async function insertRecentlyPlayed(stationName, trackTitle, trackImage, attempt
   }
 }
 
+const RP_DEDUP_WINDOW_MS = 8 * 60 * 1000; // 8 minute
+
+function normalizeTitleForCompare(str){
+  return (str||'').toLowerCase().trim().replace(/\s+/g,' ');
+}
+
+function dedupeRecentlyPlayed(list){
+  // presupune că lista e deja sortată descrescător după played_at (cele mai noi primele)
+  const kept = [];
+  const lastSeen = new Map(); // key: station|normTitle -> timestamp (ms) al ultimei intrări păstrate
+
+  list.forEach(item=>{
+    const key = item.station_name + '|' + normalizeTitleForCompare(item.track_title);
+    const t = new Date(item.played_at).getTime();
+    const prevT = lastSeen.get(key);
+
+    if(prevT !== undefined && (prevT - t) < RP_DEDUP_WINDOW_MS){
+      return; // duplicat în fereastra de 8 minute față de intrarea mai nouă deja păstrată
+    }
+    lastSeen.set(key, t);
+    kept.push(item);
+  });
+
+  return kept;
+}
+
+
 function recordRecentlyPlayed(stationName, trackTitle, trackImage){
+  const norm = normalizeTitleForCompare(trackTitle);
+  const now = Date.now();
+
+  const recentDuplicate = recentlyPlayedList.find(item=>{
+    if(item.station_name !== stationName) return false;
+    if(normalizeTitleForCompare(item.track_title) !== norm) return false;
+    const itemTime = new Date(item.played_at).getTime();
+    return (now - itemTime) < RP_DEDUP_WINDOW_MS;
+  });
+
+  if(recentDuplicate) return; // aceeași piesă a mai fost înregistrată recent pe acest canal
+
   recentlyPlayedList.unshift({
     station_name: stationName,
     track_title: trackTitle,
     track_image: trackImage || null,
     played_at: new Date().toISOString()
   });
+  recentlyPlayedList = dedupeRecentlyPlayed(recentlyPlayedList);
   refreshRpUI();
   insertRecentlyPlayed(stationName, trackTitle, trackImage);
+
 }
+
 
 function updateRpButtonVisibility(){
   const btn = document.getElementById('rpToggleBtn');
@@ -750,24 +851,30 @@ function formatRpTime(iso){
   return `acum ${diffD} zile`;
 }
 
+const RP_DISPLAY_LIMIT = 20;
+
 function renderRpModalList(filterText){
   const list = document.getElementById('rpModalList');
   if(!list || !current) return;
   const q = (filterText||'').trim().toLowerCase();
   const stationHistory = recentlyPlayedList.filter(item => item.station_name === current.name);
-  const filtered = stationHistory.filter(item => !q || (item.track_title||'').toLowerCase().includes(q));
+  const filtered = stationHistory
+    .filter(item => !q || (item.track_title||'').toLowerCase().includes(q))
+    .slice(0, RP_DISPLAY_LIMIT);
 
   if(!filtered.length){
     list.innerHTML = `<div class="rp-empty-msg">${stationHistory.length ? 'Nicio piesă găsită.' : 'Încă nu există istoric pentru acest canal.'}</div>`;
     return;
   }
 
+
   list.innerHTML = filtered.map(item=>{
     const img = item.track_image || FALLBACK_IMG;
     const track = toTitleCase(item.track_title || '').replace(/</g,'&lt;');
     const time = formatRpTime(item.played_at);
 
-    return `<div class="rp-row">
+    return `<div class="rp-row" data-copy="${encodeURIComponent(track)}">
+
       <img src="${img}" onerror="this.src='${FALLBACK_IMG}'" alt="">
       <div class="rp-row-info">
         <div class="rp-row-track"><span class="rp-row-inner"><span class="rp-row-text">${track}</span><span class="rp-row-text rp-row-clone">${track}</span></span></div>
@@ -804,12 +911,21 @@ function initRpModalEvents(){
   const list = document.getElementById('rpModalList');
   list.addEventListener('click', function(e){
     const btn = e.target.closest('.rp-row-search-btn');
-    if(!btn) return;
-    const track = decodeURIComponent(btn.getAttribute('data-track')||'');
-    const img = decodeURIComponent(btn.getAttribute('data-img')||'');
-    openSearchModalForTrack(track, img);
+    if(btn){
+      e.stopPropagation();
+      const track = decodeURIComponent(btn.getAttribute('data-track')||'');
+      const img = decodeURIComponent(btn.getAttribute('data-img')||'');
+      openSearchModalForTrack(track, img);
+      return;
+    }
+    const row = e.target.closest('.rp-row');
+    if(row){
+      const text = decodeURIComponent(row.getAttribute('data-copy')||'');
+      if(text) copyPlainText(text);
+    }
   });
 }
+
 
 const stations = [
   { name: "Nostalgie", stream: "https://sergiumusic.duckdns.org/muzicaveche", img: "https://mosaic.scdn.co/640/ab67616d00001e021badc66d1c9de6a98d376946ab67616d00001e022b605014f0cf0ca5e3c46b64ab67616d00001e02baa7a73c40a30e2c780c6841ab67616d00001e02ce26853f4b61f0924446f683", desc: "Sergiu | Childhood", yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J", color: "#d9a55a" },
@@ -946,15 +1062,45 @@ function play(station){
   setAmbientColor(station.color);
   renderRail();
   refreshRpUI();
+  saveLastStation(station);
   if(document.getElementById('rpModal').classList.contains('open')){
     document.getElementById('rpModalStationName').innerText = current.name;
   }
   if(lyricsOpen) fetchLyricsFor(station);
 }
+
+function saveLastStation(station){
+  try{
+    localStorage.setItem('sergiu_last_station', JSON.stringify({
+      name: station.name,
+      img: station.img,
+      desc: station.desc,
+      trackTitle: station.trackTitle || null
+    }));
+  }catch(e){}
+}
+
+function loadLastStation(){
+  try{
+    const raw = localStorage.getItem('sergiu_last_station');
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+
 function togglePlay(){
   if(!current){ play(stations[0]); return; }
-  if(audio.paused) audio.play(); else audio.pause();
+  if(audio.paused){
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
+    audio.src = current.stream;
+    audio.play().catch(()=>{});
+  } else {
+    audio.pause();
+  }
 }
+
 function next(){ if(!current){ play(stations[0]); return; } const i=stations.indexOf(current); play(stations[(i+1)%stations.length]); }
 function prev(){ if(!current){ play(stations[0]); return; } const i=stations.indexOf(current); play(stations[(i-1+stations.length)%stations.length]); }
 
@@ -1451,6 +1597,31 @@ async function fetchLyricsFor(station){
 }
 
 
+// --- COPIERE GENERICĂ (titlu piesă) ---
+let copyToastTimeout = null;
+function showCopyToast(){
+  const toast = document.getElementById('copyToast');
+  if(!toast) return;
+  toast.classList.add('show');
+  if(copyToastTimeout) clearTimeout(copyToastTimeout);
+  copyToastTimeout = setTimeout(()=>toast.classList.remove('show'), 1600);
+}
+function copyPlainText(text){
+  if(!text) return;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(showCopyToast).catch(()=>{
+      fallbackCopy(text); showCopyToast();
+    });
+  }else{
+    fallbackCopy(text); showCopyToast();
+  }
+}
+function copyMainTitle(e){
+  if(e) e.stopPropagation();
+  const title = document.getElementById('nowTitle').innerText;
+  copyPlainText(title);
+}
+
 // --- COPIERE VERSURI ---
 function copyLyrics(){
   if(!lyricsRawText) return;
@@ -1603,7 +1774,20 @@ function heroTap(e){
 }
 
 function initStation(){
-  current = stations[0];
+  const saved = loadLastStation();
+  let startStation = stations[0];
+
+  if(saved){
+    const match = stations.find(s => s.name === saved.name);
+    if(match){
+      match.img = saved.img || match.img;
+      match.desc = saved.desc || match.desc;
+      if(saved.trackTitle) match.trackTitle = saved.trackTitle;
+      startStation = match;
+    }
+  }
+
+  current = startStation;
   audio.src = current.stream;
   updateNowUI();
   setAmbientColor(current.color);
@@ -1611,6 +1795,7 @@ function initStation(){
   updateRpButtonVisibility();
   audio.play().catch(()=>{ /* browserul a blocat autoplay-ul cu sunet; rămâne pe pauză până la prima atingere */ });
 }
+
 
 initStation();
 renderRail();
