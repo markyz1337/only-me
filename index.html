@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0b0c0f">
+<meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
+
 <link rel="manifest" id="webManifest">
 <title>Sergiu</title>
 
@@ -31,7 +33,24 @@
     touch-action:manipulation;
     scrollbar-width:none;
     -ms-overflow-style:none;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    -khtml-user-select:none;
+    -moz-user-select:none;
+    -ms-user-select:none;
+    user-select:none;
+    background:#0b0c0f;
   }
+
+  img{
+    -webkit-user-drag:none;
+    -khtml-user-drag:none;
+    -moz-user-drag:none;
+    -o-user-drag:none;
+    user-drag:none;
+    -webkit-touch-callout:none;
+  }
+
   html::-webkit-scrollbar,
   body::-webkit-scrollbar{
     display:none;
@@ -294,8 +313,8 @@
   .lyrics-inner{
     padding:10px 46px 20px 20px; max-height:240px;
     overflow-y:hidden; touch-action:pan-y;
-    -webkit-user-select:text; user-select:text;
   }
+
 
   .lyrics-scrollbar-track{
     position:absolute; top:10px; right:16px; bottom:20px;
@@ -760,6 +779,11 @@ document.addEventListener('touchend', function(e){
 document.addEventListener('gesturestart', function(e){
   e.preventDefault();
 }, { passive:false });
+
+document.addEventListener('contextmenu', function(e){
+  e.preventDefault();
+}, { passive:false });
+
 
 const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.13982720394888960.16320d2b-98f6-4b3b-af8d-f33140cf192a.778f4c59-a76c-44c0-82f7-bd7357649848";
 
