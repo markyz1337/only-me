@@ -281,11 +281,12 @@
     color:var(--ink-faint); padding:0 22px; margin-bottom:14px;
   }
   .rail{
-    display:flex; gap:14px; overflow-x:auto; padding:2px 22px 10px;
+    display:flex; gap:14px; overflow-x:auto; padding:14px 22px 10px;
     scroll-snap-type:x mandatory;
     -webkit-overflow-scrolling:touch;
     mask-image:linear-gradient(90deg, transparent 0, black 22px, black calc(100% - 22px), transparent 100%);
   }
+
   .rail::-webkit-scrollbar{display:none}
   .channel-tile{
     scroll-snap-align:center; flex-shrink:0;
@@ -320,10 +321,59 @@
   @keyframes tileMarquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
   .channel-tile.active .tile-name{color:var(--ink); font-weight:600}
 
+  /* ---------- HOPE — EFECTE ROMANTICE ---------- */
+  .hope-stars{
+    position:absolute; inset:0; width:100%; height:100%;
+    opacity:0; transition:opacity 1.2s ease;
+    pointer-events:none; z-index:1;
+  }
+  .hope-stars.active{opacity:1}
+
+  .hope-hearts{
+    position:absolute; inset:0; overflow:hidden;
+    pointer-events:none; z-index:2;
+    opacity:0; transition:opacity 1s ease;
+  }
+  .hope-hearts.active{opacity:1}
+  .hope-heart{
+    position:absolute; bottom:-20px;
+    color:#ff8fab; opacity:0;
+    filter:drop-shadow(0 0 6px rgba(255,120,160,0.8));
+    animation:hopeHeartRise linear forwards;
+  }
+  @keyframes hopeHeartRise{
+    0%{opacity:0; transform:translateY(0) scale(0.6) rotate(0deg)}
+    10%{opacity:0.9}
+    85%{opacity:0.7}
+    100%{opacity:0; transform:translateY(-340px) scale(1.15) rotate(18deg)}
+  }
+
+  .hero-frame.hope-mode{
+    animation:hopeGlow 3.6s ease-in-out infinite;
+  }
+  @keyframes hopeGlow{
+    0%,100%{box-shadow:inset 0 0 30px rgba(255,120,160,0.15), inset 0 0 0 1px rgba(255,140,170,0.25)}
+    50%{box-shadow:inset 0 0 55px rgba(255,120,160,0.35), inset 0 0 0 1px rgba(255,140,170,0.55)}
+  }
+  .hero-frame.hope-mode .live-dot{background:#ff8fab}
+  .hero-frame.hope-mode #nowTitle{
+    background:linear-gradient(90deg, #fff 0%, #ffd7e2 50%, #fff 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  .channel-tile.is-hope .tile-art{
+    animation:hopeTileGlow 3s ease-in-out infinite;
+  }
+  @keyframes hopeTileGlow{
+    0%,50%,100%{box-shadow:0 0 0 rgba(255,120,160,0)}
+    25%{box-shadow:0 0 16px rgba(255,120,160,0.55)}
+  }
+
   @media (prefers-reduced-motion:reduce){
-    .grain,.live-dot,.sig-bars.active span,.hero-bg{animation:none !important}
+    .grain,.live-dot,.sig-bars.active span,.hero-bg,.hero-frame.hope-mode,.channel-tile.is-hope .tile-art{animation:none !important}
     *{transition-duration:0.01ms !important}
   }
+
   .modal-backdrop{
     position:fixed; inset:0; z-index:100;
     background:rgba(8,9,11,0.7); backdrop-filter:blur(6px);
@@ -437,7 +487,10 @@
     <img class="hero-bg" id="heroBg" src="" alt="">
     <div class="ambient-layer" id="ambientA"></div>
     <div class="ambient-layer" id="ambientB"></div>
+    <canvas class="hope-stars" id="hopeStars"></canvas>
+    <div class="hope-hearts" id="hopeHearts"></div>
     <div class="hero-scrim"></div>
+
     <div class="corner-actions">
       <button class="icon-action" onclick="openSearchModal()" aria-label="Caută melodia">
         <span class="circ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></span>
@@ -914,8 +967,10 @@ function updateNowUI(){
   document.getElementById('nowTitle').innerText = current.desc;
   const pl = document.getElementById('btnPlaylist');
   pl.style.display = current.yt ? 'flex' : 'none';
+  updateHopeMode();
   updateMediaSession();
 }
+
 
 function updateMediaSession(){
   if(!('mediaSession' in navigator) || !current) return;
@@ -951,6 +1006,166 @@ function setAmbientColor(hex){
   activeIsA = !activeIsA;
 }
 
+// --- HOPE: stele + inimioare ---
+let hopeStarsCtx = null;
+let hopeStarField = [];
+let hopeStarsAnimId = null;
+let hopeHeartInterval = null;
+let hopeShootingStars = [];
+let hopeNextShootTime = 0;
+
+function maybeSpawnHopeShootingStar(t){
+  const canvas = document.getElementById('hopeStars');
+  if(!canvas) return;
+  if(!hopeNextShootTime) hopeNextShootTime = t + 1500 + Math.random()*2500;
+  if(t < hopeNextShootTime) return;
+  hopeNextShootTime = t + 2800 + Math.random()*4200;
+
+  const startX = canvas.width*0.55 + Math.random()*canvas.width*0.45;
+  const startY = Math.random()*canvas.height*0.28;
+  const angle = Math.PI*0.72 + Math.random()*0.18; // cădere diagonală spre stânga-jos
+  const dist = 160 + Math.random()*120;
+  hopeShootingStars.push({
+    x: startX, y: startY,
+    dx: Math.cos(angle),
+    dy: Math.sin(angle),
+    dist, traveled: 0,
+    speed: 4.2 + Math.random()*2.2,
+    len: 70 + Math.random()*50,
+    startT: t
+  });
+}
+
+
+function drawHopeShootingStars(t){
+  if(!hopeStarsCtx) return;
+  hopeShootingStars = hopeShootingStars.filter(m=>{
+    m.traveled += m.speed;
+    if(m.traveled > m.dist) return false;
+    const progress = m.traveled / m.dist;
+    const fade = progress < 0.15 ? progress/0.15 : (progress > 0.75 ? (1-progress)/0.25 : 1);
+    const x = m.x + m.dx*m.traveled;
+    const y = m.y + m.dy*m.traveled;
+    const tailX = x - m.dx*m.len;
+    const tailY = y - m.dy*m.len;
+
+    const grad = hopeStarsCtx.createLinearGradient(x, y, tailX, tailY);
+    grad.addColorStop(0, `rgba(255,240,245,${(0.9*fade).toFixed(3)})`);
+    grad.addColorStop(1, `rgba(255,180,205,0)`);
+    hopeStarsCtx.strokeStyle = grad;
+    hopeStarsCtx.lineWidth = 1.6;
+    hopeStarsCtx.lineCap = 'round';
+    hopeStarsCtx.beginPath();
+    hopeStarsCtx.moveTo(x, y);
+    hopeStarsCtx.lineTo(tailX, tailY);
+    hopeStarsCtx.stroke();
+
+    hopeStarsCtx.beginPath();
+    hopeStarsCtx.arc(x, y, 1.4, 0, Math.PI*2);
+    hopeStarsCtx.fillStyle = `rgba(255,250,250,${fade.toFixed(3)})`;
+    hopeStarsCtx.fill();
+    return true;
+  });
+}
+
+
+function initHopeStarsCanvas(){
+  const canvas = document.getElementById('hopeStars');
+  if(!canvas) return;
+  hopeStarsCtx = canvas.getContext('2d');
+  window.addEventListener('resize', resizeHopeStars);
+}
+function resizeHopeStars(){
+  const canvas = document.getElementById('hopeStars');
+  if(!canvas) return;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  buildHopeStarField();
+}
+function buildHopeStarField(){
+  const canvas = document.getElementById('hopeStars');
+  if(!canvas) return;
+  const count = Math.floor((canvas.width * canvas.height) / 5500);
+  hopeStarField = Array.from({length: Math.max(count, 40)}, ()=>({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height*0.75,
+    r: Math.random()*1.4 + 0.4,
+    baseAlpha: Math.random()*0.5 + 0.35,
+    speed: Math.random()*0.0011 + 0.00045,
+    phase: Math.random()*Math.PI*2
+  }));
+}
+function drawHopeStars(t){
+  const canvas = document.getElementById('hopeStars');
+  if(!canvas || !hopeStarsCtx) return;
+  hopeStarsCtx.clearRect(0,0,canvas.width,canvas.height);
+  hopeStarField.forEach(s=>{
+    const raw = Math.sin(t*s.speed + s.phase)*0.5+0.5;
+    const twinkle = raw*raw*(3-2*raw); // smoothstep — tranziție mai moale între licăriri
+    const alpha = s.baseAlpha * (0.35 + twinkle*0.65);
+    hopeStarsCtx.beginPath();
+    hopeStarsCtx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    hopeStarsCtx.fillStyle = `rgba(255,235,240,${alpha.toFixed(3)})`;
+    hopeStarsCtx.fill();
+  });
+  drawHopeShootingStars(t);
+  maybeSpawnHopeShootingStar(t);
+  hopeStarsAnimId = requestAnimationFrame(drawHopeStars);
+}
+
+
+function startHopeStars(){
+  const canvas = document.getElementById('hopeStars');
+  if(!canvas) return;
+  canvas.classList.add('active');
+  if(!hopeStarsCtx) initHopeStarsCanvas();
+  resizeHopeStars();
+  hopeShootingStars = [];
+  hopeNextShootTime = 0;
+  if(!hopeStarsAnimId) drawHopeStars(0);
+}
+
+function stopHopeStars(){
+  const canvas = document.getElementById('hopeStars');
+  if(canvas) canvas.classList.remove('active');
+  if(hopeStarsAnimId){ cancelAnimationFrame(hopeStarsAnimId); hopeStarsAnimId = null; }
+}
+
+function spawnHopeHeart(){
+  const layer = document.getElementById('hopeHearts');
+  if(!layer) return;
+  const heart = document.createElement('span');
+  heart.className = 'hope-heart';
+  heart.textContent = Math.random() > 0.5 ? '♥' : '❤';
+  heart.style.left = (Math.random()*90 + 3) + '%';
+  heart.style.fontSize = (10 + Math.random()*14) + 'px';
+  const duration = 6 + Math.random()*4;
+  heart.style.animationDuration = duration + 's';
+  layer.appendChild(heart);
+  setTimeout(()=>heart.remove(), duration*1000 + 200);
+}
+function startHopeHearts(){
+  const layer = document.getElementById('hopeHearts');
+  if(layer) layer.classList.add('active');
+  if(hopeHeartInterval) return;
+  spawnHopeHeart();
+  hopeHeartInterval = setInterval(spawnHopeHeart, 900);
+}
+function stopHopeHearts(){
+  const layer = document.getElementById('hopeHearts');
+  if(layer) layer.classList.remove('active');
+  if(hopeHeartInterval){ clearInterval(hopeHeartInterval); hopeHeartInterval = null; }
+}
+
+function updateHopeMode(){
+  const isHope = !!(current && current.name === 'Hope');
+  document.querySelector('.hero-frame').classList.toggle('hope-mode', isHope);
+  if(isHope){ startHopeStars(); startHopeHearts(); }
+  else{ stopHopeStars(); stopHopeHearts(); }
+}
+
+
 audio.addEventListener('play', ()=>{
   document.getElementById('playIcon').outerHTML = '<svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>';
   document.getElementById('liveDot').classList.remove('paused');
@@ -973,7 +1188,8 @@ function renderRail(){
     rail.innerHTML = "";
     stations.forEach(s=>{
       const div = document.createElement('div');
-      div.className = 'channel-tile' + (current && current.name===s.name ? ' active' : '');
+      div.className = 'channel-tile' + (current && current.name===s.name ? ' active' : '') + (s.name==='Hope' ? ' is-hope' : '');
+
       const safeName = s.name.replace(/</g,'&lt;');
       div.innerHTML = `<div class="tile-art" style="${current && current.name===s.name ? `border-color:${s.color}` : ''}">
           <img src="${s.img||FALLBACK_IMG}" onerror="this.src='${FALLBACK_IMG}'" alt="">
