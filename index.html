@@ -1037,20 +1037,34 @@ function maybeSpawnHopeShootingStar(t){
 }
 
 
+function smoothstep(edge0, edge1, v){
+  const x = Math.min(1, Math.max(0, (v - edge0) / (edge1 - edge0)));
+  return x*x*(3 - 2*x);
+}
+
 function drawHopeShootingStars(t){
   if(!hopeStarsCtx) return;
   hopeShootingStars = hopeShootingStars.filter(m=>{
-    m.traveled += m.speed;
-    if(m.traveled > m.dist) return false;
-    const progress = m.traveled / m.dist;
-    const fade = progress < 0.15 ? progress/0.15 : (progress > 0.75 ? (1-progress)/0.25 : 1);
+    // easing: pornește mai repede, încetinește lin spre final (fără oprire bruscă)
+    const progressBefore = m.traveled / m.dist;
+    const easedSpeed = m.speed * (0.35 + 0.65 * (1 - smoothstep(0.55, 1, progressBefore)));
+    m.traveled += easedSpeed;
+    if(m.traveled > m.dist + m.len) return false; // lasă coada să se stingă complet înainte să dispară
+
+    const progress = Math.min(1, m.traveled / m.dist);
+    // fade in lin pe primii 12%, apoi fade out smoothstep pe ultimii 45% — tranziție mult mai lină
+    const fadeIn = smoothstep(0, 0.12, progress);
+    const fadeOut = 1 - smoothstep(0.55, 1, progress);
+    const fade = fadeIn * fadeOut;
+
     const x = m.x + m.dx*m.traveled;
     const y = m.y + m.dy*m.traveled;
     const tailX = x - m.dx*m.len;
     const tailY = y - m.dy*m.len;
 
     const grad = hopeStarsCtx.createLinearGradient(x, y, tailX, tailY);
-    grad.addColorStop(0, `rgba(255,240,245,${(0.9*fade).toFixed(3)})`);
+    grad.addColorStop(0, `rgba(255,240,245,${(0.85*fade).toFixed(3)})`);
+    grad.addColorStop(0.6, `rgba(255,200,215,${(0.35*fade).toFixed(3)})`);
     grad.addColorStop(1, `rgba(255,180,205,0)`);
     hopeStarsCtx.strokeStyle = grad;
     hopeStarsCtx.lineWidth = 1.6;
@@ -1067,6 +1081,7 @@ function drawHopeShootingStars(t){
     return true;
   });
 }
+
 
 
 function initHopeStarsCanvas(){
