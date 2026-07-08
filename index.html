@@ -2,11 +2,9 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0b0c0f">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" id="webManifest">
-<title>Sergiu</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sergiu FM</title>
+
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,9 +42,10 @@
   .topbar{
     position:relative; z-index:2;
     display:flex; align-items:center; gap:12px;
-    padding:calc(26px + env(safe-area-inset-top)) 22px 0;
+    padding:26px 22px 0;
     max-width:760px; margin:0 auto;
   }
+
 
   .mark{width:30px;height:30px;flex-shrink:0}
   .wordmark{
@@ -311,7 +310,8 @@
   @keyframes lyricsBreathe{0%,100%{opacity:0.55}50%{opacity:1}}
 
   /* ---------- CHANNEL RAIL ---------- */
-.rail-section{max-width:760px; margin:16px auto 0; padding:0 0 calc(40px + env(safe-area-inset-bottom))}
+.rail-section{max-width:760px; margin:16px auto 0; padding:0 0 40px}
+
 
   .rail-label{
     font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
@@ -705,27 +705,6 @@ function unlockBodyScroll(){
   window.scrollTo(0, savedScrollY);
 }
 
-
-
-// --- WEB APP MANIFEST (generat dinamic, pentru "Adaugă pe ecranul principal") ---
-(function(){
-  const manifest = {
-    name: "Sergiu Radio",
-    short_name: "Sergiu FM",
-    start_url: ".",
-    scope: ".",
-    display: "standalone",
-    background_color: "#0b0c0f",
-    theme_color: "#0b0c0f",
-    icons: [
-      { src: "https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/favicon.png", sizes: "192x192", type: "image/png" },
-      { src: "https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/favicon.png", sizes: "512x512", type: "image/png" }
-    ]
-  };
-  const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-  const link = document.getElementById('webManifest');
-  if(link) link.setAttribute('href', URL.createObjectURL(blob));
-})();
 
 // Blochează dublu-tap zoom și pinch zoom (necesar mai ales pe Safari/iOS)
 let lastTouchEnd = 0;
