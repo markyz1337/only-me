@@ -428,12 +428,17 @@
   position:fixed; inset:0; z-index:100;
   background:rgba(8,9,11,0.7); backdrop-filter:blur(6px);
   display:flex; align-items:flex-end; justify-content:center;
-  opacity:0; pointer-events:none; transition:opacity .25s ease;
+  opacity:0; pointer-events:none; visibility:hidden;
+  transition:opacity .25s ease, visibility 0s linear .25s;
   overscroll-behavior:contain;
   touch-action:none;
 }
 
-  .modal-backdrop.open{opacity:1; pointer-events:auto}
+  .modal-backdrop.open{
+    opacity:1; pointer-events:auto; visibility:visible;
+    transition:opacity .25s ease, visibility 0s linear 0s;
+  }
+
   @media (min-width:560px){ .modal-backdrop{align-items:center} }
   .search-modal{
     width:100%; max-width:420px;
