@@ -797,6 +797,27 @@ let recentlyPlayedList = [];
 
 let rpLoadedOnce = false;
 
+// ─── HEARTBEAT (mantine conexiunea Supabase "caldă") ─────────────────────────
+let heartbeatInterval = null;
+async function sbHeartbeat(){
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/${RP_TABLE}?select=played_at&limit=1`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+    });
+  }catch(e){}
+}
+function startHeartbeat(){
+  if(heartbeatInterval) return;
+  heartbeatInterval = setInterval(()=>{
+    if(document.visibilityState === 'visible') sbHeartbeat();
+  }, 8000);
+  document.addEventListener('visibilitychange', onVisibilityChangeHeartbeat);
+}
+function onVisibilityChangeHeartbeat(){
+  if(document.visibilityState === 'visible') sbHeartbeat();
+}
+
+
 async function fetchRecentlyPlayed(){
   try{
     const res = await fetch(
@@ -1906,6 +1927,8 @@ initLyricsScrollButtons();
 initLyricsScrollbarDrag();
 initRpModalEvents();
 fetchRecentlyPlayed();
+startHeartbeat();
+
 
 document.getElementById('rail').addEventListener('scroll', onRailScroll, {passive:true});
 window.addEventListener('resize', ()=>requestAnimationFrame(updateTileScale));
