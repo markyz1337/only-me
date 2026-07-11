@@ -204,51 +204,76 @@
     mask-image:linear-gradient(90deg, #000 0, #000 calc(100% - 64px), transparent 100%);
   }
 
-  .transport{display:flex; align-items:center; gap:16px; margin-bottom:16px}
-  .transport button{
-    position:relative;
-    border:1px solid var(--hairline);
-    background:linear-gradient(155deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
-    color:var(--ink); border-radius:50%;
-    width:46px;height:46px; display:flex; align-items:center; justify-content:center;
-    cursor:pointer;
-    transition:background .2s ease, border-color .2s ease, transform .12s ease, box-shadow .2s ease;
-    backdrop-filter:blur(6px);
-    box-shadow:0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
-  }
-  .transport button:hover{
-    background:linear-gradient(155deg, rgba(255,255,255,0.11), rgba(255,255,255,0.03));
-    border-color:rgba(201,187,161,0.4);
-    box-shadow:0 4px 14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
-  }
-  .transport button:active{transform:scale(0.90)}
-  .transport button svg{width:16px;height:16px; position:relative; z-index:1}
+.transport{display:flex; align-items:center; gap:18px; margin-bottom:16px}
 
-  .transport .play-btn{
-    width:62px;height:62px;
-    background:radial-gradient(circle at 32% 28%, #fdfbf6, #e7e2d6 55%, var(--metal) 100%);
-    border-color:transparent; color:#14151a;
-    box-shadow:
-      0 6px 20px rgba(0,0,0,0.4),
-      0 0 0 1px rgba(255,255,255,0.06),
-      inset 0 1px 1px rgba(255,255,255,0.6);
-  }
-  .transport .play-btn::before{
-    content:'';
-    position:absolute; inset:-6px;
-    border-radius:50%;
-    border:1px solid rgba(201,187,161,0.25);
-    pointer-events:none;
-  }
-  .transport .play-btn:hover{
-    background:radial-gradient(circle at 32% 28%, #ffffff, #eee9dd 55%, var(--metal) 100%);
-    box-shadow:
-      0 8px 26px rgba(0,0,0,0.45),
-      0 0 0 1px rgba(255,255,255,0.08),
-      inset 0 1px 1px rgba(255,255,255,0.7);
-  }
-  .transport .play-btn:active{transform:scale(0.92)}
-  .transport .play-btn svg{width:21px;height:21px}
+.transport button{
+  position:relative;
+  border:1px solid rgba(255,255,255,0.22);
+  background:rgba(255,255,255,0.06);
+  color:var(--ink); border-radius:50%;
+  width:48px;height:48px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  backdrop-filter:blur(22px) saturate(1.8);
+  -webkit-backdrop-filter:blur(22px) saturate(1.8);
+  box-shadow:
+    0 6px 18px rgba(0,0,0,0.35),
+    inset 0 1px 1px rgba(255,255,255,0.35),
+    inset 0 -8px 12px rgba(0,0,0,0.3);
+  transition:transform .15s ease, box-shadow .25s ease, border-color .25s ease, background .25s ease;
+}
+.transport button::before{
+  content:'';
+  position:absolute; inset:0; border-radius:50%;
+  background:linear-gradient(160deg, rgba(255,255,255,0.35) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.08) 100%);
+  pointer-events:none;
+}
+.transport button:hover{
+  border-color:rgba(255,255,255,0.4);
+  background:rgba(255,255,255,0.11);
+  box-shadow:
+    0 8px 22px rgba(0,0,0,0.4),
+    inset 0 1px 1px rgba(255,255,255,0.45),
+    inset 0 -8px 12px rgba(0,0,0,0.32);
+  transform:translateY(-1px);
+}
+
+.transport button:active{transform:scale(0.90) translateY(0)}
+.transport button svg{width:17px;height:17px; position:relative; z-index:1}
+
+.transport .play-btn{
+  width:64px;height:64px;
+  background:radial-gradient(circle at 32% 26%, #ffffff, #ece6d9 50%, var(--metal) 100%);
+  border-color:rgba(255,255,255,0.5); color:#14151a;
+  box-shadow:
+    0 8px 26px rgba(0,0,0,0.42),
+    0 0 0 1px rgba(255,255,255,0.08),
+    inset 0 1px 2px rgba(255,255,255,0.75),
+    inset 0 -6px 10px rgba(120,105,75,0.25);
+}
+.transport .play-btn::before{
+  background:radial-gradient(circle at 34% 24%, rgba(255,255,255,0.65), transparent 55%);
+}
+.transport .play-btn::after{
+  content:'';
+  position:absolute; inset:-7px;
+  border-radius:50%;
+  border:1.5px solid rgba(201,187,161,0.35);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .3s ease;
+}
+.transport .play-btn:hover{
+  background:radial-gradient(circle at 32% 26%, #ffffff, #f2ede0 50%, var(--metal) 100%);
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.48),
+    0 0 0 1px rgba(255,255,255,0.1),
+    inset 0 1px 2px rgba(255,255,255,0.85),
+    inset 0 -6px 10px rgba(120,105,75,0.3);
+  transform:translateY(-2px);
+}
+.transport .play-btn:active{transform:scale(0.92) translateY(0)}
+.transport .play-btn svg{width:22px;height:22px}
+
 
 
   .corner-actions{
@@ -432,13 +457,118 @@
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
 
+  @property --hope-progress{
+    syntax:'<angle>';
+    inherits:false;
+    initial-value:0deg;
+  }
+
+  .hope-progress-ring{
+    position:absolute; inset:0; z-index:4; border-radius:26px;
+    pointer-events:none; opacity:0; transition:opacity .5s ease 2.1s, --hope-progress 2.6s cubic-bezier(.25,.7,.35,1);
+    padding:3px;
+    background:conic-gradient(from 0deg,
+      rgba(255,225,220,0.05) 0deg,
+      rgba(255,225,220,0.28) min(12deg, calc(var(--hope-progress,0deg) * 0.5)),
+      rgba(255,140,130,0.28) calc(var(--hope-progress,0deg) * 0.15 + 12deg),
+      rgba(235,70,60,0.28) calc(var(--hope-progress,0deg) * 0.5 + 12deg),
+      rgba(200,30,30,0.28) var(--hope-progress,0deg),
+      rgba(220,50,45,0.05) min(calc(var(--hope-progress,0deg) + 24deg), 360deg),
+      rgba(220,50,45,0.05) 360deg);
+
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    filter:drop-shadow(0 0 3px rgba(220,50,45,0.25)) drop-shadow(0 0 6px rgba(200,30,30,0.15));
+  }
+
+
+
+  .hope-progress-ring.active{
+    opacity:1;
+    transition:opacity .6s ease, --hope-progress 2.6s cubic-bezier(.25,.7,.35,1);
+    animation:hopeRingShimmer 3.5s ease-in-out infinite;
+  }
+
+
+
+
+
+  .hope-progress-ring.active{opacity:1}
+
   .channel-tile.is-hope .tile-art{
+
     animation:hopeTileGlow 3s ease-in-out infinite;
   }
   @keyframes hopeTileGlow{
     0%,50%,100%{box-shadow:0 0 0 rgba(255,120,160,0)}
     25%{box-shadow:0 0 16px rgba(255,120,160,0.55)}
   }
+
+  /* ---------- HOPE — SCÂNTEIERI LA ATINGERE ---------- */
+  .hope-sparkle{
+    position:absolute;
+    width:6px;height:6px;
+    border-radius:50%;
+    background:radial-gradient(circle, #fff 0%, #ff8fab 60%, transparent 100%);
+    pointer-events:none;
+    z-index:6;
+    transform:translate(-50%,-50%);
+    animation:hopeSparkleFade 0.9s ease-out forwards;
+  }
+  @keyframes hopeSparkleFade{
+    0%{transform:translate(-50%,-50%) scale(0.4); opacity:1}
+    100%{transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.2); opacity:0}
+  }
+
+  /* ---------- HOPE — PULS PE PLAY BUTTON (doar când e pe pauză) ---------- */
+  .transport .play-btn.hope-pulse-paused{
+    animation:hopePlayGlow 2.6s ease-in-out infinite;
+  }
+  .transport .play-btn.hope-pulse-paused::after{
+    opacity:1;
+    border-color:rgba(255,150,180,0.5);
+    animation:hopePlayRing 2.6s cubic-bezier(.25,.7,.35,1) infinite;
+  }
+  .transport .play-btn.hope-pulse-paused::before{
+    animation:hopePlaySheen 2.6s ease-in-out infinite;
+  }
+
+
+@keyframes hopePlayGlow{
+  0%,100%{
+    box-shadow:
+      0 8px 26px rgba(0,0,0,0.42),
+      0 0 0 1px rgba(255,255,255,0.08),
+      inset 0 1px 2px rgba(255,255,255,0.75),
+      inset 0 -6px 10px rgba(120,105,75,0.25),
+      0 0 18px rgba(255,140,170,0.25);
+  }
+  50%{
+    box-shadow:
+      0 8px 26px rgba(0,0,0,0.42),
+      0 0 0 1px rgba(255,255,255,0.08),
+      inset 0 1px 2px rgba(255,255,255,0.75),
+      inset 0 -6px 10px rgba(120,105,75,0.25),
+      0 0 34px rgba(255,140,170,0.55);
+  }
+}
+@keyframes hopePlayRing{
+  0%{transform:scale(1); opacity:0}
+  15%{opacity:0.7}
+  100%{transform:scale(1.4); opacity:0}
+}
+@keyframes hopePlaySheen{
+  0%,100%{opacity:.8}
+  50%{opacity:1}
+}
+@keyframes hopeRingShimmer{
+  0%,100%{filter:drop-shadow(0 0 3px rgba(220,50,45,0.25)) drop-shadow(0 0 6px rgba(200,30,30,0.15))}
+  50%{filter:drop-shadow(0 0 6px rgba(235,60,50,0.4)) drop-shadow(0 0 10px rgba(200,30,30,0.25))}
+}
+
+
+
 
   @media (prefers-reduced-motion:reduce){
     .grain,.live-dot,.sig-bars.active span,.hero-bg,.hero-frame.hope-mode,.channel-tile.is-hope .tile-art{animation:none !important}
@@ -595,6 +725,8 @@
     <canvas class="hope-stars" id="hopeStars"></canvas>
     <div class="hope-hearts" id="hopeHearts"></div>
     <div class="hero-scrim"></div>
+    <div class="hope-progress-ring" id="hopeProgressRing"></div>
+
 
     <div class="corner-actions">
       <button class="icon-action" onclick="openSearchModal()" aria-label="Caută melodia">
@@ -1148,12 +1280,14 @@ async function fetchMetadata(station){
     }catch(e){}
   }
   if(title && station.desc !== title){
-    if(station.trackTitle && station.trackTitle !== "Live Stream" && title !== "Live Stream"){
+    if(station.metaInitialized && station.trackTitle && station.trackTitle !== "Live Stream" && title !== "Live Stream"){
       recordRecentlyPlayed(station.name, station.trackTitle, station.img);
     }
     station.desc = title;
     station.trackTitle = title;
+    station.metaInitialized = true;
     fetchAlbumArt(title, station);
+
     if(current && current.name===station.name){
       updateNowUI();
       if(lyricsOpen) fetchLyricsFor(station);
@@ -1445,9 +1579,100 @@ function stopHopeHearts(){
 function updateHopeMode(){
   const isHope = !!(current && current.name === 'Hope');
   document.querySelector('.hero-frame').classList.toggle('hope-mode', isHope);
+  updateHopePulseState();
+  updateHopeProgressRing();
   if(isHope){ startHopeStars(); startHopeHearts(); }
   else{ stopHopeStars(); stopHopeHearts(); }
 }
+
+
+
+// ─── HOPE: ziua din lună când borderul e 100% (progresul începe a doua zi) ───
+const HOPE_ANNIVERSARY_DAY = 12;
+
+function computeHopeProgress(){
+  const now = new Date();
+  const day = now.getDate();
+  const startDay = HOPE_ANNIVERSARY_DAY + 1; // ziua în care progresul repornește de la 0
+  let start, end;
+  if(day >= startDay){
+    start = new Date(now.getFullYear(), now.getMonth(), startDay, 0,0,0);
+    end = new Date(now.getFullYear(), now.getMonth()+1, HOPE_ANNIVERSARY_DAY, 23,59,59);
+  }else{
+    start = new Date(now.getFullYear(), now.getMonth()-1, startDay, 0,0,0);
+    end = new Date(now.getFullYear(), now.getMonth(), HOPE_ANNIVERSARY_DAY, 23,59,59);
+  }
+  const total = end - start;
+  const elapsed = now - start;
+  return Math.min(1, Math.max(0, elapsed/total));
+}
+
+
+function updateHopeProgressRing(){
+  const ring = document.getElementById('hopeProgressRing');
+  if(!ring) return;
+  const isHope = !!(current && current.name === 'Hope');
+  const wasActive = ring.classList.contains('active');
+
+  if(isHope && !wasActive){
+    // INTRARE pe Hope: resetează progresul instant la 0deg, apoi animă spre valoarea reală
+    ring.classList.add('active');
+    ring.style.transition = 'none';
+    ring.style.setProperty('--hope-progress', '0deg');
+
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        ring.style.transition = '';
+        const progress = computeHopeProgress();
+        ring.style.setProperty('--hope-progress', (progress*360) + 'deg');
+      });
+    });
+
+
+  }else if(isHope && wasActive){
+    // rămâi pe Hope (ex. refresh periodic al progresului)
+    const progress = computeHopeProgress();
+    ring.style.setProperty('--hope-progress', (progress*360) + 'deg');
+
+  }else if(!isHope && wasActive){
+    // IEȘIRE din Hope: scade progresul la 0, apoi (după tranziție) ascunde inelul
+    ring.classList.remove('active');
+    ring.style.setProperty('--hope-progress', '0deg');
+  }
+}
+
+
+
+
+
+function updateHopePulseState(){
+  const isHope = !!(current && current.name === 'Hope');
+  const isPaused = audio.paused;
+  document.getElementById('playBtn').classList.toggle('hope-pulse-paused', isHope && isPaused);
+}
+
+
+function spawnHopeSparkles(clientX, clientY){
+  const frame = document.querySelector('.hero-frame');
+  if(!frame) return;
+  const rect = frame.getBoundingClientRect();
+  const localX = clientX - rect.left;
+  const localY = clientY - rect.top;
+  const count = 5 + Math.floor(Math.random()*3);
+  for(let i=0;i<count;i++){
+    const s = document.createElement('span');
+    s.className = 'hope-sparkle';
+    const angle = Math.random()*Math.PI*2;
+    const dist = 12 + Math.random()*20;
+    s.style.left = localX + 'px';
+    s.style.top = localY + 'px';
+    s.style.setProperty('--dx', (Math.cos(angle)*dist) + 'px');
+    s.style.setProperty('--dy', (Math.sin(angle)*dist) + 'px');
+    frame.appendChild(s);
+    setTimeout(()=>s.remove(), 950);
+  }
+}
+
 
 
 audio.addEventListener('play', ()=>{
@@ -1455,13 +1680,16 @@ audio.addEventListener('play', ()=>{
   document.getElementById('liveDot').classList.remove('paused');
   document.getElementById('sigBars').classList.add('active');
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+  updateHopePulseState();
 });
 audio.addEventListener('pause', ()=>{
   document.getElementById('playIcon').outerHTML = '<svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
   document.getElementById('liveDot').classList.add('paused');
   document.getElementById('sigBars').classList.remove('active');
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+  updateHopePulseState();
 });
+
 
 let railBuilt = false;
 function renderRail(){
@@ -1932,6 +2160,15 @@ startHeartbeat();
 
 document.getElementById('rail').addEventListener('scroll', onRailScroll, {passive:true});
 window.addEventListener('resize', ()=>requestAnimationFrame(updateTileScale));
+setInterval(updateHopeProgressRing, 60000);
+
+
+document.querySelector('.hero-frame').addEventListener('pointerdown', function(e){
+  if(!(current && current.name === 'Hope')) return;
+  if(e.target.closest('button')) return;
+  spawnHopeSparkles(e.clientX, e.clientY);
+});
+
 function firstInteractionStart(e){
   if(!e.target.closest('button') && audio.paused){
     audio.play().catch(()=>{});
