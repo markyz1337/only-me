@@ -371,17 +371,36 @@
 .rail-section{max-width:760px; margin:16px auto 0; padding:0}
 
 
-  .rail-label{
-    font-family:var(--mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
-    color:var(--ink-faint); padding:0 22px; margin-bottom:14px;
+  .tab-bar{
+    display:flex; gap:8px; padding:0 22px; margin-bottom:14px;
   }
+
+
+
+  .tab-bar::-webkit-scrollbar{display:none}
+  .tab-btn{
+    flex:1 1 0;
+    text-align:center;
+    font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--ink-faint); background:var(--glass); border:1px solid var(--hairline);
+    padding:8px 10px; border-radius:20px; cursor:pointer;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    transition:background .18s, border-color .18s, color .18s;
+  }
+
+  .tab-btn:hover{color:var(--ink); border-color:var(--metal)}
+  .tab-btn.active{color:var(--ink); background:var(--glass-strong); border-color:var(--metal); font-weight:600}
+
   .rail{
     display:flex; gap:14px; overflow-x:auto; padding:14px 22px 0;
 
     scroll-snap-type:x mandatory;
     -webkit-overflow-scrolling:touch;
     mask-image:linear-gradient(90deg, transparent 0, black 22px, black calc(100% - 22px), transparent 100%);
+    transition:opacity .22s ease;
   }
+  .rail.fading{ opacity:0; }
+
 
   .rail::-webkit-scrollbar{display:none}
   .channel-tile{
@@ -396,10 +415,39 @@
     will-change:transform;
   }
   .tile-art img{width:100%;height:100%;object-fit:cover; display:block}
-  .tile-swatch{
-    position:absolute; top:7px; right:7px; width:9px; height:9px; border-radius:50%;
-    border:1.5px solid rgba(0,0,0,0.35);
+  .tile-fav-btn{
+    position:absolute; top:6px; right:6px; width:24px; height:24px;
+    border-radius:50%; border:1px solid rgba(255,255,255,0.16);
+    background:rgba(10,10,14,0.38);
+    backdrop-filter:blur(6px) saturate(1.3);
+    -webkit-backdrop-filter:blur(6px) saturate(1.3);
+    box-shadow:0 2px 8px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.12);
+    display:flex; align-items:center; justify-content:center;
+    color:rgba(255,255,255,0.85); cursor:pointer; padding:0;
+    transition:background .2s ease, border-color .2s ease, transform .15s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease;
   }
+  .tile-fav-btn svg{width:13px;height:13px; transition:transform .25s ease, stroke .25s ease}
+  .tile-fav-btn:active svg{transform:scale(0.88)}
+  .tile-fav-btn.active{
+    color:#ff6b85;
+    background:rgba(20,10,14,0.5);
+    border-color:rgba(255,107,133,0.3);
+    box-shadow:0 2px 10px rgba(255,90,120,0.28), inset 0 1px 1px rgba(255,255,255,0.15);
+    transition:background .35s ease, border-color .35s ease, box-shadow .35s ease;
+  }
+  .tile-fav-btn.active svg{
+    fill:url(#heartGradient);
+    animation:favHeartPop .5s cubic-bezier(.22,.61,.36,1);
+  }
+  @keyframes favHeartPop{
+    0%{transform:scale(1)}
+    30%{transform:scale(1.14)}
+    55%{transform:scale(0.97)}
+    100%{transform:scale(1)}
+  }
+
+
+
   .tile-name{
     font-size:11.5px; text-align:center; color:var(--ink-dim); line-height:1.3;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
@@ -709,6 +757,15 @@
 
 <div class="grain"></div>
 
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff8fab"/>
+      <stop offset="100%" stop-color="#ff4d6d"/>
+    </linearGradient>
+  </defs>
+</svg>
+
 <div class="topbar">
   <svg class="mark" viewBox="0 0 30 30" fill="none">
     <circle cx="15" cy="15" r="13" stroke="#c9bba1" stroke-width="1" opacity="0.35"/>
@@ -807,9 +864,14 @@
 </div>
 
 <div class="rail-section">
-  <div class="rail-label">Posturile tale</div>
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-btn" data-tab="mine" onclick="switchTab('mine')">Personale</button>
+    <button class="tab-btn" data-tab="external" onclick="switchTab('external')">Externe</button>
+    <button class="tab-btn" data-tab="favorites" onclick="switchTab('favorites')">Favorite</button>
+  </div>
   <div class="rail" id="rail"></div>
 </div>
+
 
 <div class="modal-backdrop" id="searchModal" onclick="closeSearchModalOnBackdrop(event)">
   <div class="search-modal">
@@ -1185,11 +1247,12 @@ function initRpModalEvents(){
 }
 
 
-const stations = [
+const myStations = [
   { name: "Nostalgie", stream: "https://sergiumusic.duckdns.org/muzicaveche", img: "https://mosaic.scdn.co/640/ab67616d00001e021badc66d1c9de6a98d376946ab67616d00001e022b605014f0cf0ca5e3c46b64ab67616d00001e02baa7a73c40a30e2c780c6841ab67616d00001e02ce26853f4b61f0924446f683", desc: "Sergiu | Childhood", yt: "https://youtube.com/playlist?list=PLmDGw5869lgoRafQq8o6mSt-Z2UWZfMZz&si=wU1Jx3YJLAjZx-8J", color: "#d9a55a" },
 { name: "Emisiuni Radio 2010s", stream: "https://sergiumusic.duckdns.org/emisiunivechi", img: "https://play-lh.googleusercontent.com/r6ymNUMhRQN9-V6DS0ZZziAKAZrnJKGEw5mIK4KNFV8XPpD5JBEmlEn2ptSx0RDAEMs", desc: "SERGIU | KISS FM • RADIO 21 • RADIO ZU", color: "#6e7b9b", noCoverArt: true, coverRules: [
   { match: "KISS FM", img: "https://api.kissfm.ro/resized/streams/homepage/2025/01/10/cover-kiss-hits-from-the-10s_6210a8bb4e6b58d8b6d2c0342721cdb9.png" },
-  { match: "RADIO 21", img: "https://yt3.googleusercontent.com/ytc/AIdro_mH-dA0beci-h-44yevlAUUDaajRWTiBcdverBGK7XXBw=s900-c-k-c0x00ffffff-no-rj" },
+    { match: "HITMAKER", img: "https://api.kissfm.ro/resized/streams/homepage/2025/01/10/cover-kiss-hits-from-the-10s_6210a8bb4e6b58d8b6d2c0342721cdb9.png" },
+{ match: "RADIO 21", img: "https://yt3.googleusercontent.com/ytc/AIdro_mH-dA0beci-h-44yevlAUUDaajRWTiBcdverBGK7XXBw=s900-c-k-c0x00ffffff-no-rj" },
   { match: "ZU", img: "https://cdn-profiles.tunein.com/s97051/images/logog.jpg?t=1" }
 ] },
   { name: "Hope", stream: "https://sergiumusic.duckdns.org/hope", img: "https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/icons/radio_hope.PNG", desc: "Sergiu | Lovefool Pop", yt: "https://youtube.com/playlist?list=PLYtl-i8aGiXuwf5SEEH9vhwwSci67SNnU&si=NclZd61NGrsZ0UCm", color: "#dd7a93" },
@@ -1203,9 +1266,126 @@ const stations = [
   { name: "Night", stream: "https://sergiumusic.duckdns.org/night", img: "https://images.stockcake.com/public/c/5/4/c54101f7-a03b-4a9c-af2a-6e95dc16a5ce_large/moonlit-night-sky-stockcake.jpg", desc: "Silence", color: "#4fbf9e", lockMeta: true }
 ];
 
+const externalStations = [
+  { name: "Heart 10s", stream: "https://media-ice.musicradio.com/Heart10sMP3", img: "https://www.globalplayer.com/assets/track-placeholders/heart10s.png", desc: "POP, HITS, CHART" },
+  { name: "Kiss 10s", stream: "https://dc.digi.live.kissfm.ro/kiss.hits.from.the.10s/listen.m3u", img: "https://api.kissfm.ro/resized/streams/homepage/2025/01/10/cover-kiss-hits-from-the-10s_6210a8bb4e6b58d8b6d2c0342721cdb9.png", desc: "HITS FROM THE 10S" },
+  { name: "Kiss Millenium", stream: "https://dc.digi.live.kissfm.ro/milleniumhits", img: "https://api.kissfm.ro/resized/streams/homepage/2024/10/07/homepage-logo-kiss-millenium-hits_bd81e49f11f3edfff722aecb28f9ae34.png", desc: "KISS MILLENIUM HITS" },
+  { name: "ONE FM DANCE", stream: "https://live.onefm.ro/onefm.aacp", img: "https://onefm.es/wp-content/uploads/2023/09/LOGO-2025.jpg", desc: "DANCE, HOUSE, TECHNO" },
+  { name: "Positively 10s", stream: "https://streaming.positivity.radio/pr/posi10s/icecast.audio", img: "https://cdn.autopo.st/images/coverart/r/Roll_Deep_-_Good_Times.jpg", desc: "10S HITS, POSITIVE" },
+  { name: "HIT FM 00s", stream: "https://radio3.dixi.md/listen/hit_fm_2000s_hits/hitfm2000hit128.aac", img: "https://cdn-profiles.tunein.com/s341406/images/logog.png?t=366", desc: "00S HITS, POP" },
+  { name: "HIT FM Best Hits", stream: "https://radio3.dixi.md/listen/hit_fm_best_hits/hitfm_besthits128.aac", img: "https://www.123live.com/img/radios/logo_Hit-FM-Best-Hits_20260223_163029.jpg", desc: "BEST POP HITS, DANCE" },
+  { name: "HIT FM Dance", stream: "https://radio4.dixi.md/listen/hit_fm_dance_hits/hitfmdancehits128.aac", img: "https://play-lh.googleusercontent.com/Q34NV1_I43LVodUYyGpS6ifJXf20vmJT60nyVpawDOH56s0lIem_kE8n9sfrcJgoztU", desc: "DANCE MUSIC 24/7" },
+  { name: "Radio Studentus", stream: "http://radiolive.studentus.md:8000/live", img: "https://radiomixer.net/images/2022/05/20/s2Q4Axkv1uAlnmO02cCZemDrCfRjAfutYVQoIX4A.jpg", desc: "#1 Moldova Pop Hits" },
+  { name: "PRO DJ RADIO", stream: "http://live.prodjradio.net:8000/;?type=http&nocache=4585", img: "https://yt3.googleusercontent.com/ytc/AIdro_kzkPgiLvOOACJ8JsiVWcgjbDaDftezak5j9Pv9KAp2cg=s900-c-k-c0x00ffffff-no-rj", desc: "DJ MIX, CLUB, DANCE" },
+  { name: "Kiss FM", stream: "https://live.kissfm.ro/kissfm.aacp", img: "https://moldova.mom-gmr.org/downloads/Archive/2024/MediaOutletLogos/MDA/4222.png", desc: "Pop, Dance, Reggaeton" },
+  { name: "Europa FM", stream: "https://astreaming.edi.ro:8443/EuropaFM_aac", img: "https://yt3.googleusercontent.com/ZQzcBtU39heTx5Kiw5PMHkNYnCztfWmPw1PJ_qTTbIqEfL5p8Hy_mQhasXkr6zPlbkSxhGVI=s900-c-k-c0x00ffffff-no-rj", desc: "Europa Pop Music" },
+  { name: "Virgin Radio", stream: "https://astreaming.edi.ro:8443/VirginRadio_aac", img: "https://yt3.googleusercontent.com/ytc/AIdro_meJSQF9fktl5oLecOJGPopT4UwOqk79vQoBoiAfsXuOuE=s900-c-k-c0x00ffffff-no-rj", desc: "Pop, Dance & Romanian Hits" },
+  { name: "Pro FM", stream: "https://edge126.rcs-rds.ro/profm/profm.mp3", img: "https://ws.shoutcast.com/images/contacts/f/ffa1/ffa1a969-76ac-4054-a370-f0948d187e70/radios/73abbab4-8afe-4a4a-95b5-f5b9565d267b/73abbab4-8afe-4a4a-95b5-f5b9565d267b.png", desc: "Mainstream Pop & Fresh Hits" },
+  { name: "Radio ZU", stream: "https://live4ro.antenaplay.ro/radiozu/radiozu-48000.m3u8", img: "https://static2.mytuner.mobi/media/tvos_radios/hPR6BnRfuQ.png", desc: "Hip-Hop, Trap & New Pop" },
+  { name: "Chill FM", stream: "https://edge126.rcs-rds.ro/profm/chillfm.mp3", img: "https://play-lh.googleusercontent.com/cJ69K5RI9hqc1dB3da0hZuwPqE0Tgs2bfsemtT-JYRiE5ubKFxlh5-M6x-ELsGhzVSgQ", desc: "Best Chill Pop" },
+  { name: "Radio Hot Style", stream: "https://live.radiohot.ro/8000/stream", img: "https://play-lh.googleusercontent.com/Sqgl6FwfLDa1OoLBrugN4vnr0Un9R67YRw2i6dkvA_JGy0aa5eW3ZVRGumGOeeqXcg", desc: "Dance, House & Club Remixes" },
+  { name: "Pro Manele", stream: "https://www.online-radio.ro/stream/radiopromanele", img: "https://play-lh.googleusercontent.com/ntYHyDu6zEZiNFWekQLzMTW9I1ZThs9r4b4naViWElzcoqe0jdd_nTowCuQABmW_yw4", desc: "Manele & Muzică de Petrecere" },
+  { name: "Radio Flo Manele", stream: "https://live.radioflomanele.ro:8084/stream", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT3T2lkPEenQU6MYDPns2qEcg7n4PoDWFgW2BSSexkNmOUNcAksoZYyftbr&s=10", desc: "Manele & Muzică de Petrecere" },
+  { name: "Radio Manele Vechi", stream: "https://ssl.omegahost.ro/9000/stream", img: "https://www.radioexpert.net/radio-logo/romania/radio-popular-manele-vechi-511-doar-internet-romania-320.jpg", desc: "Manele & Muzică de Petrecere" },
+  { name: "Radio Taraf", stream: "https://ddos.radiotaraf.ro/8181/stream", img: "https://play-lh.googleusercontent.com/ZElprn4XnQwojyFnNAqOyXN0IDy8eNdFNKdVjEK0jwDTxZ5oOg4KXRT5xRrxB_5ygAg", desc: "Manele & Muzică de Petrecere" },
+  { name: "Radio Record", stream: "https://radiorecord.hostingradio.ru/rus96.aacp", img: "https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/0e/fe/53/0efe532a-3cee-6c89-1d8d-c9f18284c0f2/mza_5165669991707061934.jpg/1200x1200bf-60.jpg", desc: "RECORD RUSSIAN MIX" },
+  { name: "Маруся ФМ", stream: "https://listen.vdfm.ru:8000/marusya", img: "https://cover.marus.fm/cover/default.jpg", desc: "RUSSIAN POP MIX" },
+  { name: "Европа Плюс", stream: "http://ep256.hostingradio.ru:8052/europaplus256.mp3", img: "https://static2.mytuner.mobi/media/tvos_radios/Fs3ahQV6xT.png", desc: "EUROPE MIX" },
+  { name: "DFM Pop", stream: "https://dfm-popgold10.hostingradio.ru/popgold1096.aacp", img: "https://play-lh.googleusercontent.com/Ib-OXFvEaaofa9bErURv9zbr3CrU4Xik37fRu9AWuxRK2GHJCGsVObOWhmnscCu6jv25UmC0vYhzvT0vSl9lWbg", desc: "POP GOLD, HITS" },
+  { name: "DFM DANCE", stream: "https://dfm-dancegold10.hostingradio.ru/dancegold1096.aacp", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIoi_I2LWM0BpqHgWDPIjwxIF_E3POxwYL4YCBgQrepVIodIXXbv2zvAh4&s=10", desc: "DANCE GOLD, 90S" }
+];
+
+function getColor(s){ return (s && s.color) || '#8a8f98'; }
+function allStationsList(){ return myStations.concat(externalStations); }
+
+// --- FAVORITE (stocare locală) ---
+const DEFAULT_FAVORITE_STREAMS = [
+  "https://sergiumusic.duckdns.org/muzicaveche",        // Nostalgie
+  "https://sergiumusic.duckdns.org/emisiunivechi",       // Emisiuni Radio 2010s
+  "https://sergiumusic.duckdns.org/hope",                // Hope
+  "https://media-ice.musicradio.com/Heart10sMP3",        // Heart 10s
+  "https://radio3.dixi.md/listen/hit_fm_best_hits/hitfm_besthits128.aac" // HIT FM Best Hits
+];
+
+let favoriteStreams = new Set();
+function loadFavorites(){
+  try{
+    const raw = localStorage.getItem('sergiu_favorites');
+    if(raw){
+      favoriteStreams = new Set(JSON.parse(raw));
+    }else{
+      // Prima vizită pe acest dispozitiv/browser: pornim cu favoritele implicite
+      favoriteStreams = new Set(DEFAULT_FAVORITE_STREAMS);
+      saveFavorites();
+    }
+  }catch(e){}
+}
+
+function saveFavorites(){
+  try{ localStorage.setItem('sergiu_favorites', JSON.stringify([...favoriteStreams])); }catch(e){}
+}
+function isFavorite(station){ return favoriteStreams.has(station.stream); }
+function toggleFavorite(station){
+  if(favoriteStreams.has(station.stream)){
+    const confirmed = confirm(`Elimini "${station.name}" de la favorite?`);
+    if(!confirmed) return;
+    favoriteStreams.delete(station.stream);
+  }else{
+    favoriteStreams.add(station.stream);
+  }
+  saveFavorites();
+  renderRail();
+}
+
+function toggleFavoriteByStream(encodedStream){
+  const stream = decodeURIComponent(encodedStream);
+  const station = allStationsList().find(s=>s.stream===stream);
+  if(station) toggleFavorite(station);
+}
+
+// --- TAB-URI (Posturile Tale / Posturi Externe / Favorite) ---
+let activeTab = 'mine';
+function loadActiveTab(){
+  try{
+    const t = localStorage.getItem('sergiu_active_tab');
+    if(t === 'mine' || t === 'external' || t === 'favorites') activeTab = t;
+  }catch(e){}
+}
+function saveActiveTab(){
+  try{ localStorage.setItem('sergiu_active_tab', activeTab); }catch(e){}
+}
+function updateTabUI(){
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.tab === activeTab);
+  });
+}
+function switchTab(tab){
+  if(tab === activeTab) return;
+  activeTab = tab;
+  saveActiveTab();
+  updateTabUI();
+  const rail = document.getElementById('rail');
+  rail.classList.add('fading');
+  setTimeout(()=>{
+    renderRail();
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        rail.classList.remove('fading');
+      });
+    });
+  }, 220);
+}
+
+function getStationsForActiveTab(){
+  if(activeTab === 'external') return externalStations;
+  if(activeTab === 'favorites') return allStationsList().filter(isFavorite);
+  return myStations;
+}
+
 let current = null;
 let activeIsA = true;
 const audio = document.getElementById('audio');
+
 
 // --- CURĂȚARE TEXT (păstrat din original) ---
 function fixEncoding(str){ if(!str) return ""; try{ if(/[а-яА-ЯёЁ]/.test(str)) return str; return decodeURIComponent(escape(str)); }catch(e){ return str; } }
@@ -1246,6 +1426,27 @@ function analyticalClean(artist,title){
   return final.replace(/\s*-\s*-+\s*/g,' - ').replace(/-+/g,'-').replace(/^[\s\-\.\/|｜]+|[\s\-\.\/|｜]+$/g,"").trim() || "Live Stream";
 }
 
+// --- CUVINTE/FRAZE DE ELIMINAT DIN METADATA ---
+// Adaugă aici orice text care apare des și nu trebuie păstrat (nume post, emoji, etc).
+// Nu contează literele mari/mici, se elimină oriunde apar în titlu.
+const TITLE_STRIP_PATTERNS = [
+  "ONE FM 💿 -",
+  "ONE FM 💿",
+ "KISSFM - ",
+
+];
+
+function stripKnownJunk(str){
+  if(!str) return str;
+  let out = str;
+  TITLE_STRIP_PATTERNS.forEach(p=>{
+    if(!p) return;
+    const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    out = out.replace(new RegExp(escaped, 'gi'), '');
+  });
+  return out.trim();
+}
+
 // --- METADATA (XSPF pentru posturi proprii, ICY pentru externe) ---
 async function fetchMetadata(station){
   if(station.lockMeta) return;
@@ -1257,7 +1458,8 @@ async function fetchMetadata(station){
       const xml = await res.text();
       const doc = new DOMParser().parseFromString(xml,"text/xml");
       const node = doc.querySelector("trackList track title");
-      if(node) title = analyticalClean("", node.textContent);
+      if(node) title = analyticalClean("", stripKnownJunk(node.textContent));
+
     }catch(e){}
   }
   if(!title){
@@ -1279,7 +1481,8 @@ async function fetchMetadata(station){
             if(buffer.length < metaInt+1+mLen) continue;
             let mStr=decoder.decode(buffer.slice(metaInt+1, metaInt+1+mLen));
             let match=mStr.match(/StreamTitle='([^']*)'/);
-            if(match && match[1]) title=analyticalClean("", match[1].replace(/;/g,""));
+            if(match && match[1]) title=analyticalClean("", stripKnownJunk(match[1].replace(/;/g,"")));
+
             break;
           }
         }
@@ -1330,7 +1533,8 @@ function play(station){
   audio.src = station.stream;
   audio.play().catch(()=>{});
   updateNowUI();
-  setAmbientColor(station.color);
+  setAmbientColor(getColor(station));
+
   renderRail();
   refreshRpUI();
   saveLastStation(station);
@@ -1343,13 +1547,14 @@ function play(station){
 function saveLastStation(station){
   try{
     localStorage.setItem('sergiu_last_station', JSON.stringify({
-      name: station.name,
+      stream: station.stream,
       img: station.img,
       desc: station.desc,
       trackTitle: station.trackTitle || null
     }));
   }catch(e){}
 }
+
 
 function loadLastStation(){
   try{
@@ -1360,7 +1565,7 @@ function loadLastStation(){
 }
 
 function togglePlay(){
-  if(!current){ play(stations[0]); return; }
+  if(!current){ play(myStations[0]); return; }
   if(audio.paused){
     audio.pause();
     audio.removeAttribute('src');
@@ -1372,8 +1577,21 @@ function togglePlay(){
   }
 }
 
-function next(){ if(!current){ play(stations[0]); return; } const i=stations.indexOf(current); play(stations[(i+1)%stations.length]); }
-function prev(){ if(!current){ play(stations[0]); return; } const i=stations.indexOf(current); play(stations[(i-1+stations.length)%stations.length]); }
+function next(){
+  const list = getStationsForActiveTab();
+  if(!list.length) return;
+  if(!current){ play(list[0]); return; }
+  const i = list.findIndex(s=>s.stream===current.stream);
+  play(list[(i+1+list.length)%list.length]);
+}
+function prev(){
+  const list = getStationsForActiveTab();
+  if(!list.length) return;
+  if(!current){ play(list[0]); return; }
+  const i = list.findIndex(s=>s.stream===current.stream);
+  play(list[(i-1+list.length)%list.length]);
+}
+
 
 function updateNowUI(){
   document.getElementById('heroBg').src = current.img || FALLBACK_IMG;
@@ -1705,27 +1923,42 @@ audio.addEventListener('pause', ()=>{
 });
 
 
-let railBuilt = false;
+let railStationsCache = [];
+function sameStationList(a,b){
+  if(a.length !== b.length) return false;
+  for(let i=0;i<a.length;i++){ if(a[i].stream !== b[i].stream) return false; }
+  return true;
+}
+
 function renderRail(){
   const rail = document.getElementById('rail');
   if(!rail) return;
+  const list = getStationsForActiveTab();
 
-  if(!railBuilt){
+  if(!sameStationList(list, railStationsCache)){
     rail.innerHTML = "";
-    stations.forEach(s=>{
+    list.forEach(s=>{
       const div = document.createElement('div');
-      div.className = 'channel-tile' + (current && current.name===s.name ? ' active' : '') + (s.name==='Hope' ? ' is-hope' : '');
+      const isActive = !!(current && current.stream === s.stream);
+      div.className = 'channel-tile' + (isActive ? ' active' : '') + (s.name==='Hope' ? ' is-hope' : '');
 
       const safeName = s.name.replace(/</g,'&lt;');
-      div.innerHTML = `<div class="tile-art" style="${current && current.name===s.name ? `border-color:${s.color}` : ''}">
+      const fav = isFavorite(s);
+      div.innerHTML = `<div class="tile-art" style="${isActive ? `border-color:${getColor(s)}` : ''}">
           <img src="${s.img||FALLBACK_IMG}" onerror="this.src='${FALLBACK_IMG}'" alt="">
-          <span class="tile-swatch" style="background:${s.color}"></span>
+          <button type="button" class="tile-fav-btn ${fav?'active':''}" data-stream="${encodeURIComponent(s.stream)}" onclick="toggleFavoriteByStream(this.dataset.stream); event.stopPropagation();" aria-label="Adaugă la favorite">
+            <svg viewBox="0 0 24 24" fill="${fav?'currentColor':'none'}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+
+          </button>
         </div>
         <div class="tile-name"><span class="tn-inner"><span class="tn-text">${safeName}</span><span class="tn-text tn-clone">${safeName}</span></span></div>`;
-      div.onclick = ()=>play(s);
+      div.addEventListener('click', (e)=>{
+        if(e.target.closest('.tile-fav-btn')) return;
+        play(s);
+      });
       rail.appendChild(div);
     });
-    railBuilt = true;
+    railStationsCache = list.slice();
     requestAnimationFrame(setupMarquees);
     requestAnimationFrame(updateTileScale);
     return;
@@ -1733,17 +1966,25 @@ function renderRail(){
 
   const tiles = rail.querySelectorAll('.channel-tile');
   tiles.forEach((tileEl, idx)=>{
-    const s = stations[idx];
+    const s = list[idx];
     if(!s) return;
-    const isActive = !!(current && current.name === s.name);
+    const isActive = !!(current && current.stream === s.stream);
     tileEl.classList.toggle('active', isActive);
     const art = tileEl.querySelector('.tile-art');
-    if(art) art.style.borderColor = isActive ? s.color : '';
+    if(art) art.style.borderColor = isActive ? getColor(s) : '';
     const img = art ? art.querySelector('img') : null;
     const wantedSrc = s.img || FALLBACK_IMG;
     if(img && img.src !== wantedSrc) img.src = wantedSrc;
+    const favBtn = tileEl.querySelector('.tile-fav-btn');
+    if(favBtn){
+      const fav = isFavorite(s);
+      favBtn.classList.toggle('active', fav);
+      const svg = favBtn.querySelector('svg');
+      if(svg) svg.setAttribute('fill', fav ? 'currentColor' : 'none');
+    }
   });
 }
+
 
 const MIN_TILE_SCALE = 0.8;
 const TILE_GAP = 14;
@@ -2139,11 +2380,15 @@ function heroTap(e){
 }
 
 function initStation(){
-  const saved = loadLastStation();
-  let startStation = stations[0];
+  loadFavorites();
+  loadActiveTab();
+  updateTabUI();
 
-  if(saved){
-    const match = stations.find(s => s.name === saved.name);
+  const saved = loadLastStation();
+  let startStation = myStations[0];
+
+  if(saved && saved.stream){
+    const match = allStationsList().find(s => s.stream === saved.stream);
     if(match){
       match.img = saved.img || match.img;
       match.desc = saved.desc || match.desc;
@@ -2155,11 +2400,12 @@ function initStation(){
   current = startStation;
   audio.src = current.stream;
   updateNowUI();
-  setAmbientColor(current.color);
+  setAmbientColor(getColor(current));
   renderRail();
   updateRpButtonVisibility();
   audio.play().catch(()=>{ /* browserul a blocat autoplay-ul cu sunet; rămâne pe pauză până la prima atingere */ });
 }
+
 
 
 initStation();
@@ -2194,8 +2440,9 @@ function firstInteractionStart(e){
 ['click','touchstart','scroll','pointerdown'].forEach(ev=>{
   document.addEventListener(ev, firstInteractionStart, { capture:true, passive:true });
 });
-setInterval(()=>{ stations.forEach(s=>fetchMetadata(s)); }, 15000);
-stations.forEach(s=>fetchMetadata(s));
+setInterval(()=>{ allStationsList().forEach(s=>fetchMetadata(s)); }, 15000);
+allStationsList().forEach(s=>fetchMetadata(s));
+
 </script>
 </body>
 </html>
