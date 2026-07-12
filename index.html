@@ -2473,6 +2473,11 @@ startHeartbeat();
 
 
 document.getElementById('rail').addEventListener('scroll', onRailScroll, {passive:true});
+document.getElementById('rail').addEventListener('wheel', function(e){
+  if(Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // lasă scroll-ul orizontal nativ (touchpad) neschimbat
+  e.preventDefault();
+  this.scrollLeft += e.deltaY;
+}, { passive:false });
 window.addEventListener('resize', ()=>requestAnimationFrame(updateTileScale));
 setInterval(updateHopeProgressRing, 60000);
 
