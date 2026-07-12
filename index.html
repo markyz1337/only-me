@@ -673,6 +673,9 @@
   }
   .modal-option:hover{background:var(--glass-strong); border-color:var(--metal)}
   .modal-option svg{width:19px;height:19px;flex-shrink:0}
+  .fav-confirm-danger{color:#ff6b85; border-color:rgba(255,107,133,0.25)}
+  .fav-confirm-danger svg{fill:currentColor}
+  .fav-confirm-danger:hover{background:rgba(255,107,133,0.1); border-color:rgba(255,107,133,0.45)}
   :focus-visible{outline:2px solid var(--metal); outline-offset:2px}
 
   /* ---------- RECENTLY PLAYED MODAL ---------- */
@@ -919,6 +922,31 @@
     </div>
     <input type="text" class="rp-search-input" id="rpSearchInput" placeholder="Caută în istoricul acestui canal..." oninput="filterRecentlyPlayedModal()">
     <div class="rp-modal-list" id="rpModalList"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="favConfirmModal" onclick="closeFavConfirmOnBackdrop(event)">
+  <div class="search-modal">
+    <div class="modal-header">
+      <img id="favConfirmCover" src="" alt="">
+      <div class="info">
+        <div class="ch-name">ELIMINĂ DE LA FAVORITE</div>
+        <div class="tr-title" id="favConfirmName">-</div>
+      </div>
+      <button class="modal-close" onclick="closeFavConfirmModal()" aria-label="Închide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-options">
+      <button class="modal-option fav-confirm-danger" onclick="confirmFavRemoval()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.2-4.6-9.8-9.2C.6 7.6 2.4 3.8 6.2 3.8c2.1 0 3.6 1.2 4.2 2.4.6-1.2 2.1-2.4 4.2-2.4 3.8 0 5.6 3.8 4 7.5-2.6 4.6-9.8 9.2-9.8 9.2z"/></svg>
+        Elimină de la favorite
+      </button>
+      <button class="modal-option" onclick="closeFavConfirmModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        Anulează
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1325,17 +1353,43 @@ function saveFavorites(){
   try{ localStorage.setItem('sergiu_favorites', JSON.stringify([...favoriteStreams])); }catch(e){}
 }
 function isFavorite(station){ return favoriteStreams.has(station.stream); }
+let pendingFavRemoval = null;
+
 function toggleFavorite(station){
   if(favoriteStreams.has(station.stream)){
-    const confirmed = confirm(`Elimini "${station.name}" de la favorite?`);
-    if(!confirmed) return;
-    favoriteStreams.delete(station.stream);
+    openFavConfirmModal(station);
   }else{
     favoriteStreams.add(station.stream);
+    saveFavorites();
+    renderRail();
   }
+}
+
+function openFavConfirmModal(station){
+  pendingFavRemoval = station;
+  document.getElementById('favConfirmCover').src = station.img || FALLBACK_IMG;
+  document.getElementById('favConfirmCover').onerror = function(){ this.src = FALLBACK_IMG; };
+  document.getElementById('favConfirmName').innerText = station.name;
+  document.getElementById('favConfirmModal').classList.add('open');
+}
+
+function closeFavConfirmModal(){
+  document.getElementById('favConfirmModal').classList.remove('open');
+  pendingFavRemoval = null;
+}
+
+function closeFavConfirmOnBackdrop(e){
+  if(e.target.id === 'favConfirmModal') closeFavConfirmModal();
+}
+
+function confirmFavRemoval(){
+  if(!pendingFavRemoval) return;
+  favoriteStreams.delete(pendingFavRemoval.stream);
   saveFavorites();
   renderRail();
+  closeFavConfirmModal();
 }
+
 
 function toggleFavoriteByStream(encodedStream){
   const stream = decodeURIComponent(encodedStream);
