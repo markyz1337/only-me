@@ -1170,11 +1170,14 @@ function openRecentlyPlayedModal(){
   renderRpModalList('');
   document.getElementById('rpModal').classList.add('open');
   lockBodyScroll();
+  pauseBackgroundAnimations();
 }
 function closeRecentlyPlayedModal(){
   document.getElementById('rpModal').classList.remove('open');
   unlockBodyScroll();
+  resumeBackgroundAnimations();
 }
+
 
 function closeRpModalOnBackdrop(e){
   if(e.target.id === 'rpModal') closeRecentlyPlayedModal();
@@ -1371,12 +1374,15 @@ function openFavConfirmModal(station){
   document.getElementById('favConfirmCover').onerror = function(){ this.src = FALLBACK_IMG; };
   document.getElementById('favConfirmName').innerText = station.name;
   document.getElementById('favConfirmModal').classList.add('open');
+  pauseBackgroundAnimations();
 }
 
 function closeFavConfirmModal(){
   document.getElementById('favConfirmModal').classList.remove('open');
   pendingFavRemoval = null;
+  resumeBackgroundAnimations();
 }
+
 
 function closeFavConfirmOnBackdrop(e){
   if(e.target.id === 'favConfirmModal') closeFavConfirmModal();
@@ -2102,7 +2108,9 @@ function openSearchModal(){
   document.getElementById('modalChannel').innerText = current.name;
   document.getElementById('modalTrack').innerText = toTitleCase(current.desc || current.name);
   document.getElementById('searchModal').classList.add('open');
+  pauseBackgroundAnimations();
 }
+
 function openSearchModalForTrack(trackTitle, trackImage){
   if(!trackTitle) return;
   document.getElementById('rpModal').classList.remove('open');
@@ -2123,8 +2131,11 @@ function closeSearchModal(){
   if(searchOpenedFromRp){
     searchOpenedFromRp = false;
     openRecentlyPlayedModal();
+    return;
   }
+  resumeBackgroundAnimations();
 }
+
 
 function closeSearchModalOnBackdrop(e){
   if(e.target.id === 'searchModal') closeSearchModal();
@@ -2425,6 +2436,21 @@ function initLyricsScrollbarDrag(){
   document.addEventListener('touchcancel', stopLyricsThumbDrag);
 
   window.addEventListener('resize', ()=>requestAnimationFrame(updateLyricsScrollbar));
+}
+
+
+
+function pauseBackgroundAnimations(){
+  document.querySelector('.hero-bg').style.animationPlayState = 'paused';
+  if(hopeStarsAnimId){ cancelAnimationFrame(hopeStarsAnimId); hopeStarsAnimId = null; }
+  if(hopeHeartInterval){ clearInterval(hopeHeartInterval); hopeHeartInterval = null; }
+}
+function resumeBackgroundAnimations(){
+  document.querySelector('.hero-bg').style.animationPlayState = 'running';
+  if(current && current.name === 'Hope'){
+    if(!hopeStarsAnimId) drawHopeStars(0);
+    if(!hopeHeartInterval){ spawnHopeHeart(); hopeHeartInterval = setInterval(spawnHopeHeart, 900); }
+  }
 }
 
 
