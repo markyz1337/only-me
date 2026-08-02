@@ -847,26 +847,42 @@
     padding:24px 28px; overflow:hidden;
   }
   .tv-lyrics-title{font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:12px; flex-shrink:0}
-  #tvLyricsContent{
-    white-space:pre-line; font-size:16.5px; line-height:1.85; color:var(--ink-dim);
+  .tv-recent-list{
+    flex:1; min-height:0;
+    display:flex; flex-direction:column; gap:10px;
     overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none;
     -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
     mask-image:linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
   }
-  #tvLyricsContent::-webkit-scrollbar{display:none}
-  #tvLyricsContent.is-empty{color:var(--ink-faint); font-style:italic}
+  .tv-recent-list::-webkit-scrollbar{display:none}
+  .tv-recent-empty{color:var(--ink-faint); font-style:italic; font-size:15px; padding:8px 0}
+  .tv-recent-row{
+    display:flex; align-items:center; gap:14px;
+    padding:10px 12px; border-radius:14px;
+    border:1px solid var(--hairline); background:var(--glass);
+    flex-shrink:0;
+  }
+  .tv-recent-row img{width:46px;height:46px;border-radius:11px; object-fit:cover; flex-shrink:0}
+  .tv-recent-row-info{flex:1; min-width:0}
+  .tv-recent-row-track{
+    font-size:15px; color:var(--ink); font-weight:500;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .tv-recent-row-time{font-size:12px; color:var(--ink-faint); margin-top:2px}
+
 
   .tv-stage{
     flex:0 0 auto; display:grid;
-    grid-template-columns:repeat(auto-fill, 150px);
-    grid-auto-rows:150px; gap:16px; justify-content:start;
+    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    gap:16px;
     padding:6px 0;
   }
 
 
 
 
-  .tv-tile{position:relative; border-radius:16px; overflow:hidden; cursor:pointer; border:2px solid var(--hairline)}
+
+  .tv-tile{position:relative; border-radius:16px; overflow:hidden; cursor:pointer; border:2px solid var(--hairline); aspect-ratio:1/1}
   .tv-tile img{width:100%;height:100%;object-fit:cover; display:block}
   .tv-tile-label{
     position:absolute; left:0; right:0; bottom:0; padding:6px 8px 7px;
@@ -1116,9 +1132,10 @@
 
 
     <div class="tv-lyrics" id="tvLyricsPanel">
-      <div class="tv-lyrics-title">Versuri</div>
-      <div id="tvLyricsContent" class="is-empty">Versurile apar automat când e detectată o piesă.</div>
+      <div class="tv-lyrics-title">Recently Played</div>
+      <div id="tvRecentList" class="tv-recent-list"></div>
     </div>
+
 
   </div>
 
@@ -1336,7 +1353,9 @@ function refreshRpUI(){
     const q = document.getElementById('rpSearchInput').value;
     renderRpModalList(q);
   }
+  if(tvMode) renderTvRecentList();
 }
+
 
 function openRecentlyPlayedModal(){
   if(!current) return;
@@ -1376,6 +1395,36 @@ function formatRpTime(iso){
   const diffD = Math.floor(diffH/24);
   return `acum ${diffD} zile`;
 }
+
+
+const TV_RECENT_LIMIT = 8;
+function renderTvRecentList(){
+  const list = document.getElementById('tvRecentList');
+  if(!list) return;
+  if(!current){
+    list.innerHTML = '<div class="tv-recent-empty">Alege un canal.</div>';
+    return;
+  }
+  const stationHistory = recentlyPlayedList.filter(item => item.station_name === current.name).slice(0, TV_RECENT_LIMIT);
+  if(!stationHistory.length){
+    list.innerHTML = '<div class="tv-recent-empty">Încă nu există istoric pentru acest canal.</div>';
+    return;
+  }
+  list.innerHTML = stationHistory.map(item=>{
+    const img = item.track_image || FALLBACK_IMG;
+    const track = toTitleCase(item.track_title || '').replace(/</g,'&lt;');
+    const time = formatRpTime(item.played_at);
+    return `<div class="tv-recent-row">
+      <img src="${img}" onerror="this.src='${FALLBACK_IMG}'" alt="">
+      <div class="tv-recent-row-info">
+        <div class="tv-recent-row-track">${track}</div>
+        <div class="tv-recent-row-time">${time}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
 
 const RP_DISPLAY_LIMIT = 20;
 
@@ -1742,12 +1791,13 @@ async function fetchMetadata(station){
 
     if(current && current.name===station.name){
       updateNowUI();
-      if(lyricsOpen || tvMode) fetchLyricsFor(station);
+      if(lyricsOpen) fetchLyricsFor(station);
     }
     renderRail();
-
+    if(tvMode) renderTvGrid();
   }
 }
+
 
 // --- COPERTĂ (iTunes) ---
 async function fetchAlbumArt(title, station){
@@ -1759,9 +1809,11 @@ async function fetchAlbumArt(title, station){
       station.img = data.results[0].artworkUrl100.replace('100x100bb.jpg','500x500bb.jpg');
       if(current && current.name===station.name) updateNowUI();
       renderRail();
+      if(tvMode) renderTvGrid();
     }
   }catch(e){}
 }
+
 
 // --- PLAYER ---
 function play(station){
@@ -1779,7 +1831,7 @@ function play(station){
   if(document.getElementById('rpModal').classList.contains('open')){
     document.getElementById('rpModalStationName').innerText = current.name;
   }
-   if(lyricsOpen || tvMode) fetchLyricsFor(station);
+   if(lyricsOpen) fetchLyricsFor(station);
 }
 
 function saveLastStation(station){
@@ -2456,12 +2508,6 @@ async function fetchLyricsFor(station){
   inner.scrollTop = 0;
   requestAnimationFrame(updateLyricsScrollbar);
 
-  const tvBox = document.getElementById('tvLyricsContent');
-  if(tvBox){
-    tvBox.textContent = box.textContent;
-    tvBox.classList.toggle('is-empty', box.classList.contains('is-empty'));
-    tvBox.scrollTop = 0;
-  }
 }
 
 
@@ -2663,7 +2709,7 @@ let tvZones = [];
 let tvZoneIndex = 0;
 let tvItemIndex = 0;
 let tvGridCache = [];
-let tvLyricsScrollId = null;
+
 
 
 function detectTV(){
@@ -2749,8 +2795,10 @@ function updateTvNowPlaying(){
   document.getElementById('tvChannelLabel').innerText = current.name;
   document.getElementById('tvNowTitle').innerText = current.desc;
   updateTvFavIcon();
+  renderTvRecentList();
   requestAnimationFrame(syncTvPanelHeights);
 }
+
 
 
 
@@ -2827,24 +2875,7 @@ function startTvClock(){
   tvClockIntervalId = setInterval(update, 1000);
 }
 
-function startTvLyricsAutoScroll(){
-  if(tvLyricsScrollId) return;
-  const SPEED_PX_PER_FRAME = 0.35; // ~21px/secundă la 60fps — lin, lizibil
-  function step(){
-    const el = document.getElementById('tvLyricsContent');
-    if(el){
-      const maxScroll = el.scrollHeight - el.clientHeight;
-      if(maxScroll > 1){
-        el.scrollTop += SPEED_PX_PER_FRAME;
-        if(el.scrollTop >= maxScroll){
-          el.scrollTop = 0;
-        }
-      }
-    }
-    tvLyricsScrollId = requestAnimationFrame(step);
-  }
-  step();
-}
+
 
 function initTvMode(){
 
@@ -2861,9 +2892,8 @@ function initTvMode(){
 
    renderTvGrid();
   updateTvNowPlaying();
-  if(current) fetchLyricsFor(current);
-  startTvLyricsAutoScroll();
   startTvClock();
+
 
 
 
