@@ -778,11 +778,16 @@
   .tv-header .mark{width:34px;height:34px}
   .tv-header .wordmark{font-size:22px}
   .tv-header .subline{font-size:13px}
+  .tv-header-right{display:flex; flex-direction:column; align-items:flex-end; gap:4px; min-width:0; max-width:60%}
   .tv-header-now{
     font-family:var(--display); font-weight:600; font-size:clamp(16px,1.9vw,28px);
     text-transform:uppercase; text-align:right; letter-spacing:-0.01em;
-    max-width:60%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink);
+    max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink);
   }
+  .tv-header-clock{
+    font-family:var(--mono); font-size:14px; letter-spacing:.06em; color:var(--ink-faint);
+  }
+
 
 
   .tv-main{display:flex; gap:40px; flex:1; min-height:0}
@@ -810,16 +815,20 @@
   .tv-transport .tv-play-btn svg{width:26px;height:26px}
 
   .tv-transport.tv-cover-controls{
-    position:absolute; right:16px; bottom:16px; z-index:3; gap:12px;
+    position:absolute; left:16px; bottom:16px; z-index:3; gap:12px;
   }
   .tv-transport.tv-cover-controls button{
-    width:46px;height:46px;
+    width:46px;height:46px; color:#ffffff;
     background:rgba(11,12,15,0.55); border-color:rgba(255,255,255,0.3);
     backdrop-filter:blur(10px) saturate(1.6); -webkit-backdrop-filter:blur(10px) saturate(1.6);
   }
   .tv-transport.tv-cover-controls button svg{width:18px;height:18px}
-  .tv-transport.tv-cover-controls .tv-play-btn{width:58px;height:58px}
+  .tv-transport.tv-cover-controls .tv-play-btn{
+    width:58px;height:58px; color:#ffffff;
+    background:rgba(11,12,15,0.55);
+  }
   .tv-transport.tv-cover-controls .tv-play-btn svg{width:22px;height:22px}
+
 
 
   .tv-lyrics{
@@ -1068,7 +1077,10 @@
         <div class="subline" id="tvChannelLabel">Alege un canal</div>
       </div>
     </div>
-    <div class="tv-header-now" id="tvNowTitle">Atinge un canal mai jos</div>
+    <div class="tv-header-right">
+      <div class="tv-header-now" id="tvNowTitle">Atinge un canal mai jos</div>
+      <div class="tv-header-clock" id="tvClock">--:--</div>
+    </div>
   </div>
 
   <div class="tv-main">
@@ -1081,11 +1093,8 @@
           <button id="tvNextBtn" aria-label="Canalul următor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4.5 6l10 6-10 6z"/></svg></button>
         </div>
       </div>
-      <div class="tv-eyebrow">
-        <span class="live-chip"><span class="live-dot paused" id="tvLiveDot"></span><span>LIVE</span></span>
-        <span class="sig-bars" id="tvSigBars"><span></span><span></span><span></span></span>
-      </div>
     </div>
+
 
 
     <div class="tv-lyrics">
@@ -2635,6 +2644,8 @@ let tvZones = [];
 let tvZoneIndex = 0;
 let tvItemIndex = 0;
 let tvGridCache = [];
+let tvLyricsScrollId = null;
+
 
 function detectTV(){
   const ua = navigator.userAgent || '';
@@ -2766,7 +2777,42 @@ function closeAnyOpenModal(){
   if(document.getElementById('favConfirmModal').classList.contains('open')) closeFavConfirmModal();
 }
 
+let tvClockIntervalId = null;
+function startTvClock(){
+  if(tvClockIntervalId) return;
+  const update = ()=>{
+    const el = document.getElementById('tvClock');
+    if(!el) return;
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    el.textContent = `${hh}:${mm}`;
+  };
+  update();
+  tvClockIntervalId = setInterval(update, 1000);
+}
+
+function startTvLyricsAutoScroll(){
+  if(tvLyricsScrollId) return;
+  const SPEED_PX_PER_FRAME = 0.35; // ~21px/secundă la 60fps — lin, lizibil
+  function step(){
+    const el = document.getElementById('tvLyricsContent');
+    if(el){
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      if(maxScroll > 1){
+        el.scrollTop += SPEED_PX_PER_FRAME;
+        if(el.scrollTop >= maxScroll){
+          el.scrollTop = 0;
+        }
+      }
+    }
+    tvLyricsScrollId = requestAnimationFrame(step);
+  }
+  step();
+}
+
 function initTvMode(){
+
   tvMode = detectTV();
   if(!tvMode) return;
   document.body.classList.add('tv-active');
@@ -2776,9 +2822,13 @@ function initTvMode(){
   document.getElementById('tvPlayBtn').addEventListener('click', togglePlay);
 
 
-  renderTvGrid();
+   renderTvGrid();
   updateTvNowPlaying();
   if(current) fetchLyricsFor(current);
+  startTvLyricsAutoScroll();
+  startTvClock();
+
+
 
   buildTvZones();
   tvZoneIndex = tvZones.length - 1;
