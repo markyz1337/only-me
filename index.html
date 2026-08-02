@@ -492,9 +492,11 @@
     100%{opacity:0; transform:translateY(-340px) scale(1.15) rotate(18deg)}
   }
 
-  .hero-frame.hope-mode{
+.hero-frame.hope-mode,
+.tv-cover-wrap.hope-mode{
     animation:hopeGlow 3.6s ease-in-out infinite;
   }
+
   @keyframes hopeGlow{
     0%,100%{box-shadow:inset 0 0 30px rgba(255,120,160,0.15), inset 0 0 0 1px rgba(255,140,170,0.25)}
     50%{box-shadow:inset 0 0 55px rgba(255,120,160,0.35), inset 0 0 0 1px rgba(255,140,170,0.55)}
@@ -1117,9 +1119,13 @@
 
   <div class="tv-main">
     <div class="tv-now">
-      <div class="tv-cover-wrap">
-        <img id="tvCoverBig" src="" alt="">
-        <div class="tv-transport tv-cover-controls">
+<div class="tv-cover-wrap">
+  <img id="tvCoverBig" src="" alt="">
+  <canvas class="hope-stars" id="tvHopeStars"></canvas>
+  <div class="hope-hearts" id="tvHopeHearts"></div>
+  <div class="hope-progress-ring" id="tvHopeProgressRing"></div>
+  <div class="tv-transport tv-cover-controls">
+
           <button id="tvPrevBtn" aria-label="Canalul anterior"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 10-6v12z"/></svg></button>
           <button id="tvPlayBtn" class="tv-play-btn" aria-label="Redă / Pauză"><svg id="tvPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
           <button id="tvNextBtn" aria-label="Canalul următor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4.5 6l10 6-10 6z"/></svg></button>
@@ -1935,29 +1941,35 @@ function setAmbientColor(hex){
   activeIsA = !activeIsA;
 }
 
-// --- HOPE: stele + inimioare ---
-let hopeStarsCtx = null;
-let hopeStarField = [];
-let hopeStarsAnimId = null;
-let hopeHeartInterval = null;
-let hopeShootingStars = [];
-let hopeNextShootTime = 0;
+// --- HOPE: stele + inimioare (layere multiple: hero + TV) ---
+const HOPE_LAYERS = [
+  { starsId: 'hopeStars', heartsId: 'hopeHearts', ringId: 'hopeProgressRing', frameSelector: '.hero-frame' },
+  { starsId: 'tvHopeStars', heartsId: 'tvHopeHearts', ringId: 'tvHopeProgressRing', frameSelector: '.tv-cover-wrap' }
+];
+HOPE_LAYERS.forEach(l=>{
+  l.ctx = null; l.starField = []; l.animId = null;
+  l.shootingStars = []; l.nextShootTime = 0; l.heartInterval = null;
+});
 
-function maybeSpawnHopeShootingStar(t){
-  const canvas = document.getElementById('hopeStars');
+function smoothstep(edge0, edge1, v){
+  const x = Math.min(1, Math.max(0, (v - edge0) / (edge1 - edge0)));
+  return x*x*(3 - 2*x);
+}
+
+function maybeSpawnHopeShootingStar(layer, t){
+  const canvas = document.getElementById(layer.starsId);
   if(!canvas) return;
-  if(!hopeNextShootTime) hopeNextShootTime = t + 1500 + Math.random()*2500;
-  if(t < hopeNextShootTime) return;
-  hopeNextShootTime = t + 2800 + Math.random()*4200;
+  if(!layer.nextShootTime) layer.nextShootTime = t + 1500 + Math.random()*2500;
+  if(t < layer.nextShootTime) return;
+  layer.nextShootTime = t + 2800 + Math.random()*4200;
 
   const startX = canvas.width*0.55 + Math.random()*canvas.width*0.45;
   const startY = Math.random()*canvas.height*0.28;
-  const angle = Math.PI*0.72 + Math.random()*0.18; // cădere diagonală spre stânga-jos
+  const angle = Math.PI*0.72 + Math.random()*0.18;
   const dist = 160 + Math.random()*120;
-  hopeShootingStars.push({
+  layer.shootingStars.push({
     x: startX, y: startY,
-    dx: Math.cos(angle),
-    dy: Math.sin(angle),
+    dx: Math.cos(angle), dy: Math.sin(angle),
     dist, traveled: 0,
     speed: 4.2 + Math.random()*2.2,
     len: 70 + Math.random()*50,
@@ -1965,23 +1977,15 @@ function maybeSpawnHopeShootingStar(t){
   });
 }
 
-
-function smoothstep(edge0, edge1, v){
-  const x = Math.min(1, Math.max(0, (v - edge0) / (edge1 - edge0)));
-  return x*x*(3 - 2*x);
-}
-
-function drawHopeShootingStars(t){
-  if(!hopeStarsCtx) return;
-  hopeShootingStars = hopeShootingStars.filter(m=>{
-    // easing: pornește mai repede, încetinește lin spre final (fără oprire bruscă)
+function drawHopeShootingStars(layer){
+  if(!layer.ctx) return;
+  layer.shootingStars = layer.shootingStars.filter(m=>{
     const progressBefore = m.traveled / m.dist;
     const easedSpeed = m.speed * (0.35 + 0.65 * (1 - smoothstep(0.55, 1, progressBefore)));
     m.traveled += easedSpeed;
-    if(m.traveled > m.dist + m.len) return false; // lasă coada să se stingă complet înainte să dispară
+    if(m.traveled > m.dist + m.len) return false;
 
     const progress = Math.min(1, m.traveled / m.dist);
-    // fade in lin pe primii 12%, apoi fade out smoothstep pe ultimii 45% — tranziție mult mai lină
     const fadeIn = smoothstep(0, 0.12, progress);
     const fadeOut = 1 - smoothstep(0.55, 1, progress);
     const fade = fadeIn * fadeOut;
@@ -1991,47 +1995,44 @@ function drawHopeShootingStars(t){
     const tailX = x - m.dx*m.len;
     const tailY = y - m.dy*m.len;
 
-    const grad = hopeStarsCtx.createLinearGradient(x, y, tailX, tailY);
+    const grad = layer.ctx.createLinearGradient(x, y, tailX, tailY);
     grad.addColorStop(0, `rgba(255,240,245,${(0.85*fade).toFixed(3)})`);
     grad.addColorStop(0.6, `rgba(255,200,215,${(0.35*fade).toFixed(3)})`);
     grad.addColorStop(1, `rgba(255,180,205,0)`);
-    hopeStarsCtx.strokeStyle = grad;
-    hopeStarsCtx.lineWidth = 1.6;
-    hopeStarsCtx.lineCap = 'round';
-    hopeStarsCtx.beginPath();
-    hopeStarsCtx.moveTo(x, y);
-    hopeStarsCtx.lineTo(tailX, tailY);
-    hopeStarsCtx.stroke();
+    layer.ctx.strokeStyle = grad;
+    layer.ctx.lineWidth = 1.6;
+    layer.ctx.lineCap = 'round';
+    layer.ctx.beginPath();
+    layer.ctx.moveTo(x, y);
+    layer.ctx.lineTo(tailX, tailY);
+    layer.ctx.stroke();
 
-    hopeStarsCtx.beginPath();
-    hopeStarsCtx.arc(x, y, 1.4, 0, Math.PI*2);
-    hopeStarsCtx.fillStyle = `rgba(255,250,250,${fade.toFixed(3)})`;
-    hopeStarsCtx.fill();
+    layer.ctx.beginPath();
+    layer.ctx.arc(x, y, 1.4, 0, Math.PI*2);
+    layer.ctx.fillStyle = `rgba(255,250,250,${fade.toFixed(3)})`;
+    layer.ctx.fill();
     return true;
   });
 }
 
-
-
-function initHopeStarsCanvas(){
-  const canvas = document.getElementById('hopeStars');
+function initHopeStarsCanvas(layer){
+  const canvas = document.getElementById(layer.starsId);
   if(!canvas) return;
-  hopeStarsCtx = canvas.getContext('2d');
-  window.addEventListener('resize', resizeHopeStars);
+  layer.ctx = canvas.getContext('2d');
 }
-function resizeHopeStars(){
-  const canvas = document.getElementById('hopeStars');
+function resizeHopeStars(layer){
+  const canvas = document.getElementById(layer.starsId);
   if(!canvas) return;
   const rect = canvas.parentElement.getBoundingClientRect();
   canvas.width = rect.width;
   canvas.height = rect.height;
-  buildHopeStarField();
+  buildHopeStarField(layer);
 }
-function buildHopeStarField(){
-  const canvas = document.getElementById('hopeStars');
+function buildHopeStarField(layer){
+  const canvas = document.getElementById(layer.starsId);
   if(!canvas) return;
   const count = Math.floor((canvas.width * canvas.height) / 5500);
-  hopeStarField = Array.from({length: Math.max(count, 40)}, ()=>({
+  layer.starField = Array.from({length: Math.max(count, 40)}, ()=>({
     x: Math.random()*canvas.width,
     y: Math.random()*canvas.height*0.75,
     r: Math.random()*1.4 + 0.4,
@@ -2040,45 +2041,43 @@ function buildHopeStarField(){
     phase: Math.random()*Math.PI*2
   }));
 }
-function drawHopeStars(t){
-  const canvas = document.getElementById('hopeStars');
-  if(!canvas || !hopeStarsCtx) return;
-  hopeStarsCtx.clearRect(0,0,canvas.width,canvas.height);
-  hopeStarField.forEach(s=>{
+function drawHopeStars(layer, t){
+  const canvas = document.getElementById(layer.starsId);
+  if(!canvas || !layer.ctx) return;
+  layer.ctx.clearRect(0,0,canvas.width,canvas.height);
+  layer.starField.forEach(s=>{
     const raw = Math.sin(t*s.speed + s.phase)*0.5+0.5;
-    const twinkle = raw*raw*(3-2*raw); // smoothstep — tranziție mai moale între licăriri
+    const twinkle = raw*raw*(3-2*raw);
     const alpha = s.baseAlpha * (0.35 + twinkle*0.65);
-    hopeStarsCtx.beginPath();
-    hopeStarsCtx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-    hopeStarsCtx.fillStyle = `rgba(255,235,240,${alpha.toFixed(3)})`;
-    hopeStarsCtx.fill();
+    layer.ctx.beginPath();
+    layer.ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    layer.ctx.fillStyle = `rgba(255,235,240,${alpha.toFixed(3)})`;
+    layer.ctx.fill();
   });
-  drawHopeShootingStars(t);
-  maybeSpawnHopeShootingStar(t);
-  hopeStarsAnimId = requestAnimationFrame(drawHopeStars);
+  drawHopeShootingStars(layer);
+  maybeSpawnHopeShootingStar(layer, t);
+  layer.animId = requestAnimationFrame((t2)=>drawHopeStars(layer, t2));
 }
 
-
-function startHopeStars(){
-  const canvas = document.getElementById('hopeStars');
+function startHopeStars(layer){
+  const canvas = document.getElementById(layer.starsId);
   if(!canvas) return;
   canvas.classList.add('active');
-  if(!hopeStarsCtx) initHopeStarsCanvas();
-  resizeHopeStars();
-  hopeShootingStars = [];
-  hopeNextShootTime = 0;
-  if(!hopeStarsAnimId) drawHopeStars(0);
+  if(!layer.ctx) initHopeStarsCanvas(layer);
+  resizeHopeStars(layer);
+  layer.shootingStars = [];
+  layer.nextShootTime = 0;
+  if(!layer.animId) drawHopeStars(layer, 0);
 }
-
-function stopHopeStars(){
-  const canvas = document.getElementById('hopeStars');
+function stopHopeStars(layer){
+  const canvas = document.getElementById(layer.starsId);
   if(canvas) canvas.classList.remove('active');
-  if(hopeStarsAnimId){ cancelAnimationFrame(hopeStarsAnimId); hopeStarsAnimId = null; }
+  if(layer.animId){ cancelAnimationFrame(layer.animId); layer.animId = null; }
 }
 
-function spawnHopeHeart(){
-  const layer = document.getElementById('hopeHearts');
-  if(!layer) return;
+function spawnHopeHeart(layer){
+  const heartsLayer = document.getElementById(layer.heartsId);
+  if(!heartsLayer) return;
   const heart = document.createElement('span');
   heart.className = 'hope-heart';
   heart.textContent = Math.random() > 0.5 ? '♥' : '❤';
@@ -2086,32 +2085,37 @@ function spawnHopeHeart(){
   heart.style.fontSize = (10 + Math.random()*14) + 'px';
   const duration = 6 + Math.random()*4;
   heart.style.animationDuration = duration + 's';
-  layer.appendChild(heart);
+  heartsLayer.appendChild(heart);
   setTimeout(()=>heart.remove(), duration*1000 + 200);
 }
-function startHopeHearts(){
-  const layer = document.getElementById('hopeHearts');
-  if(layer) layer.classList.add('active');
-  if(hopeHeartInterval) return;
-  spawnHopeHeart();
-  hopeHeartInterval = setInterval(spawnHopeHeart, 900);
+function startHopeHearts(layer){
+  const heartsLayer = document.getElementById(layer.heartsId);
+  if(heartsLayer) heartsLayer.classList.add('active');
+  if(layer.heartInterval) return;
+  spawnHopeHeart(layer);
+  layer.heartInterval = setInterval(()=>spawnHopeHeart(layer), 900);
 }
-function stopHopeHearts(){
-  const layer = document.getElementById('hopeHearts');
-  if(layer) layer.classList.remove('active');
-  if(hopeHeartInterval){ clearInterval(hopeHeartInterval); hopeHeartInterval = null; }
+function stopHopeHearts(layer){
+  const heartsLayer = document.getElementById(layer.heartsId);
+  if(heartsLayer) heartsLayer.classList.remove('active');
+  if(layer.heartInterval){ clearInterval(layer.heartInterval); layer.heartInterval = null; }
 }
 
 function updateHopeMode(){
   const isHope = !!(current && current.name === 'Hope');
-  document.querySelector('.hero-frame').classList.toggle('hope-mode', isHope);
+  HOPE_LAYERS.forEach(layer=>{
+    const frame = document.querySelector(layer.frameSelector);
+    if(frame) frame.classList.toggle('hope-mode', isHope);
+    if(isHope){ startHopeStars(layer); startHopeHearts(layer); }
+    else{ stopHopeStars(layer); stopHopeHearts(layer); }
+  });
   updateHopePulseState();
   updateHopeProgressRing();
-  if(isHope){ startHopeStars(); startHopeHearts(); }
-  else{ stopHopeStars(); stopHopeHearts(); }
 }
 
-
+window.addEventListener('resize', ()=>{
+  HOPE_LAYERS.forEach(layer=>{ if(layer.animId) resizeHopeStars(layer); });
+});
 
 // ─── HOPE: ziua din lună când borderul e 100% (progresul începe a doua zi) ───
 const HOPE_ANNIVERSARY_DAY = 01;
@@ -2119,7 +2123,7 @@ const HOPE_ANNIVERSARY_DAY = 01;
 function computeHopeProgress(){
   const now = new Date();
   const day = now.getDate();
-  const startDay = HOPE_ANNIVERSARY_DAY + 1; // ziua în care progresul repornește de la 0
+  const startDay = HOPE_ANNIVERSARY_DAY + 1;
   let start, end;
   if(day >= startDay){
     start = new Date(now.getFullYear(), now.getMonth(), startDay, 0,0,0);
@@ -2133,39 +2137,34 @@ function computeHopeProgress(){
   return Math.min(1, Math.max(0, elapsed/total));
 }
 
-
 function updateHopeProgressRing(){
-  const ring = document.getElementById('hopeProgressRing');
-  if(!ring) return;
   const isHope = !!(current && current.name === 'Hope');
-  const wasActive = ring.classList.contains('active');
+  HOPE_LAYERS.forEach(layer=>{
+    const ring = document.getElementById(layer.ringId);
+    if(!ring) return;
+    const wasActive = ring.classList.contains('active');
 
-  if(isHope && !wasActive){
-    // INTRARE pe Hope: resetează progresul instant la 0deg, apoi animă spre valoarea reală
-    ring.classList.add('active');
-    ring.style.transition = 'none';
-    ring.style.setProperty('--hope-progress', '0deg');
-
-    requestAnimationFrame(()=>{
+    if(isHope && !wasActive){
+      ring.classList.add('active');
+      ring.style.transition = 'none';
+      ring.style.setProperty('--hope-progress', '0deg');
       requestAnimationFrame(()=>{
-        ring.style.transition = '';
-        const progress = computeHopeProgress();
-        ring.style.setProperty('--hope-progress', (progress*360) + 'deg');
+        requestAnimationFrame(()=>{
+          ring.style.transition = '';
+          const progress = computeHopeProgress();
+          ring.style.setProperty('--hope-progress', (progress*360) + 'deg');
+        });
       });
-    });
-
-
-  }else if(isHope && wasActive){
-    // rămâi pe Hope (ex. refresh periodic al progresului)
-    const progress = computeHopeProgress();
-    ring.style.setProperty('--hope-progress', (progress*360) + 'deg');
-
-  }else if(!isHope && wasActive){
-    // IEȘIRE din Hope: scade progresul la 0, apoi (după tranziție) ascunde inelul
-    ring.classList.remove('active');
-    ring.style.setProperty('--hope-progress', '0deg');
-  }
+    }else if(isHope && wasActive){
+      const progress = computeHopeProgress();
+      ring.style.setProperty('--hope-progress', (progress*360) + 'deg');
+    }else if(!isHope && wasActive){
+      ring.classList.remove('active');
+      ring.style.setProperty('--hope-progress', '0deg');
+    }
+  });
 }
+
 
 
 
@@ -2687,16 +2686,19 @@ function initLyricsScrollbarDrag(){
 
 function pauseBackgroundAnimations(){
   document.querySelector('.hero-bg').style.animationPlayState = 'paused';
-  if(hopeStarsAnimId){ cancelAnimationFrame(hopeStarsAnimId); hopeStarsAnimId = null; }
-  if(hopeHeartInterval){ clearInterval(hopeHeartInterval); hopeHeartInterval = null; }
+  const heroLayer = HOPE_LAYERS[0];
+  stopHopeStars(heroLayer);
+  stopHopeHearts(heroLayer);
 }
 function resumeBackgroundAnimations(){
   document.querySelector('.hero-bg').style.animationPlayState = 'running';
   if(current && current.name === 'Hope'){
-    if(!hopeStarsAnimId) drawHopeStars(0);
-    if(!hopeHeartInterval){ spawnHopeHeart(); hopeHeartInterval = setInterval(spawnHopeHeart, 900); }
+    const heroLayer = HOPE_LAYERS[0];
+    startHopeStars(heroLayer);
+    startHopeHearts(heroLayer);
   }
 }
+
 
 
 function heroTap(e){
