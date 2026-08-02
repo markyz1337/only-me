@@ -1869,19 +1869,20 @@ function togglePlay(){
 }
 
 function next(){
-  const list = getStationsForActiveTab();
+  const list = tvMode ? tvAllStations() : getStationsForActiveTab();
   if(!list.length) return;
   if(!current){ play(list[0]); return; }
   const i = list.findIndex(s=>s.stream===current.stream);
   play(list[(i+1+list.length)%list.length]);
 }
 function prev(){
-  const list = getStationsForActiveTab();
+  const list = tvMode ? tvAllStations() : getStationsForActiveTab();
   if(!list.length) return;
   if(!current){ play(list[0]); return; }
   const i = list.findIndex(s=>s.stream===current.stream);
   play(list[(i-1+list.length)%list.length]);
 }
+
 
 
 function updateNowUI(){
