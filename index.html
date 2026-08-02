@@ -754,40 +754,97 @@
   }
   .copy-toast.show{opacity:1; transform:translate(-50%, 0)}
 
-  /* ============ TV MODE ============ */
-  body.tv-mode{cursor:none}
-  body.tv-mode .topbar{padding-left:46px;padding-right:46px}
-  body.tv-mode .hero{max-width:1080px;margin-top:34px}
-  body.tv-mode .hero-frame{height:min(60vh,640px);border-radius:32px}
-  body.tv-mode #nowTitle{font-size:clamp(30px,4vw,54px)}
-  body.tv-mode .transport{gap:26px}
-  body.tv-mode .transport button{width:64px;height:64px}
-  body.tv-mode .transport button svg{width:22px;height:22px}
-  body.tv-mode .transport .play-btn{width:86px;height:86px}
-  body.tv-mode .transport .play-btn svg{width:28px;height:28px}
-  body.tv-mode .rail-section,body.tv-mode .lyrics-wrap{max-width:1080px}
-  body.tv-mode .tab-btn{font-size:14px;padding:12px 20px}
-  body.tv-mode .channel-tile{width:140px}
-  body.tv-mode .tile-art{width:140px;height:140px;border-radius:24px}
-  body.tv-mode .tile-name{font-size:14px}
-  body.tv-mode .rail{gap:22px;padding:20px 46px 8px}
-  body.tv-mode .icon-action .circ{width:44px;height:44px}
-  body.tv-mode .icon-action{font-size:11.5px}
+  /* ============ TV MODE — REDESIGN COMPLET ============ */
+  body.tv-active{cursor:none; overflow:hidden}
+  body.tv-active .topbar,
+  body.tv-active .hero,
+  body.tv-active .lyrics-wrap,
+  body.tv-active .rail-section{display:none}
 
-  body.tv-mode .channel-tile.tv-focused .tile-art{
-    border-color:var(--metal)!important;
-    box-shadow:0 0 0 4px rgba(201,187,161,0.85), 0 10px 30px rgba(0,0,0,0.5);
-    transform:scale(1.1);
+  #tvRoot{
+    display:none; position:fixed; inset:0; z-index:10; background:var(--bg);
+    padding:40px 48px; flex-direction:column; gap:24px; overflow:hidden;
   }
-  body.tv-mode .tab-btn.tv-focused,
-  body.tv-mode .transport button.tv-focused,
-  body.tv-mode .rp-toggle-btn.tv-focused{
-    outline:3px solid var(--metal); outline-offset:3px; border-radius:20px;
+  body.tv-active #tvRoot{display:flex}
+
+  .tv-bg{
+    position:fixed; inset:-10%; width:120%; height:120%; z-index:-1;
+    object-fit:cover; filter:blur(40px) saturate(1.3) brightness(0.34);
+    transform:scale(1.05); transition:opacity .6s ease;
   }
-  body.tv-mode .transport button.tv-focused{border-radius:50%}
-  body.tv-mode .icon-action.tv-focused .circ{
-    outline:3px solid var(--metal); outline-offset:2px;
+
+  .tv-header{display:flex; align-items:center; gap:14px; flex-shrink:0}
+  .tv-header .mark{width:34px;height:34px}
+  .tv-header .wordmark{font-size:22px}
+  .tv-header .subline{font-size:13px}
+
+  .tv-main{display:flex; gap:40px; flex:1; min-height:0}
+
+  .tv-now{flex:0 0 auto; width:34%; min-width:320px; display:flex; flex-direction:column; gap:20px}
+  .tv-cover-wrap{
+    position:relative; width:100%; aspect-ratio:1/1; max-height:36vh;
+    border-radius:28px; overflow:hidden; border:1px solid var(--hairline);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5); flex-shrink:0;
   }
+  .tv-cover-wrap img{width:100%;height:100%;object-fit:cover; display:block}
+  .tv-eyebrow{display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-dim)}
+  .tv-title{
+    font-family:var(--display); font-weight:600; font-size:clamp(20px,2.4vw,32px);
+    line-height:1.22; text-transform:uppercase; margin:0;
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden;
+  }
+  .tv-transport{display:flex; align-items:center; gap:20px}
+  .tv-transport button{
+    border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.06); color:var(--ink);
+    border-radius:50%; width:58px;height:58px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .tv-transport button svg{width:21px;height:21px}
+  .tv-transport .tv-play-btn{width:76px;height:76px; background:radial-gradient(circle at 32% 26%, #fff, #ece6d9 50%, var(--metal) 100%); color:#14151a}
+  .tv-transport .tv-play-btn svg{width:26px;height:26px}
+  .tv-corner{display:flex; gap:12px}
+  .tv-corner button{
+    display:flex; align-items:center; gap:8px;
+    background:var(--glass); border:1px solid var(--hairline); color:var(--ink-dim);
+    font-family:var(--sans); font-size:13px; font-weight:500;
+    padding:10px 16px; border-radius:24px; cursor:pointer;
+  }
+  .tv-corner button svg{width:16px;height:16px}
+
+  .tv-lyrics{
+    flex:1; min-width:0; display:flex; flex-direction:column;
+    border:1px solid var(--hairline); border-radius:24px; background:var(--glass);
+    padding:24px 28px; overflow:hidden;
+  }
+  .tv-lyrics-title{font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:12px; flex-shrink:0}
+  #tvLyricsContent{
+    white-space:pre-line; font-size:16.5px; line-height:1.85; color:var(--ink-dim);
+    overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none;
+    -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+    mask-image:linear-gradient(180deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+  }
+  #tvLyricsContent::-webkit-scrollbar{display:none}
+  #tvLyricsContent.is-empty{color:var(--ink-faint); font-style:italic}
+
+  .tv-stage{flex:0 0 auto; height:34vh; min-height:210px; display:grid; align-content:center; justify-content:center; gap:14px; overflow:hidden}
+  .tv-tile{position:relative; border-radius:16px; overflow:hidden; cursor:pointer; border:2px solid var(--hairline)}
+  .tv-tile img{width:100%;height:100%;object-fit:cover; display:block}
+  .tv-tile-label{
+    position:absolute; left:0; right:0; bottom:0; padding:6px 8px 7px;
+    background:linear-gradient(0deg, rgba(0,0,0,0.85), transparent);
+    font-size:11px; font-weight:600; color:#fff;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .tv-tile.active{border-color:var(--metal)}
+  .tv-tile.tv-focused{
+    border-color:var(--metal);
+    box-shadow:0 0 0 4px rgba(201,187,161,0.8), 0 10px 26px rgba(0,0,0,0.5);
+    transform:scale(1.1); z-index:2;
+  }
+  .tv-corner button.tv-focused,
+  .tv-transport button.tv-focused{
+    outline:3px solid var(--metal); outline-offset:3px; border-radius:24px;
+  }
+  .tv-transport button.tv-focused{border-radius:50%}
 </style>
 
 </head>
@@ -983,6 +1040,48 @@
       </button>
     </div>
   </div>
+</div>
+
+<div id="tvRoot">
+  <img class="tv-bg" id="tvBg" src="" alt="">
+  <div class="tv-header">
+    <svg class="mark" viewBox="0 0 30 30" fill="none">
+      <circle cx="15" cy="15" r="13" stroke="#c9bba1" stroke-width="1" opacity="0.35"/>
+      <circle cx="15" cy="15" r="8.5" stroke="#c9bba1" stroke-width="1" opacity="0.6"/>
+      <circle cx="15" cy="15" r="2.5" fill="#c9bba1"/>
+    </svg>
+    <div>
+      <div class="wordmark">Sergiu Ro</div>
+      <div class="subline" id="tvChannelLabel">Alege un canal</div>
+    </div>
+  </div>
+
+  <div class="tv-main">
+    <div class="tv-now">
+      <div class="tv-cover-wrap"><img id="tvCoverBig" src="" alt=""></div>
+      <div class="tv-eyebrow">
+        <span class="live-chip"><span class="live-dot paused" id="tvLiveDot"></span><span>LIVE</span></span>
+        <span class="sig-bars" id="tvSigBars"><span></span><span></span><span></span></span>
+      </div>
+      <h2 class="tv-title" id="tvNowTitle">Atinge un canal mai jos</h2>
+      <div class="tv-transport">
+        <button id="tvPrevBtn" aria-label="Canalul anterior"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 10-6v12z"/></svg></button>
+        <button id="tvPlayBtn" class="tv-play-btn" aria-label="Redă / Pauză"><svg id="tvPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+        <button id="tvNextBtn" aria-label="Canalul următor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4.5 6l10 6-10 6z"/></svg></button>
+      </div>
+      <div class="tv-corner">
+        <button id="tvSearchBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>Caută</button>
+        <button id="tvPlaylistBtn" style="display:none"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zm0 5h10v2H4zm0 5h10v2H4zm12-4 5 3-5 3z"/></svg>Playlist</button>
+      </div>
+    </div>
+
+    <div class="tv-lyrics">
+      <div class="tv-lyrics-title">Versuri</div>
+      <div id="tvLyricsContent" class="is-empty">Versurile apar automat când e detectată o piesă.</div>
+    </div>
+  </div>
+
+  <div class="tv-stage" id="tvGrid"></div>
 </div>
 
 <audio id="audio"></audio>
@@ -1602,9 +1701,10 @@ async function fetchMetadata(station){
 
     if(current && current.name===station.name){
       updateNowUI();
-      if(lyricsOpen) fetchLyricsFor(station);
+      if(lyricsOpen || tvMode) fetchLyricsFor(station);
     }
     renderRail();
+
   }
 }
 
@@ -1633,13 +1733,16 @@ function play(station){
   renderRail();
   refreshRpUI();
   saveLastStation(station);
+  if(tvMode) renderTvGrid();
+
   if(document.getElementById('rpModal').classList.contains('open')){
     document.getElementById('rpModalStationName').innerText = current.name;
   }
-  if(lyricsOpen) fetchLyricsFor(station);
+   if(lyricsOpen || tvMode) fetchLyricsFor(station);
 }
 
 function saveLastStation(station){
+
   try{
     localStorage.setItem('sergiu_last_station', JSON.stringify({
       stream: station.stream,
@@ -1699,7 +1802,7 @@ function updateNowUI(){
   pl.style.display = current.yt ? 'flex' : 'none';
   updateHopeMode();
   updateMediaSession();
-  if(tvMode){ buildTvZones(); applyTvFocus(); }
+  if(tvMode) updateTvNowPlaying();
 }
 
 
@@ -2010,6 +2113,10 @@ audio.addEventListener('play', ()=>{
   document.getElementById('sigBars').classList.add('active');
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
   updateHopePulseState();
+  const tvIcon = document.getElementById('tvPlayIcon');
+  if(tvIcon) tvIcon.outerHTML = '<svg id="tvPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>';
+  const tvDot = document.getElementById('tvLiveDot'); if(tvDot) tvDot.classList.remove('paused');
+  const tvBars = document.getElementById('tvSigBars'); if(tvBars) tvBars.classList.add('active');
 });
 audio.addEventListener('pause', ()=>{
   document.getElementById('playIcon').outerHTML = '<svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
@@ -2017,7 +2124,12 @@ audio.addEventListener('pause', ()=>{
   document.getElementById('sigBars').classList.remove('active');
   if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
   updateHopePulseState();
+  const tvIcon = document.getElementById('tvPlayIcon');
+  if(tvIcon) tvIcon.outerHTML = '<svg id="tvPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  const tvDot = document.getElementById('tvLiveDot'); if(tvDot) tvDot.classList.add('paused');
+  const tvBars = document.getElementById('tvSigBars'); if(tvBars) tvBars.classList.remove('active');
 });
+
 
 
 let railStationsCache = [];
@@ -2038,8 +2150,6 @@ function renderRail(){
       const div = document.createElement('div');
       const isActive = !!(current && current.stream === s.stream);
       div.className = 'channel-tile' + (isActive ? ' active' : '') + (s.name==='Hope' ? ' is-hope' : '');
-      div.setAttribute('tabindex', '0');
-
 
       const safeName = s.name.replace(/</g,'&lt;');
       const fav = isFavorite(s);
@@ -2060,10 +2170,8 @@ function renderRail(){
     railStationsCache = list.slice();
     requestAnimationFrame(setupMarquees);
     requestAnimationFrame(updateTileScale);
-    if(tvMode){ requestAnimationFrame(()=>{ buildTvZones(); applyTvFocus(); }); }
     return;
   }
-
 
   const tiles = rail.querySelectorAll('.channel-tile');
   tiles.forEach((tileEl, idx)=>{
@@ -2306,7 +2414,15 @@ async function fetchLyricsFor(station){
   }
   inner.scrollTop = 0;
   requestAnimationFrame(updateLyricsScrollbar);
+
+  const tvBox = document.getElementById('tvLyricsContent');
+  if(tvBox){
+    tvBox.textContent = box.textContent;
+    tvBox.classList.toggle('is-empty', box.classList.contains('is-empty'));
+    tvBox.scrollTop = 0;
+  }
 }
+
 
 
 // --- COPIERE GENERICĂ (titlu piesă) ---
@@ -2500,11 +2616,12 @@ function heroTap(e){
   togglePlay();
 }
 
-// ============ TV MODE — navigare cu telecomanda ============
+// ============ TV MODE — REDESIGN COMPLET ============
 let tvMode = false;
 let tvZones = [];
 let tvZoneIndex = 0;
 let tvItemIndex = 0;
+let tvGridCache = [];
 
 function detectTV(){
   const ua = navigator.userAgent || '';
@@ -2514,20 +2631,81 @@ function detectTV(){
   return forced || isTvUA || bigNoTouch;
 }
 
+function tvAllStations(){ return allStationsList(); }
+
+function computeTvGridLayout(container, count){
+  const rect = container.getBoundingClientRect();
+  const availW = rect.width, availH = rect.height, gap = 14;
+  let bestCols = 1, bestSize = 0;
+  for(let cols = 1; cols <= count; cols++){
+    const rows = Math.ceil(count/cols);
+    const tileW = (availW - gap*(cols-1)) / cols;
+    const tileH = (availH - gap*(rows-1)) / rows;
+    const size = Math.min(tileW, tileH);
+    if(size > bestSize){ bestSize = size; bestCols = cols; }
+  }
+  return {cols:bestCols, size:Math.max(64, Math.min(bestSize, 170)), gap};
+}
+
+function renderTvGrid(){
+  const grid = document.getElementById('tvGrid');
+  if(!grid) return;
+  const list = tvAllStations();
+  const layout = computeTvGridLayout(grid, list.length);
+  grid.style.gridTemplateColumns = `repeat(${layout.cols}, ${layout.size}px)`;
+  grid.style.gridAutoRows = `${layout.size}px`;
+  grid.style.gap = layout.gap + 'px';
+
+  if(tvGridCache.length !== list.length){
+    grid.innerHTML = '';
+    list.forEach(s=>{
+      const div = document.createElement('div');
+      div.className = 'tv-tile';
+      div.tabIndex = 0;
+      div.innerHTML = `<img src="${s.img||FALLBACK_IMG}" onerror="this.src='${FALLBACK_IMG}'" alt=""><div class="tv-tile-label">${s.name.replace(/</g,'&lt;')}</div>`;
+      div.addEventListener('click', ()=>play(s));
+      grid.appendChild(div);
+    });
+    tvGridCache = list.slice();
+  }
+
+  const tiles = grid.querySelectorAll('.tv-tile');
+  tiles.forEach((tileEl, idx)=>{
+    const s = list[idx];
+    if(!s) return;
+    const isActive = !!(current && current.stream === s.stream);
+    tileEl.classList.toggle('active', isActive);
+    tileEl.style.borderColor = isActive ? getColor(s) : '';
+    const img = tileEl.querySelector('img');
+    const wantedSrc = s.img || FALLBACK_IMG;
+    if(img && img.src !== wantedSrc) img.src = wantedSrc;
+  });
+
+  if(tvMode) buildTvZones();
+}
+
+function updateTvNowPlaying(){
+  if(!current) return;
+  document.getElementById('tvBg').src = current.img || FALLBACK_IMG;
+  document.getElementById('tvBg').onerror = function(){ this.src = FALLBACK_IMG; };
+  document.getElementById('tvCoverBig').src = current.img || FALLBACK_IMG;
+  document.getElementById('tvCoverBig').onerror = function(){ this.src = FALLBACK_IMG; };
+  document.getElementById('tvChannelLabel').innerText = current.name;
+  document.getElementById('tvNowTitle').innerText = current.desc;
+  const pl = document.getElementById('tvPlaylistBtn');
+  if(pl) pl.style.display = current.yt ? 'flex' : 'none';
+}
+
 function buildTvZones(){
-  const corner = Array.from(document.querySelectorAll('.corner-actions .icon-action')).filter(el => el.offsetParent !== null);
-  let transport = Array.from(document.querySelectorAll('.transport button'));
-  const rpBtn = document.getElementById('rpToggleBtn');
-  if(rpBtn && rpBtn.style.display !== 'none') transport = transport.concat([rpBtn]);
-  const tabs = Array.from(document.querySelectorAll('.tab-btn'));
-  const tiles = Array.from(document.querySelectorAll('.channel-tile'));
-  tvZones = [corner, transport, tabs, tiles].filter(z => z.length);
+  const corner = Array.from(document.querySelectorAll('.tv-corner button')).filter(el => el.offsetParent !== null);
+  const transport = Array.from(document.querySelectorAll('.tv-transport button'));
+  const tiles = Array.from(document.querySelectorAll('.tv-tile'));
+  tvZones = [corner, transport, tiles].filter(z => z.length);
 }
 
 function clearTvFocus(){
   document.querySelectorAll('.tv-focused').forEach(el => el.classList.remove('tv-focused'));
 }
-
 function applyTvFocus(){
   clearTvFocus();
   const zone = tvZones[tvZoneIndex];
@@ -2537,11 +2715,7 @@ function applyTvFocus(){
   if(!el) return;
   el.classList.add('tv-focused');
   el.focus({preventScroll:true});
-  if(el.classList.contains('channel-tile')){
-    el.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
-  }
 }
-
 function tvMoveZone(delta){
   if(!tvZones.length) return;
   tvZoneIndex = Math.max(0, Math.min(tvZoneIndex + delta, tvZones.length - 1));
@@ -2552,6 +2726,16 @@ function tvMoveItem(delta){
   const zone = tvZones[tvZoneIndex];
   if(!zone || !zone.length) return;
   tvItemIndex = Math.max(0, Math.min(tvItemIndex + delta, zone.length - 1));
+  applyTvFocus();
+}
+function tvMoveItemRow(delta){
+  const zone = tvZones[tvZoneIndex];
+  if(!zone || !zone.length || zone !== tvZones[tvZones.length-1]){ tvMoveZone(delta); return; }
+  const grid = document.getElementById('tvGrid');
+  const cols = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+  const nextIdx = tvItemIndex + delta*cols;
+  if(nextIdx < 0 || nextIdx >= zone.length){ tvMoveZone(delta); return; }
+  tvItemIndex = nextIdx;
   applyTvFocus();
 }
 function tvActivate(){
@@ -2570,35 +2754,46 @@ function closeAnyOpenModal(){
   if(document.getElementById('favConfirmModal').classList.contains('open')) closeFavConfirmModal();
 }
 
-function initTvNavigation(){
+function initTvMode(){
   tvMode = detectTV();
   if(!tvMode) return;
-  document.body.classList.add('tv-mode');
+  document.body.classList.add('tv-active');
+
+  document.getElementById('tvPrevBtn').addEventListener('click', prev);
+  document.getElementById('tvNextBtn').addEventListener('click', next);
+  document.getElementById('tvPlayBtn').addEventListener('click', togglePlay);
+  document.getElementById('tvSearchBtn').addEventListener('click', openSearchModal);
+  document.getElementById('tvPlaylistBtn').addEventListener('click', openChannelPlaylist);
+
+  renderTvGrid();
+  updateTvNowPlaying();
+  if(current) fetchLyricsFor(current);
+
   buildTvZones();
-  tvZoneIndex = tvZones.length - 1; // pornește pe rail-ul de canale
+  tvZoneIndex = tvZones.length - 1;
   tvItemIndex = 0;
-  const activeTile = document.querySelector('.channel-tile.active');
-  if(activeTile){
-    const zone = tvZones[tvZoneIndex];
-    const idx = zone.indexOf(activeTile);
+  const list = tvAllStations();
+  if(current){
+    const idx = list.findIndex(s=>s.stream===current.stream);
     if(idx !== -1) tvItemIndex = idx;
   }
   applyTvFocus();
+
+  window.addEventListener('resize', ()=>renderTvGrid());
 
   document.addEventListener('keydown', function(e){
     if(!tvMode) return;
     if(isAnyModalOpen()){
       if(e.key === 'Escape' || e.key === 'Backspace' || e.keyCode === 10009){
-        e.preventDefault();
-        closeAnyOpenModal();
+        e.preventDefault(); closeAnyOpenModal();
       }
       return;
     }
     switch(e.key){
       case 'ArrowLeft': e.preventDefault(); tvMoveItem(-1); break;
       case 'ArrowRight': e.preventDefault(); tvMoveItem(1); break;
-      case 'ArrowUp': e.preventDefault(); tvMoveZone(-1); break;
-      case 'ArrowDown': e.preventDefault(); tvMoveZone(1); break;
+      case 'ArrowUp': e.preventDefault(); tvMoveItemRow(-1); break;
+      case 'ArrowDown': e.preventDefault(); tvMoveItemRow(1); break;
       case 'Enter': e.preventDefault(); tvActivate(); break;
       case ' ': e.preventDefault(); togglePlay(); break;
       case 'MediaPlayPause': e.preventDefault(); togglePlay(); break;
@@ -2643,7 +2838,7 @@ initMediaSessionHandlers();
 initLyricsScrollButtons();
 initLyricsScrollbarDrag();
 initRpModalEvents();
-initTvNavigation();
+initTvMode();
 fetchRecentlyPlayed();
 startHeartbeat();
 
