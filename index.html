@@ -790,7 +790,8 @@
 
 
 
-  .tv-main{display:flex; gap:40px; flex:1; min-height:0}
+  .tv-main{display:flex; gap:40px; flex:1; min-height:0; align-items:flex-start}
+
 
   .tv-now{flex:0 0 auto; width:34%; min-width:320px; display:flex; flex-direction:column; gap:20px}
   .tv-cover-wrap{
@@ -828,6 +829,8 @@
     background:rgba(11,12,15,0.55);
   }
   .tv-transport.tv-cover-controls .tv-play-btn svg{width:22px;height:22px}
+  .tv-transport.tv-cover-controls #tvFavBtn.active{color:#ff6b85; border-color:rgba(255,107,133,0.4)}
+
 
 
 
@@ -846,7 +849,8 @@
   #tvLyricsContent::-webkit-scrollbar{display:none}
   #tvLyricsContent.is-empty{color:var(--ink-faint); font-style:italic}
 
-  .tv-stage{flex:0 0 auto; height:34vh; min-height:210px; display:grid; align-content:center; justify-content:center; gap:14px; overflow:hidden}
+  .tv-stage{flex:0 0 auto; height:42vh; min-height:260px; display:grid; align-content:center; justify-content:center; gap:14px; overflow:hidden}
+
   .tv-tile{position:relative; border-radius:16px; overflow:hidden; cursor:pointer; border:2px solid var(--hairline)}
   .tv-tile img{width:100%;height:100%;object-fit:cover; display:block}
   .tv-tile-label{
@@ -1091,16 +1095,19 @@
           <button id="tvPrevBtn" aria-label="Canalul anterior"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 10-6v12z"/></svg></button>
           <button id="tvPlayBtn" class="tv-play-btn" aria-label="Redă / Pauză"><svg id="tvPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
           <button id="tvNextBtn" aria-label="Canalul următor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4.5 6l10 6-10 6z"/></svg></button>
+          <button id="tvFavBtn" aria-label="Adaugă la favorite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
         </div>
+
       </div>
     </div>
 
 
 
-    <div class="tv-lyrics">
+    <div class="tv-lyrics" id="tvLyricsPanel">
       <div class="tv-lyrics-title">Versuri</div>
       <div id="tvLyricsContent" class="is-empty">Versurile apar automat când e detectată o piesă.</div>
     </div>
+
   </div>
 
   <div class="tv-stage" id="tvGrid"></div>
@@ -2655,7 +2662,10 @@ function detectTV(){
   return forced || isTvUA || bigNoTouch;
 }
 
-function tvAllStations(){ return allStationsList(); }
+function tvAllStations(){
+  return allStationsList().slice().sort((a,b)=> (isFavorite(b)?1:0) - (isFavorite(a)?1:0));
+}
+
 
 function computeTvGridLayout(container, count){
   const rect = container.getBoundingClientRect();
@@ -2668,7 +2678,8 @@ function computeTvGridLayout(container, count){
     const size = Math.min(tileW, tileH);
     if(size > bestSize){ bestSize = size; bestCols = cols; }
   }
-  return {cols:bestCols, size:Math.max(64, Math.min(bestSize, 170)), gap};
+  return {cols:bestCols, size:Math.max(90, Math.min(bestSize, 230)), gap};
+
 }
 
 function renderTvGrid(){
@@ -2680,8 +2691,9 @@ function renderTvGrid(){
   grid.style.gridAutoRows = `${layout.size}px`;
   grid.style.gap = layout.gap + 'px';
 
-  if(tvGridCache.length !== list.length){
+  if(!sameStationList(list, tvGridCache)){
     grid.innerHTML = '';
+
     list.forEach(s=>{
       const div = document.createElement('div');
       div.className = 'tv-tile';
@@ -2708,6 +2720,32 @@ function renderTvGrid(){
   if(tvMode) buildTvZones();
 }
 
+function syncTvPanelHeights(){
+  const cover = document.querySelector('.tv-cover-wrap');
+  const lyrics = document.getElementById('tvLyricsPanel');
+  if(!cover || !lyrics) return;
+  lyrics.style.height = cover.offsetHeight + 'px';
+}
+
+function updateTvFavIcon(){
+  const btn = document.getElementById('tvFavBtn');
+  if(!btn || !current) return;
+  const fav = isFavorite(current);
+  btn.classList.toggle('active', fav);
+  const svg = btn.querySelector('svg');
+  if(svg) svg.setAttribute('fill', fav ? 'currentColor' : 'none');
+}
+
+function tvToggleFavorite(){
+  if(!current) return;
+  if(favoriteStreams.has(current.stream)) favoriteStreams.delete(current.stream);
+  else favoriteStreams.add(current.stream);
+  saveFavorites();
+  updateTvFavIcon();
+  renderRail();
+  renderTvGrid();
+}
+
 function updateTvNowPlaying(){
   if(!current) return;
   document.getElementById('tvBg').src = current.img || FALLBACK_IMG;
@@ -2716,7 +2754,10 @@ function updateTvNowPlaying(){
   document.getElementById('tvCoverBig').onerror = function(){ this.src = FALLBACK_IMG; };
   document.getElementById('tvChannelLabel').innerText = current.name;
   document.getElementById('tvNowTitle').innerText = current.desc;
+  updateTvFavIcon();
+  requestAnimationFrame(syncTvPanelHeights);
 }
+
 
 
 function buildTvZones(){
@@ -2820,6 +2861,8 @@ function initTvMode(){
   document.getElementById('tvPrevBtn').addEventListener('click', prev);
   document.getElementById('tvNextBtn').addEventListener('click', next);
   document.getElementById('tvPlayBtn').addEventListener('click', togglePlay);
+  document.getElementById('tvFavBtn').addEventListener('click', tvToggleFavorite);
+
 
 
    renderTvGrid();
@@ -2840,7 +2883,8 @@ function initTvMode(){
   }
   applyTvFocus();
 
-  window.addEventListener('resize', ()=>renderTvGrid());
+  window.addEventListener('resize', ()=>{ renderTvGrid(); syncTvPanelHeights(); });
+
 
   document.addEventListener('keydown', function(e){
     if(!tvMode) return;
