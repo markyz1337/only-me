@@ -754,7 +754,42 @@
   }
   .copy-toast.show{opacity:1; transform:translate(-50%, 0)}
 
+  /* ============ TV MODE ============ */
+  body.tv-mode{cursor:none}
+  body.tv-mode .topbar{padding-left:46px;padding-right:46px}
+  body.tv-mode .hero{max-width:1080px;margin-top:34px}
+  body.tv-mode .hero-frame{height:min(60vh,640px);border-radius:32px}
+  body.tv-mode #nowTitle{font-size:clamp(30px,4vw,54px)}
+  body.tv-mode .transport{gap:26px}
+  body.tv-mode .transport button{width:64px;height:64px}
+  body.tv-mode .transport button svg{width:22px;height:22px}
+  body.tv-mode .transport .play-btn{width:86px;height:86px}
+  body.tv-mode .transport .play-btn svg{width:28px;height:28px}
+  body.tv-mode .rail-section,body.tv-mode .lyrics-wrap{max-width:1080px}
+  body.tv-mode .tab-btn{font-size:14px;padding:12px 20px}
+  body.tv-mode .channel-tile{width:140px}
+  body.tv-mode .tile-art{width:140px;height:140px;border-radius:24px}
+  body.tv-mode .tile-name{font-size:14px}
+  body.tv-mode .rail{gap:22px;padding:20px 46px 8px}
+  body.tv-mode .icon-action .circ{width:44px;height:44px}
+  body.tv-mode .icon-action{font-size:11.5px}
+
+  body.tv-mode .channel-tile.tv-focused .tile-art{
+    border-color:var(--metal)!important;
+    box-shadow:0 0 0 4px rgba(201,187,161,0.85), 0 10px 30px rgba(0,0,0,0.5);
+    transform:scale(1.1);
+  }
+  body.tv-mode .tab-btn.tv-focused,
+  body.tv-mode .transport button.tv-focused,
+  body.tv-mode .rp-toggle-btn.tv-focused{
+    outline:3px solid var(--metal); outline-offset:3px; border-radius:20px;
+  }
+  body.tv-mode .transport button.tv-focused{border-radius:50%}
+  body.tv-mode .icon-action.tv-focused .circ{
+    outline:3px solid var(--metal); outline-offset:2px;
+  }
 </style>
+
 </head>
 <body>
 
@@ -1664,7 +1699,9 @@ function updateNowUI(){
   pl.style.display = current.yt ? 'flex' : 'none';
   updateHopeMode();
   updateMediaSession();
+  if(tvMode){ buildTvZones(); applyTvFocus(); }
 }
+
 
 
 function updateMediaSession(){
@@ -2001,6 +2038,8 @@ function renderRail(){
       const div = document.createElement('div');
       const isActive = !!(current && current.stream === s.stream);
       div.className = 'channel-tile' + (isActive ? ' active' : '') + (s.name==='Hope' ? ' is-hope' : '');
+      div.setAttribute('tabindex', '0');
+
 
       const safeName = s.name.replace(/</g,'&lt;');
       const fav = isFavorite(s);
@@ -2021,8 +2060,10 @@ function renderRail(){
     railStationsCache = list.slice();
     requestAnimationFrame(setupMarquees);
     requestAnimationFrame(updateTileScale);
+    if(tvMode){ requestAnimationFrame(()=>{ buildTvZones(); applyTvFocus(); }); }
     return;
   }
+
 
   const tiles = rail.querySelectorAll('.channel-tile');
   tiles.forEach((tileEl, idx)=>{
@@ -2459,6 +2500,114 @@ function heroTap(e){
   togglePlay();
 }
 
+// ============ TV MODE — navigare cu telecomanda ============
+let tvMode = false;
+let tvZones = [];
+let tvZoneIndex = 0;
+let tvItemIndex = 0;
+
+function detectTV(){
+  const ua = navigator.userAgent || '';
+  const isTvUA = /SmartTV|Tizen|Web0S|WebOS|NetCast|Roku|AFTB|AFTS|AFTT|BRAVIA|GoogleTV|HbbTV|VIDAA|CrKey/i.test(ua);
+  const forced = /[?&]tv=1/.test(location.search);
+  const bigNoTouch = window.matchMedia('(hover:none)').matches && window.innerWidth >= 1200 && !('ontouchstart' in window);
+  return forced || isTvUA || bigNoTouch;
+}
+
+function buildTvZones(){
+  const corner = Array.from(document.querySelectorAll('.corner-actions .icon-action')).filter(el => el.offsetParent !== null);
+  let transport = Array.from(document.querySelectorAll('.transport button'));
+  const rpBtn = document.getElementById('rpToggleBtn');
+  if(rpBtn && rpBtn.style.display !== 'none') transport = transport.concat([rpBtn]);
+  const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+  const tiles = Array.from(document.querySelectorAll('.channel-tile'));
+  tvZones = [corner, transport, tabs, tiles].filter(z => z.length);
+}
+
+function clearTvFocus(){
+  document.querySelectorAll('.tv-focused').forEach(el => el.classList.remove('tv-focused'));
+}
+
+function applyTvFocus(){
+  clearTvFocus();
+  const zone = tvZones[tvZoneIndex];
+  if(!zone || !zone.length) return;
+  tvItemIndex = Math.max(0, Math.min(tvItemIndex, zone.length - 1));
+  const el = zone[tvItemIndex];
+  if(!el) return;
+  el.classList.add('tv-focused');
+  el.focus({preventScroll:true});
+  if(el.classList.contains('channel-tile')){
+    el.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+  }
+}
+
+function tvMoveZone(delta){
+  if(!tvZones.length) return;
+  tvZoneIndex = Math.max(0, Math.min(tvZoneIndex + delta, tvZones.length - 1));
+  tvItemIndex = 0;
+  applyTvFocus();
+}
+function tvMoveItem(delta){
+  const zone = tvZones[tvZoneIndex];
+  if(!zone || !zone.length) return;
+  tvItemIndex = Math.max(0, Math.min(tvItemIndex + delta, zone.length - 1));
+  applyTvFocus();
+}
+function tvActivate(){
+  const zone = tvZones[tvZoneIndex];
+  if(!zone || !zone.length) return;
+  const el = zone[tvItemIndex];
+  if(el) el.click();
+}
+
+function isAnyModalOpen(){
+  return ['searchModal','rpModal','favConfirmModal'].some(id => document.getElementById(id).classList.contains('open'));
+}
+function closeAnyOpenModal(){
+  if(document.getElementById('searchModal').classList.contains('open')) closeSearchModal();
+  if(document.getElementById('rpModal').classList.contains('open')) closeRecentlyPlayedModal();
+  if(document.getElementById('favConfirmModal').classList.contains('open')) closeFavConfirmModal();
+}
+
+function initTvNavigation(){
+  tvMode = detectTV();
+  if(!tvMode) return;
+  document.body.classList.add('tv-mode');
+  buildTvZones();
+  tvZoneIndex = tvZones.length - 1; // pornește pe rail-ul de canale
+  tvItemIndex = 0;
+  const activeTile = document.querySelector('.channel-tile.active');
+  if(activeTile){
+    const zone = tvZones[tvZoneIndex];
+    const idx = zone.indexOf(activeTile);
+    if(idx !== -1) tvItemIndex = idx;
+  }
+  applyTvFocus();
+
+  document.addEventListener('keydown', function(e){
+    if(!tvMode) return;
+    if(isAnyModalOpen()){
+      if(e.key === 'Escape' || e.key === 'Backspace' || e.keyCode === 10009){
+        e.preventDefault();
+        closeAnyOpenModal();
+      }
+      return;
+    }
+    switch(e.key){
+      case 'ArrowLeft': e.preventDefault(); tvMoveItem(-1); break;
+      case 'ArrowRight': e.preventDefault(); tvMoveItem(1); break;
+      case 'ArrowUp': e.preventDefault(); tvMoveZone(-1); break;
+      case 'ArrowDown': e.preventDefault(); tvMoveZone(1); break;
+      case 'Enter': e.preventDefault(); tvActivate(); break;
+      case ' ': e.preventDefault(); togglePlay(); break;
+      case 'MediaPlayPause': e.preventDefault(); togglePlay(); break;
+      case 'MediaTrackNext': e.preventDefault(); next(); break;
+      case 'MediaTrackPrevious': e.preventDefault(); prev(); break;
+    }
+  });
+}
+
 function initStation(){
   loadFavorites();
   loadActiveTab();
@@ -2494,8 +2643,10 @@ initMediaSessionHandlers();
 initLyricsScrollButtons();
 initLyricsScrollbarDrag();
 initRpModalEvents();
+initTvNavigation();
 fetchRecentlyPlayed();
 startHeartbeat();
+
 
 
 document.getElementById('rail').addEventListener('scroll', onRailScroll, {passive:true});
