@@ -773,10 +773,17 @@
     transform:scale(1.05); transition:opacity .6s ease;
   }
 
-  .tv-header{display:flex; align-items:center; gap:14px; flex-shrink:0}
+  .tv-header{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-shrink:0}
+  .tv-header-left{display:flex; align-items:center; gap:14px; min-width:0; flex-shrink:0}
   .tv-header .mark{width:34px;height:34px}
   .tv-header .wordmark{font-size:22px}
   .tv-header .subline{font-size:13px}
+  .tv-header-now{
+    font-family:var(--display); font-weight:600; font-size:clamp(16px,1.9vw,28px);
+    text-transform:uppercase; text-align:right; letter-spacing:-0.01em;
+    max-width:60%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink);
+  }
+
 
   .tv-main{display:flex; gap:40px; flex:1; min-height:0}
 
@@ -793,7 +800,7 @@
     line-height:1.22; text-transform:uppercase; margin:0;
     display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden;
   }
-  .tv-transport{display:flex; align-items:center; gap:20px}
+  .tv-transport{display:flex; align-items:center; gap:14px}
   .tv-transport button{
     border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.06); color:var(--ink);
     border-radius:50%; width:58px;height:58px; display:flex; align-items:center; justify-content:center; cursor:pointer;
@@ -801,14 +808,19 @@
   .tv-transport button svg{width:21px;height:21px}
   .tv-transport .tv-play-btn{width:76px;height:76px; background:radial-gradient(circle at 32% 26%, #fff, #ece6d9 50%, var(--metal) 100%); color:#14151a}
   .tv-transport .tv-play-btn svg{width:26px;height:26px}
-  .tv-corner{display:flex; gap:12px}
-  .tv-corner button{
-    display:flex; align-items:center; gap:8px;
-    background:var(--glass); border:1px solid var(--hairline); color:var(--ink-dim);
-    font-family:var(--sans); font-size:13px; font-weight:500;
-    padding:10px 16px; border-radius:24px; cursor:pointer;
+
+  .tv-transport.tv-cover-controls{
+    position:absolute; right:16px; bottom:16px; z-index:3; gap:12px;
   }
-  .tv-corner button svg{width:16px;height:16px}
+  .tv-transport.tv-cover-controls button{
+    width:46px;height:46px;
+    background:rgba(11,12,15,0.55); border-color:rgba(255,255,255,0.3);
+    backdrop-filter:blur(10px) saturate(1.6); -webkit-backdrop-filter:blur(10px) saturate(1.6);
+  }
+  .tv-transport.tv-cover-controls button svg{width:18px;height:18px}
+  .tv-transport.tv-cover-controls .tv-play-btn{width:58px;height:58px}
+  .tv-transport.tv-cover-controls .tv-play-btn svg{width:22px;height:22px}
+
 
   .tv-lyrics{
     flex:1; min-width:0; display:flex; flex-direction:column;
@@ -1045,35 +1057,36 @@
 <div id="tvRoot">
   <img class="tv-bg" id="tvBg" src="" alt="">
   <div class="tv-header">
-    <svg class="mark" viewBox="0 0 30 30" fill="none">
-      <circle cx="15" cy="15" r="13" stroke="#c9bba1" stroke-width="1" opacity="0.35"/>
-      <circle cx="15" cy="15" r="8.5" stroke="#c9bba1" stroke-width="1" opacity="0.6"/>
-      <circle cx="15" cy="15" r="2.5" fill="#c9bba1"/>
-    </svg>
-    <div>
-      <div class="wordmark">Sergiu Ro</div>
-      <div class="subline" id="tvChannelLabel">Alege un canal</div>
+    <div class="tv-header-left">
+      <svg class="mark" viewBox="0 0 30 30" fill="none">
+        <circle cx="15" cy="15" r="13" stroke="#c9bba1" stroke-width="1" opacity="0.35"/>
+        <circle cx="15" cy="15" r="8.5" stroke="#c9bba1" stroke-width="1" opacity="0.6"/>
+        <circle cx="15" cy="15" r="2.5" fill="#c9bba1"/>
+      </svg>
+      <div>
+        <div class="wordmark">Sergiu Ro</div>
+        <div class="subline" id="tvChannelLabel">Alege un canal</div>
+      </div>
     </div>
+    <div class="tv-header-now" id="tvNowTitle">Atinge un canal mai jos</div>
   </div>
 
   <div class="tv-main">
     <div class="tv-now">
-      <div class="tv-cover-wrap"><img id="tvCoverBig" src="" alt=""></div>
+      <div class="tv-cover-wrap">
+        <img id="tvCoverBig" src="" alt="">
+        <div class="tv-transport tv-cover-controls">
+          <button id="tvPrevBtn" aria-label="Canalul anterior"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 10-6v12z"/></svg></button>
+          <button id="tvPlayBtn" class="tv-play-btn" aria-label="Redă / Pauză"><svg id="tvPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+          <button id="tvNextBtn" aria-label="Canalul următor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4.5 6l10 6-10 6z"/></svg></button>
+        </div>
+      </div>
       <div class="tv-eyebrow">
         <span class="live-chip"><span class="live-dot paused" id="tvLiveDot"></span><span>LIVE</span></span>
         <span class="sig-bars" id="tvSigBars"><span></span><span></span><span></span></span>
       </div>
-      <h2 class="tv-title" id="tvNowTitle">Atinge un canal mai jos</h2>
-      <div class="tv-transport">
-        <button id="tvPrevBtn" aria-label="Canalul anterior"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 10-6v12z"/></svg></button>
-        <button id="tvPlayBtn" class="tv-play-btn" aria-label="Redă / Pauză"><svg id="tvPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-        <button id="tvNextBtn" aria-label="Canalul următor"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4.5 6l10 6-10 6z"/></svg></button>
-      </div>
-      <div class="tv-corner">
-        <button id="tvSearchBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>Caută</button>
-        <button id="tvPlaylistBtn" style="display:none"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zm0 5h10v2H4zm0 5h10v2H4zm12-4 5 3-5 3z"/></svg>Playlist</button>
-      </div>
     </div>
+
 
     <div class="tv-lyrics">
       <div class="tv-lyrics-title">Versuri</div>
@@ -2692,16 +2705,15 @@ function updateTvNowPlaying(){
   document.getElementById('tvCoverBig').onerror = function(){ this.src = FALLBACK_IMG; };
   document.getElementById('tvChannelLabel').innerText = current.name;
   document.getElementById('tvNowTitle').innerText = current.desc;
-  const pl = document.getElementById('tvPlaylistBtn');
-  if(pl) pl.style.display = current.yt ? 'flex' : 'none';
 }
 
+
 function buildTvZones(){
-  const corner = Array.from(document.querySelectorAll('.tv-corner button')).filter(el => el.offsetParent !== null);
   const transport = Array.from(document.querySelectorAll('.tv-transport button'));
   const tiles = Array.from(document.querySelectorAll('.tv-tile'));
-  tvZones = [corner, transport, tiles].filter(z => z.length);
+  tvZones = [transport, tiles].filter(z => z.length);
 }
+
 
 function clearTvFocus(){
   document.querySelectorAll('.tv-focused').forEach(el => el.classList.remove('tv-focused'));
@@ -2762,8 +2774,7 @@ function initTvMode(){
   document.getElementById('tvPrevBtn').addEventListener('click', prev);
   document.getElementById('tvNextBtn').addEventListener('click', next);
   document.getElementById('tvPlayBtn').addEventListener('click', togglePlay);
-  document.getElementById('tvSearchBtn').addEventListener('click', openSearchModal);
-  document.getElementById('tvPlaylistBtn').addEventListener('click', openChannelPlaylist);
+
 
   renderTvGrid();
   updateTvNowPlaying();
