@@ -1215,7 +1215,7 @@ const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.1398
 const SUPABASE_URL = "https://fndjrfieitieqzafhyzz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_bHDKjiKAVHqW199ICw7i2g_O3olYMAr";
 const RP_TABLE = "sergiumusic_recentlyplayed";
-const RP_FETCH_LIMIT = 150;
+const RP_FETCH_LIMIT = 750;
 const RP_RETRY_DELAY = 3000;
 let recentlyPlayedList = [];
 
@@ -1403,7 +1403,7 @@ function formatRpTime(iso){
 }
 
 
-const TV_RECENT_LIMIT = 8;
+const TV_RECENT_LIMIT = 20;
 function renderTvRecentList(){
   const list = document.getElementById('tvRecentList');
   if(!list) return;
@@ -1432,7 +1432,7 @@ function renderTvRecentList(){
 
 
 
-const RP_DISPLAY_LIMIT = 20;
+const RP_DISPLAY_LIMIT =40;
 
 function renderRpModalList(filterText){
   const list = document.getElementById('rpModalList');
