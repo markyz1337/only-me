@@ -1291,6 +1291,9 @@ function getOrCreateSessionId(){
 const sessionId = getOrCreateSessionId();
 let sessionStartedAt = null;
 let userCountry = 'Necunoscut';
+let userCity = '';
+let userRegion = '';
+
 
 
 function detectDeviceLabel(){
@@ -1322,8 +1325,11 @@ async function detectCountry(){
     if(!res.ok) throw new Error('geo fail');
     const data = await res.json();
     if(data && data.country_name) userCountry = data.country_name;
+    if(data && data.city) userCity = data.city;
+    if(data && data.region) userRegion = data.region;
   }catch(e){}
 }
+
 
 async function upsertSession(){
   try{
@@ -1331,10 +1337,13 @@ async function upsertSession(){
       session_id: sessionId,
       device_label: sessionDeviceLabel,
       country: userCountry,
+      city: userCity,
+      region: userRegion,
       station_name: current ? current.name : null,
       started_at: sessionStartedAt,
       last_seen: new Date().toISOString()
     };
+
     await fetch(`${SUPABASE_URL}/rest/v1/${SESSION_TABLE}?on_conflict=session_id`, {
       method: "POST",
       headers: {
@@ -1390,14 +1399,16 @@ async function openDeviceSessionsModal(){
       const online = (Date.now() - new Date(s.last_seen).getTime()) < 60000;
       const dur = formatSessionDuration(s.started_at, s.last_seen);
       const dev = (s.device_label||'Necunoscut').replace(/</g,'&lt;');
-      const country = (s.country||'Necunoscut').replace(/</g,'&lt;');
+      const locParts = [s.city, s.region, s.country].filter(Boolean).map(p=>p.replace(/</g,'&lt;'));
+      const loc = locParts.length ? locParts.join(', ') : 'Necunoscut';
       const station = s.station_name ? s.station_name.replace(/</g,'&lt;') : '—';
       return `<div class="rp-row" style="cursor:default">
         <div class="rp-row-info">
           <div class="rp-row-track">${dev} ${online ? '🟢' : ''}</div>
-          <div class="rp-row-time">${country} · ${dur} online · ${station}</div>
+          <div class="rp-row-time">${loc} · ${dur} online · ${station}</div>
         </div>
       </div>`;
+
     }).join('');
   }catch(e){
     list.innerHTML = '<div class="rp-empty-msg">Eroare la încărcare.</div>';
