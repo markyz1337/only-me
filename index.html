@@ -1097,6 +1097,21 @@
   </div>
 </div>
 
+<div class="modal-backdrop rp-modal" id="sessionsModal" onclick="closeSessionsModalOnBackdrop(event)">
+  <div class="search-modal">
+    <div class="modal-header">
+      <div class="info">
+        <div class="ch-name">DISPOZITIVE CONECTATE</div>
+        <div class="tr-title">Sesiuni recente</div>
+      </div>
+      <button class="modal-close" onclick="closeDeviceSessionsModal()" aria-label="Închide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="rp-modal-list" id="sessionsModalList"></div>
+  </div>
+</div>
+
 <div id="tvRoot">
   <img class="tv-bg" id="tvBg" src="" alt="">
   <div class="tv-header">
@@ -1258,6 +1273,148 @@ function startHeartbeat(){
 function onVisibilityChangeHeartbeat(){
   if(document.visibilityState === 'visible') sbHeartbeat();
 }
+
+// ─── SESIUNI (dispozitiv / țară / post ascultat) ─────────────────────────────
+const SESSION_TABLE = "sergiumusic_sessions";
+function getOrCreateSessionId(){
+  try{
+    let id = localStorage.getItem('sergiu_session_id');
+    if(!id){
+      id = (crypto.randomUUID ? crypto.randomUUID() : 'sess-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+      localStorage.setItem('sergiu_session_id', id);
+    }
+    return id;
+  }catch(e){
+    return 'sess-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+}
+const sessionId = getOrCreateSessionId();
+let sessionStartedAt = null;
+let userCountry = 'Necunoscut';
+
+
+function detectDeviceLabel(){
+  const ua = navigator.userAgent || '';
+  let os = 'Necunoscut';
+  if(/iPad/i.test(ua)) os = 'iPad';
+  else if(/iPhone/i.test(ua)) os = 'iPhone';
+  else if(/Android/i.test(ua)) os = 'Android';
+  else if(/Macintosh/i.test(ua)) os = 'Mac';
+  else if(/Windows/i.test(ua)) os = 'Windows';
+  else if(/SmartTV|Tizen|Web0S|WebOS|NetCast|Roku|AFTB|AFTS|AFTT|BRAVIA|GoogleTV|HbbTV|VIDAA|CrKey/i.test(ua)) os = 'TV';
+  else if(/Linux/i.test(ua)) os = 'Linux';
+
+  let browser = '';
+  if(/CriOS/i.test(ua)) browser = 'Chrome';
+  else if(/FxiOS/i.test(ua)) browser = 'Firefox';
+  else if(/EdgiOS|Edg\//i.test(ua)) browser = 'Edge';
+  else if(/Chrome\//i.test(ua)) browser = 'Chrome';
+  else if(/Safari\//i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+  else if(/Firefox\//i.test(ua)) browser = 'Firefox';
+
+  return browser ? `${os} · ${browser}` : os;
+}
+const sessionDeviceLabel = detectDeviceLabel();
+
+async function detectCountry(){
+  try{
+    const res = await fetch('https://ipapi.co/json/');
+    if(!res.ok) throw new Error('geo fail');
+    const data = await res.json();
+    if(data && data.country_name) userCountry = data.country_name;
+  }catch(e){}
+}
+
+async function upsertSession(){
+  try{
+    const payload = {
+      session_id: sessionId,
+      device_label: sessionDeviceLabel,
+      country: userCountry,
+      station_name: current ? current.name : null,
+      started_at: sessionStartedAt,
+      last_seen: new Date().toISOString()
+    };
+    await fetch(`${SUPABASE_URL}/rest/v1/${SESSION_TABLE}?on_conflict=session_id`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify(payload)
+    });
+  }catch(e){}
+}
+
+async function startSessionTracking(){
+  await detectCountry();
+  sessionStartedAt = new Date().toISOString();
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SESSION_TABLE}?select=started_at&session_id=eq.${sessionId}&limit=1`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+    });
+    const data = await res.json();
+    if(Array.isArray(data) && data.length && data[0].started_at){
+      sessionStartedAt = data[0].started_at;
+    }
+  }catch(e){}
+  upsertSession();
+  setInterval(upsertSession, 30000);
+}
+
+
+function formatSessionDuration(startIso, endIso){
+  const diffMin = Math.max(0, Math.round((new Date(endIso) - new Date(startIso)) / 60000));
+  if(diffMin < 60) return `${diffMin} min`;
+  return `${Math.floor(diffMin/60)} h ${diffMin%60} min`;
+}
+
+async function openDeviceSessionsModal(){
+  document.getElementById('sessionsModal').classList.add('open');
+  lockBodyScroll();
+  pauseBackgroundAnimations();
+  const list = document.getElementById('sessionsModalList');
+  list.innerHTML = '<div class="rp-empty-msg">Se încarcă...</div>';
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SESSION_TABLE}?select=*&order=last_seen.desc&limit=50`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+    });
+    const data = (await res.json()) || [];
+    if(!data.length){
+      list.innerHTML = '<div class="rp-empty-msg">Niciun dispozitiv înregistrat încă.</div>';
+      return;
+    }
+    list.innerHTML = data.map(s=>{
+      const online = (Date.now() - new Date(s.last_seen).getTime()) < 60000;
+      const dur = formatSessionDuration(s.started_at, s.last_seen);
+      const dev = (s.device_label||'Necunoscut').replace(/</g,'&lt;');
+      const country = (s.country||'Necunoscut').replace(/</g,'&lt;');
+      const station = s.station_name ? s.station_name.replace(/</g,'&lt;') : '—';
+      return `<div class="rp-row" style="cursor:default">
+        <div class="rp-row-info">
+          <div class="rp-row-track">${dev} ${online ? '🟢' : ''}</div>
+          <div class="rp-row-time">${country} · ${dur} online · ${station}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    list.innerHTML = '<div class="rp-empty-msg">Eroare la încărcare.</div>';
+  }
+}
+function closeDeviceSessionsModal(){
+  document.getElementById('sessionsModal').classList.remove('open');
+  unlockBodyScroll();
+  resumeBackgroundAnimations();
+}
+function closeSessionsModalOnBackdrop(e){
+  if(e.target.id === 'sessionsModal') closeDeviceSessionsModal();
+}
+function initWordmarkTap(){
+  document.querySelector('.topbar').addEventListener('click', openDeviceSessionsModal);
+}
+
 
 
 async function fetchRecentlyPlayed(){
@@ -1854,7 +2011,9 @@ function play(station){
   renderRail();
   refreshRpUI();
   saveLastStation(station);
+  upsertSession();
   if(tvMode) renderTvGrid();
+
 
   if(document.getElementById('rpModal').classList.contains('open')){
     document.getElementById('rpModalStationName').innerText = current.name;
@@ -2995,6 +3154,10 @@ initRpModalEvents();
 initTvMode();
 fetchRecentlyPlayed();
 startHeartbeat();
+startSessionTracking();
+initWordmarkTap();
+
+
 
 
 
