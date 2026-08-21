@@ -703,6 +703,13 @@
 
   .rp-modal-list::-webkit-scrollbar{display:none}
 
+  /* Lista de sesiuni nu trebuie să aibă fade sus/jos */
+  #sessionsModalList{
+    -webkit-mask-image:none;
+    mask-image:none;
+  }
+
+
   .rp-row{
     display:flex; align-items:center; gap:11px;
     padding:9px 10px; border-radius:12px;
@@ -744,7 +751,80 @@
     text-align:center; color:var(--ink-faint); font-size:12.5px; padding:24px 0;
   }
 
+
+  /* ---------- SESSION CARDS v2 ---------- */
+  .session-card{
+    position:relative;
+    display:flex; align-items:center; gap:11px;
+    padding:11px 13px 11px 15px; border-radius:14px;
+    border:1px solid var(--hairline); background:var(--glass);
+    overflow:hidden;
+    transition:border-color .2s, background .2s;
+  }
+  .session-card:hover{background:var(--glass-strong); border-color:rgba(255,255,255,0.14)}
+  .session-card::before{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--ink-faint); opacity:0.35;
+  }
+  .session-card.is-online::before{
+    background:#4fbf9e; opacity:1;
+    box-shadow:0 0 10px rgba(79,191,158,0.55);
+  }
+
+  .session-device-icon{
+    width:36px; height:36px; border-radius:11px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(160deg, rgba(255,255,255,0.1), rgba(255,255,255,0.015));
+    border:1px solid var(--hairline); color:var(--metal);
+  }
+  .session-device-icon svg{width:17px;height:17px}
+
+  .session-body{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px}
+  .session-line-1{display:flex; align-items:center; gap:6px}
+  .session-device-name{
+    font-size:13px; font-weight:600; color:var(--ink);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .session-flag-chip{
+    flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    width:17px; height:13px; border-radius:3px; font-size:10px; line-height:1;
+    background:rgba(255,255,255,0.05); border:1px solid var(--hairline);
+  }
+  .session-online-tag{
+    flex-shrink:0; display:flex; align-items:center; gap:4px;
+    font-family:var(--mono); font-size:9px; letter-spacing:.05em; text-transform:uppercase;
+    color:#4fbf9e;
+  }
+  .session-online-dot{width:5px;height:5px;border-radius:50%; background:#4fbf9e; animation:pulse 1.8s ease-in-out infinite; flex-shrink:0}
+
+  .session-line-2{
+    display:flex; align-items:center; gap:5px;
+    font-size:11px; color:var(--ink-faint);
+    white-space:nowrap; overflow:hidden;
+  }
+  .session-line-2 .sep{opacity:0.5}
+  .session-line-2 .ip-part{font-family:var(--mono); font-size:10px; opacity:0.85}
+  .session-line-2 .loc-part{overflow:hidden; text-overflow:ellipsis}
+
+  .session-station-inline{
+    flex-shrink:0; display:flex; align-items:center; gap:6px;
+    max-width:34%;
+    padding:6px 10px; border-radius:20px;
+    background:var(--glass-strong); border:1px solid var(--hairline);
+  }
+  .session-station-inline span{
+    font-size:11px; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .session-eq{display:flex; align-items:flex-end; gap:1.5px; height:10px; flex-shrink:0}
+  .session-eq span{width:2px; background:var(--metal); border-radius:1px; height:3px}
+  .session-eq.playing span{animation:sig 1s ease-in-out infinite}
+  .session-eq span:nth-child(1){animation-delay:-.6s}
+  .session-eq span:nth-child(2){animation-delay:-.3s}
+  .session-eq span:nth-child(3){animation-delay:-.9s}
+
+
   /* ---------- SESSIONS MODAL — fără fade in/out ---------- */
+
   #sessionsModal{
     transition:none !important;
   }
@@ -1408,8 +1488,36 @@ function formatSessionInterval(startIso, endIso){
   return `${dateStr(start)} ${timeStr(start)} – ${dateStr(end)} ${timeStr(end)}`;
 }
 
+function getDeviceIconSvg(deviceLabel){
+  const l = (deviceLabel||'').toLowerCase();
+  if(l.includes('ipad')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="0.6" fill="currentColor" stroke="none"/></svg>`;
+  if(l.includes('iphone') || l.includes('android')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.2"/><circle cx="12" cy="18.2" r="0.6" fill="currentColor" stroke="none"/></svg>`;
+  if(l.includes('tv')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="13" rx="2"/><path d="M8 21h8M12 18v3"/></svg>`;
+  if(l.includes('mac')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.6"/><path d="M8 20h8M12 16v4"/></svg>`;
+  if(l.includes('windows')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.2 10.5 5v6.6H3zM11.6 4.85 21 3.5v7.9h-9.4zM3 12.6h7.5V19L3 17.9zM11.6 12.6H21v8.1l-9.4-1.3z"/></svg>`;
+  if(l.includes('linux')) return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M8.5 12.5 6 20h12l-2.5-7.5"/></svg>`;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/></svg>`;
+}
+
+const COUNTRY_FLAGS = {
+  "Romania":"RO","Moldova":"MD","Italy":"IT","Italia":"IT","Germany":"DE","Germania":"DE",
+  "France":"FR","Franța":"FR","Spain":"ES","Spania":"ES","United Kingdom":"GB",
+  "United States":"US","Statele Unite":"US","Austria":"AT","Netherlands":"NL","Olanda":"NL",
+  "Belgium":"BE","Belgia":"BE","Switzerland":"CH","Elveția":"CH","Poland":"PL","Polonia":"PL",
+  "Hungary":"HU","Ungaria":"HU","Bulgaria":"BG","Greece":"GR","Grecia":"GR","Portugal":"PT",
+  "Portugalia":"PT","Ireland":"IE","Irlanda":"IE","Sweden":"SE","Suedia":"SE","Norway":"NO",
+  "Norvegia":"NO","Denmark":"DK","Danemarca":"DK","Finland":"FI","Finlanda":"FI","Czechia":"CZ",
+  "Cehia":"CZ","Slovakia":"SK","Slovacia":"SK","Ukraine":"UA","Ucraina":"UA","Russia":"RU",
+  "Rusia":"RU","Canada":"CA","Australia":"AU","Turkey":"TR","Turcia":"TR"
+};
+function countryFlagEmoji(country){
+  const code = COUNTRY_FLAGS[country];
+  if(!code) return '🌍';
+  return code.replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
+}
 
 async function openDeviceSessionsModal(){
+
   document.getElementById('sessionsModal').classList.add('open');
   lockBodyScroll();
   pauseBackgroundAnimations();
@@ -1440,20 +1548,39 @@ async function openDeviceSessionsModal(){
     list.innerHTML = visible.map(s=>{
       const online = (Date.now() - new Date(s.last_seen).getTime()) < 60000;
       const timeInfo = online
-        ? formatSessionDuration(s.started_at, s.last_seen) + ' online'
+        ? formatSessionDuration(s.started_at, s.last_seen)
         : formatSessionInterval(s.started_at, s.last_seen);
       const dev = (s.device_label||'Necunoscut').replace(/</g,'&lt;');
-      const locParts = [s.city, s.region, s.country].filter(Boolean).map(p=>p.replace(/</g,'&lt;'));
-      const loc = locParts.length ? locParts.join(', ') : 'Necunoscut';
+      const locParts = [s.city, s.country].filter(Boolean).map(p=>p.replace(/</g,'&lt;'));
+      const loc = locParts.length ? locParts.join(', ') : 'Locație necunoscută';
       const ip = (s.ip_address||'').replace(/</g,'&lt;');
-      const station = s.station_name ? s.station_name.replace(/</g,'&lt;') : '—';
-      return `<div class="rp-row" style="cursor:default">
-        <div class="rp-row-info">
-          <div class="rp-row-track">${dev} ${online ? '🟢' : ''}</div>
-          <div class="rp-row-time">${loc}${ip ? ' · '+ip : ''} · ${timeInfo} · ${station}</div>
+      const station = s.station_name ? s.station_name.replace(/</g,'&lt;') : null;
+      const flag = countryFlagEmoji(s.country);
+      const deviceIcon = getDeviceIconSvg(s.device_label);
+
+      return `<div class="session-card ${online ? 'is-online' : ''}">
+        <div class="session-device-icon">${deviceIcon}</div>
+        <div class="session-body">
+          <div class="session-line-1">
+            <span class="session-flag-chip">${flag}</span>
+            <span class="session-device-name">${dev}</span>
+            ${online ? `<span class="session-online-tag"><span class="session-online-dot"></span>Live</span>` : ''}
+          </div>
+          <div class="session-line-2">
+            <span class="loc-part">${loc}</span>
+            ${ip ? `<span class="sep">·</span><span class="ip-part">${ip}</span>` : ''}
+            <span class="sep">·</span>
+            <span>${timeInfo}${online ? '' : ' în urmă'}</span>
+          </div>
         </div>
+        ${station ? `<div class="session-station-inline">
+          <div class="session-eq ${online ? 'playing' : ''}"><span></span><span></span><span></span></div>
+          <span>${station}</span>
+        </div>` : ''}
       </div>`;
     }).join('');
+
+
   }catch(e){
     list.innerHTML = '<div class="rp-empty-msg">Eroare la încărcare.</div>';
   }
