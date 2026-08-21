@@ -1302,6 +1302,8 @@ let sessionStartedAt = null;
 let userCountry = 'Necunoscut';
 let userCity = '';
 let userRegion = '';
+let userIp = '';
+
 
 
 
@@ -1336,8 +1338,10 @@ async function detectCountry(){
     if(data && data.country_name) userCountry = data.country_name;
     if(data && data.city) userCity = data.city;
     if(data && data.region) userRegion = data.region;
+    if(data && data.ip) userIp = data.ip;
   }catch(e){}
 }
+
 
 
 async function upsertSession(){
@@ -1348,10 +1352,12 @@ async function upsertSession(){
       country: userCountry,
       city: userCity,
       region: userRegion,
+      ip_address: userIp,
       station_name: current ? current.name : null,
       started_at: sessionStartedAt,
       last_seen: new Date().toISOString()
     };
+
 
     await fetch(`${SUPABASE_URL}/rest/v1/${SESSION_TABLE}?on_conflict=session_id`, {
       method: "POST",
@@ -1389,6 +1395,20 @@ function formatSessionDuration(startIso, endIso){
   return `${Math.floor(diffMin/60)} h ${diffMin%60} min`;
 }
 
+function formatSessionInterval(startIso, endIso){
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  const pad = n => String(n).padStart(2,'0');
+  const timeStr = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const dateStr = d => `${pad(d.getDate())}.${pad(d.getMonth()+1)}`;
+  const sameDay = start.toDateString() === end.toDateString();
+  if(sameDay){
+    return `${timeStr(start)} – ${timeStr(end)}`;
+  }
+  return `${dateStr(start)} ${timeStr(start)} – ${dateStr(end)} ${timeStr(end)}`;
+}
+
+
 async function openDeviceSessionsModal(){
   document.getElementById('sessionsModal').classList.add('open');
   lockBodyScroll();
@@ -1404,20 +1424,35 @@ async function openDeviceSessionsModal(){
       list.innerHTML = '<div class="rp-empty-msg">Niciun dispozitiv înregistrat încă.</div>';
       return;
     }
-    list.innerHTML = data.map(s=>{
+
+    const visible = data.filter(s=>{
       const online = (Date.now() - new Date(s.last_seen).getTime()) < 60000;
-      const dur = formatSessionDuration(s.started_at, s.last_seen);
+      if(online) return true;
+      const durationMin = Math.round((new Date(s.last_seen) - new Date(s.started_at)) / 60000);
+      return durationMin >= 1;
+    });
+
+    if(!visible.length){
+      list.innerHTML = '<div class="rp-empty-msg">Nicio sesiune relevantă încă.</div>';
+      return;
+    }
+
+    list.innerHTML = visible.map(s=>{
+      const online = (Date.now() - new Date(s.last_seen).getTime()) < 60000;
+      const timeInfo = online
+        ? formatSessionDuration(s.started_at, s.last_seen) + ' online'
+        : formatSessionInterval(s.started_at, s.last_seen);
       const dev = (s.device_label||'Necunoscut').replace(/</g,'&lt;');
       const locParts = [s.city, s.region, s.country].filter(Boolean).map(p=>p.replace(/</g,'&lt;'));
       const loc = locParts.length ? locParts.join(', ') : 'Necunoscut';
+      const ip = (s.ip_address||'').replace(/</g,'&lt;');
       const station = s.station_name ? s.station_name.replace(/</g,'&lt;') : '—';
       return `<div class="rp-row" style="cursor:default">
         <div class="rp-row-info">
           <div class="rp-row-track">${dev} ${online ? '🟢' : ''}</div>
-          <div class="rp-row-time">${loc} · ${dur} online · ${station}</div>
+          <div class="rp-row-time">${loc}${ip ? ' · '+ip : ''} · ${timeInfo} · ${station}</div>
         </div>
       </div>`;
-
     }).join('');
   }catch(e){
     list.innerHTML = '<div class="rp-empty-msg">Eroare la încărcare.</div>';
