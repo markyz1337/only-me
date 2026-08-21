@@ -1221,15 +1221,33 @@ let recentlyPlayedList = [];
 
 let rpLoadedOnce = false;
 
+// ─── ORA REALĂ (server), nu ceasul dispozitivului ────────────────────────────
+let serverTimeOffsetMs = 0;
+function updateServerTimeOffset(response){
+  try{
+    const dateHeader = response.headers.get('date');
+    if(dateHeader){
+      const serverTime = new Date(dateHeader).getTime();
+      if(!isNaN(serverTime)) serverTimeOffsetMs = serverTime - Date.now();
+    }
+  }catch(e){}
+}
+function getServerNow(){
+  return new Date(Date.now() + serverTimeOffsetMs);
+}
+
+
 // ─── HEARTBEAT (mantine conexiunea Supabase "caldă") ─────────────────────────
 let heartbeatInterval = null;
 async function sbHeartbeat(){
   try{
-    await fetch(`${SUPABASE_URL}/rest/v1/${RP_TABLE}?select=played_at&limit=1`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${RP_TABLE}?select=played_at&limit=1`, {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
     });
+    updateServerTimeOffset(res);
   }catch(e){}
 }
+
 function startHeartbeat(){
   if(heartbeatInterval) return;
   heartbeatInterval = setInterval(()=>{
@@ -1249,7 +1267,9 @@ async function fetchRecentlyPlayed(){
       { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
     );
     if(!res.ok) throw new Error("status " + res.status);
+    updateServerTimeOffset(res);
     const data = (await res.json()) || [];
+
     // combină în loc să suprascrie: păstrează orice item local adăugat între timp
     const existingKeys = new Set(data.map(d => `${d.station_name}|${d.track_title}`));
     const localOnly = recentlyPlayedList.filter(
@@ -1337,8 +1357,9 @@ function recordRecentlyPlayed(stationName, trackTitle, trackImage){
     station_name: stationName,
     track_title: trackTitle,
     track_image: trackImage || null,
-    played_at: new Date().toISOString()
+    played_at: getServerNow().toISOString()
   });
+
   recentlyPlayedList = dedupeRecentlyPlayed(recentlyPlayedList);
   refreshRpUI();
   insertRecentlyPlayed(stationName, trackTitle, trackImage);
@@ -1391,7 +1412,8 @@ function formatRpTime(iso){
   if(!iso) return '';
   const d = new Date(iso);
   if(isNaN(d.getTime())) return '';
-  const now = new Date();
+  const now = getServerNow();
+
   const diffMs = now - d;
   const diffMin = Math.floor(diffMs/60000);
   if(diffMin < 1) return 'chiar acum';
