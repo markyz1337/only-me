@@ -681,7 +681,12 @@
   :focus-visible{outline:2px solid var(--metal); outline-offset:2px}
 
   /* ---------- RECENTLY PLAYED MODAL ---------- */
-  .rp-modal .search-modal{max-height:64vh; display:flex; flex-direction:column}
+  .rp-modal .search-modal{
+    max-height:min(72vh, 72dvh);
+    display:flex; flex-direction:column;
+    padding-bottom:calc(22px + env(safe-area-inset-bottom));
+  }
+
   .rp-search-input{
     width:100%; box-sizing:border-box;
     background:var(--glass); border:1px solid var(--hairline); color:var(--ink);
@@ -693,7 +698,9 @@
   .rp-search-input:focus{border-color:var(--metal)}
 .rp-modal-list{
   display:flex; flex-direction:column; gap:8px;
+  flex:1; min-height:0;
   overflow-y:auto; -webkit-overflow-scrolling:touch;
+
   scrollbar-width:none; -ms-overflow-style:none;
   overscroll-behavior:contain;
   -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
@@ -752,77 +759,52 @@
   }
 
 
-/* ---------- SESSION CARDS v2 (redesign mare) ---------- */
+/* ---------- SESSION CARDS v3 (compact, potrivit pe telefon) ---------- */
 .session-card{
-  position:relative;
-  display:flex; flex-direction:column; gap:14px;
-  padding:20px; border-radius:22px;
+  display:flex; align-items:flex-start; gap:12px;
+  padding:14px; border-radius:16px;
   border:1px solid var(--hairline); background:var(--glass);
-  overflow:hidden;
-  transition:border-color .2s, background .2s;
-}
-.session-card::before{
-  content:''; position:absolute; left:0; top:0; bottom:0; width:4px;
-  background:var(--ink-faint); opacity:0.35;
 }
 .session-card.is-online{
   background:linear-gradient(135deg, rgba(79,191,158,0.09), var(--glass) 60%);
   border-color:rgba(79,191,158,0.32);
 }
-.session-card.is-online::before{
-  background:#4fbf9e; opacity:1;
-  box-shadow:0 0 12px rgba(79,191,158,0.6);
-}
-
-.session-top{display:flex; align-items:center; gap:14px}
-.session-device-icon{
-  width:52px; height:52px; border-radius:16px; flex-shrink:0;
+.session-icon-wrap{
+  position:relative; width:42px; height:42px; border-radius:12px; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
   background:linear-gradient(160deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02));
   border:1px solid var(--hairline); color:var(--metal);
 }
-.session-device-icon svg{width:24px;height:24px}
-.session-top-info{flex:1; min-width:0}
+.session-icon-wrap svg{width:19px;height:19px}
+.session-online-badge{
+  position:absolute; bottom:-2px; right:-2px;
+  width:11px; height:11px; border-radius:50%;
+  background:#4fbf9e; border:2px solid #15171c;
+}
+.session-body{flex:1; min-width:0}
 .session-device-name{
-  font-family:var(--display); font-size:17px; font-weight:600; color:var(--ink);
+  font-family:var(--display); font-weight:600; font-size:14px; color:var(--ink);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.session-status-row{display:flex; align-items:center; gap:8px; margin-top:6px}
-.session-status-chip{
-  display:flex; align-items:center; gap:5px;
-  font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
-  padding:4px 11px; border-radius:20px;
+.session-meta{
+  font-size:12px; color:var(--ink-dim); margin-top:3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.session-status-chip.online{color:#4fbf9e; background:rgba(79,191,158,0.13); border:1px solid rgba(79,191,158,0.3)}
-.session-status-chip.offline{color:var(--ink-faint); background:var(--glass); border:1px solid var(--hairline)}
-
-.session-info-list{display:flex; flex-direction:column; gap:12px}
-.session-info-row{display:flex; align-items:center; gap:12px}
-.session-info-icon{
-  width:32px; height:32px; border-radius:10px; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--glass); border:1px solid var(--hairline); color:var(--ink-dim);
-  font-size:16px;
+.session-time{font-size:11px; color:var(--ink-faint); margin-top:2px}
+.session-time b{color:var(--ink); font-weight:600}
+.session-station-inline{
+  display:flex; align-items:center; gap:7px; margin-top:8px;
+  font-size:12.5px; color:var(--ink-dim);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.session-info-icon svg{width:15px;height:15px}
-.session-info-text{font-size:14px; color:var(--ink-dim); min-width:0; line-height:1.4}
-.session-info-text b{color:var(--ink); font-weight:600}
-.session-info-text.mono{font-family:var(--mono); font-size:13px; letter-spacing:0.01em}
-
-.session-station-box{
-  display:flex; align-items:center; gap:12px;
-  padding:13px 15px; border-radius:16px;
-  background:var(--glass-strong); border:1px solid var(--hairline);
-}
-.session-eq{display:flex; align-items:flex-end; gap:2px; height:16px; flex-shrink:0}
+.session-station-inline b{color:var(--ink); font-weight:600; overflow:hidden; text-overflow:ellipsis}
+.session-eq{display:flex; align-items:flex-end; gap:2px; height:14px; flex-shrink:0}
 .session-eq span{width:3px; background:var(--metal); border-radius:1.5px; height:5px}
 .session-eq.playing span{animation:sig 1s ease-in-out infinite}
 .session-eq span:nth-child(1){animation-delay:-.6s}
 .session-eq span:nth-child(2){animation-delay:-.3s}
 .session-eq span:nth-child(3){animation-delay:-.9s}
-.session-station-label{font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:2px}
-.session-station-name{font-size:14.5px; color:var(--ink); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.session-online-dot{width:6px;height:6px;border-radius:50%; background:#4fbf9e; animation:pulse 1.8s ease-in-out infinite; flex-shrink:0}
+
 
 
 
@@ -1554,49 +1536,24 @@ async function openDeviceSessionsModal(){
       const dev = (s.device_label||'Necunoscut').replace(/</g,'&lt;');
       const locParts = [s.city, s.region, s.country].filter(Boolean).map(p=>p.replace(/</g,'&lt;'));
       const loc = locParts.length ? locParts.join(', ') : 'Locație necunoscută';
-      const ip = (s.ip_address||'').replace(/</g,'&lt;');
       const station = s.station_name ? s.station_name.replace(/</g,'&lt;') : null;
       const flag = countryFlagEmoji(s.country);
       const deviceIcon = getDeviceIconSvg(s.device_label);
 
-      const ipSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 14.3 0 18M12 3c-2.5 2.7-2.5 14.3 0 18"/></svg>`;
-      const clockSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
-
       return `<div class="session-card ${online ? 'is-online' : ''}">
-        <div class="session-top">
-          <div class="session-device-icon">${deviceIcon}</div>
-          <div class="session-top-info">
-            <div class="session-device-name">${dev}</div>
-            <div class="session-status-row">
-              <span class="session-status-chip ${online?'online':'offline'}">${online ? `<span class="session-online-dot"></span>Online acum` : `Offline`}</span>
-            </div>
-          </div>
+        <div class="session-icon-wrap">
+          ${deviceIcon}
+          ${online ? '<span class="session-online-badge"></span>' : ''}
         </div>
-
-        <div class="session-info-list">
-          <div class="session-info-row">
-            <div class="session-info-icon">${flag !== '🌍' ? flag : ''}</div>
-            <div class="session-info-text"><b>${loc}</b></div>
-          </div>
-          ${ip ? `<div class="session-info-row">
-            <div class="session-info-icon">${ipSvg}</div>
-            <div class="session-info-text mono">${ip}</div>
-          </div>` : ''}
-          <div class="session-info-row">
-            <div class="session-info-icon">${clockSvg}</div>
-            <div class="session-info-text">${online ? `Activ de <b>${timeInfo}</b>` : `Ultima oară acum <b>${timeInfo}</b>`}</div>
-          </div>
+        <div class="session-body">
+          <div class="session-device-name">${dev}</div>
+          <div class="session-meta">${flag !== '🌍' ? flag + ' ' : ''}${loc}</div>
+          <div class="session-time">${online ? `Activ de <b>${timeInfo}</b>` : `Ultima oară acum <b>${timeInfo}</b>`}</div>
+          ${station ? `<div class="session-station-inline"><span class="session-eq ${online ? 'playing' : ''}"><span></span><span></span><span></span></span><b>${station}</b></div>` : ''}
         </div>
-
-        ${station ? `<div class="session-station-box">
-          <div class="session-eq ${online ? 'playing' : ''}"><span></span><span></span><span></span></div>
-          <div style="min-width:0;flex:1">
-            <div class="session-station-label">${online ? 'Ascultă acum' : 'Ultimul post ascultat'}</div>
-            <div class="session-station-name">${station}</div>
-          </div>
-        </div>` : ''}
       </div>`;
     }).join('');
+
 
 
   }catch(e){
