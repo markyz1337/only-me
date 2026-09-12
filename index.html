@@ -1507,59 +1507,54 @@ async function openDeviceSessionsModal(){
   const list = document.getElementById('sessionsModalList');
   list.innerHTML = '<div class="rp-empty-msg">Se încarcă...</div>';
   try{
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SESSION_TABLE}?select=*&order=last_seen.desc&limit=50`, {
+    const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SESSION_TABLE}?select=*&last_seen=gte.${sevenDaysAgo}&order=last_seen.desc&limit=200`, {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
     });
     const data = (await res.json()) || [];
     if(!data.length){
-      list.innerHTML = '<div class="rp-empty-msg">Niciun dispozitiv înregistrat încă.</div>';
+      list.innerHTML = '<div class="rp-empty-msg">Nicio sesiune în ultimele 7 zile.</div>';
       return;
     }
 
-    const visible = data.filter(s=>{
-      const online = (Date.now() - new Date(s.last_seen).getTime()) < 60000;
-      if(online) return true;
-      const durationMin = Math.round((new Date(s.last_seen) - new Date(s.started_at)) / 60000);
-      return durationMin >= 1;
+    // păstrează doar cea mai recentă sesiune pentru fiecare IP
+    const seenIps = new Set();
+    const visible = [];
+    data.forEach(s=>{
+      const ipKey = s.ip_address || s.session_id;
+      if(seenIps.has(ipKey)) return;
+      seenIps.add(ipKey);
+      visible.push(s);
     });
 
-    if(!visible.length){
-      list.innerHTML = '<div class="rp-empty-msg">Nicio sesiune relevantă încă.</div>';
-      return;
-    }
-
     list.innerHTML = visible.map(s=>{
-      const online = (Date.now() - new Date(s.last_seen).getTime()) < 60000;
-      const timeInfo = online
-        ? formatSessionDuration(s.started_at, s.last_seen)
-        : formatSessionInterval(s.started_at, s.last_seen);
-      const dev = (s.device_label||'Necunoscut').replace(/</g,'&lt;');
-      const locParts = [s.city, s.region, s.country].filter(Boolean).map(p=>p.replace(/</g,'&lt;'));
-      const loc = locParts.length ? locParts.join(', ') : 'Locație necunoscută';
-      const station = s.station_name ? s.station_name.replace(/</g,'&lt;') : null;
+      const d = new Date(s.last_seen);
+      const pad = n => String(n).padStart(2,'0');
+      const dateStr = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`;
+      const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      const station = s.station_name ? s.station_name.replace(/</g,'&lt;') : 'Necunoscut';
       const flag = countryFlagEmoji(s.country);
       const deviceIcon = getDeviceIconSvg(s.device_label);
+      const locParts = [s.city, s.region, s.country].filter(Boolean).map(p=>p.replace(/</g,'&lt;'));
+      const loc = locParts.length ? locParts.join(', ') : 'Locație necunoscută';
 
-      return `<div class="session-card ${online ? 'is-online' : ''}">
+      return `<div class="session-card">
         <div class="session-icon-wrap">
           ${deviceIcon}
-          ${online ? '<span class="session-online-badge"></span>' : ''}
         </div>
         <div class="session-body">
-          <div class="session-device-name">${dev}</div>
+          <div class="session-device-name">${station}</div>
           <div class="session-meta">${flag !== '🌍' ? flag + ' ' : ''}${loc}</div>
-          <div class="session-time">${online ? `Activ de <b>${timeInfo}</b>` : `Ultima oară acum <b>${timeInfo}</b>`}</div>
-          ${station ? `<div class="session-station-inline"><span class="session-eq ${online ? 'playing' : ''}"><span></span><span></span><span></span></span><b>${station}</b></div>` : ''}
+          <div class="session-time">${dateStr} · <b>${timeStr}</b></div>
         </div>
       </div>`;
     }).join('');
-
-
 
   }catch(e){
     list.innerHTML = '<div class="rp-empty-msg">Eroare la încărcare.</div>';
   }
 }
+
 function closeDeviceSessionsModal(){
   document.getElementById('sessionsModal').classList.remove('open');
   unlockBodyScroll();
