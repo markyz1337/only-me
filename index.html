@@ -829,7 +829,10 @@
   .copy-toast.show{opacity:1; transform:translate(-50%, 0)}
 
   /* ============ TV MODE — REDESIGN COMPLET ============ */
-  body.tv-active{cursor:none; overflow:hidden}
+body.tv-active{overflow:hidden}
+body.tv-active.tv-idle,
+body.tv-active.tv-idle *{cursor:none !important}
+
   body.tv-active .topbar,
   body.tv-active .hero,
   body.tv-active .lyrics-wrap,
@@ -3244,6 +3247,16 @@ function initTvMode(){
   tvMode = detectTV();
   if(!tvMode) return;
   document.body.classList.add('tv-active');
+
+  let tvIdleTimer = null;
+  const tvWake = ()=>{
+    document.body.classList.remove('tv-idle');
+    clearTimeout(tvIdleTimer);
+    tvIdleTimer = setTimeout(()=>document.body.classList.add('tv-idle'), 3000);
+  };
+  ['mousemove','mousedown','touchstart'].forEach(ev=>document.addEventListener(ev, tvWake, {passive:true}));
+  tvWake();
+
 
   document.getElementById('tvPrevBtn').addEventListener('click', prev);
   document.getElementById('tvNextBtn').addEventListener('click', next);
