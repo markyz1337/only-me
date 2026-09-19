@@ -766,6 +766,15 @@
     transition:background .18s, border-color .18s, color .18s;
   }
   .rp-load-more-btn:hover{background:var(--glass-strong); color:var(--ink); border-color:var(--metal)}
+  .rp-load-more-btn.rp-auto-press{
+    animation:rpAutoPress 0.35s ease;
+  }
+  @keyframes rpAutoPress{
+    0%{transform:scale(1); background:var(--glass)}
+    40%{transform:scale(0.94); background:var(--glass-strong); border-color:var(--metal)}
+    100%{transform:scale(1); background:var(--glass-strong); border-color:var(--metal)}
+  }
+
 
 
 
@@ -1878,12 +1887,16 @@ function setupRpLoadMoreButton(){
     entries.forEach(entry=>{
       if(entry.isIntersecting){
         if(rpAutoLoadTimer) clearTimeout(rpAutoLoadTimer);
-        rpAutoLoadTimer = setTimeout(()=>{ btn.click(); }, 1500);
+        rpAutoLoadTimer = setTimeout(()=>{
+          btn.classList.add('rp-auto-press');
+          setTimeout(()=>{ btn.click(); }, 200);
+        }, 1500);
       }else{
         if(rpAutoLoadTimer){ clearTimeout(rpAutoLoadTimer); rpAutoLoadTimer = null; }
       }
     });
   }, { root: container, threshold: 0.6 });
+
 
   rpLoadMoreObserver.observe(btn);
 }
