@@ -745,7 +745,9 @@
   }
   .rp-row-track.is-marquee .rp-row-text{padding-right:24px}
   .rp-row-track.is-marquee .rp-row-clone{display:inline-block}
-  .rp-row-track.is-marquee .rp-row-inner{animation:tileMarquee linear infinite}
+  .rp-row-track.is-marquee .rp-row-inner{animation:tileMarquee linear infinite; animation-play-state:paused}
+  .rp-row-track.is-marquee.rp-marquee-visible .rp-row-inner{animation-play-state:running}
+
 
   .rp-row-time{font-size:10.5px; color:var(--ink-faint); margin-top:2px}
   .rp-row-search-btn{
@@ -1786,7 +1788,9 @@ function closeRecentlyPlayedModal(){
   resumeBackgroundAnimations();
   if(rpAutoLoadTimer){ clearTimeout(rpAutoLoadTimer); rpAutoLoadTimer = null; }
   if(rpLoadMoreObserver){ rpLoadMoreObserver.disconnect(); rpLoadMoreObserver = null; }
+  if(rpMarqueeObserver){ rpMarqueeObserver.disconnect(); rpMarqueeObserver = null; }
 }
+
 
 
 
@@ -1933,12 +1937,16 @@ function setupRpLoadMoreButton(){
 }
 
 
+let rpMarqueeObserver = null;
+
 function setupRpRowMarquees(){
+  if(rpMarqueeObserver){ rpMarqueeObserver.disconnect(); rpMarqueeObserver = null; }
+
   document.querySelectorAll('.rp-row-track').forEach(el=>{
     const inner = el.querySelector('.rp-row-inner');
     const text = el.querySelector('.rp-row-text');
     if(!inner || !text) return;
-    el.classList.remove('is-marquee');
+    el.classList.remove('is-marquee', 'rp-marquee-visible');
     inner.style.animationDuration = '';
     if(text.scrollWidth > el.clientWidth){
       el.classList.add('is-marquee');
@@ -1949,7 +1957,21 @@ function setupRpRowMarquees(){
       });
     }
   });
+
+  const container = document.getElementById('rpModalList');
+  if(!container) return;
+
+  rpMarqueeObserver = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      entry.target.classList.toggle('rp-marquee-visible', entry.isIntersecting);
+    });
+  }, { root: container, threshold: 0.1 });
+
+  document.querySelectorAll('.rp-row-track.is-marquee').forEach(el=>{
+    rpMarqueeObserver.observe(el);
+  });
 }
+
 
 
 function initRpModalEvents(){
