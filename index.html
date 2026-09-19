@@ -800,7 +800,10 @@
   }
   .rp-row{
     animation:rpRowFadeIn 0.45s ease both;
+    content-visibility:auto;
+    contain-intrinsic-size:0 60px;
   }
+
   @keyframes rpRowFadeIn{
     0%{opacity:0; transform:translateY(6px)}
     100%{opacity:1; transform:translateY(0)}
@@ -1797,11 +1800,16 @@ function closeRecentlyPlayedModal(){
 function closeRpModalOnBackdrop(e){
   if(e.target.id === 'rpModal') closeRecentlyPlayedModal();
 }
+let rpFilterDebounceTimer = null;
 function filterRecentlyPlayedModal(){
-  const q = document.getElementById('rpSearchInput').value;
-  rpVisibleCount = RP_PAGE_SIZE;
-  renderRpModalList(q);
+  if(rpFilterDebounceTimer) clearTimeout(rpFilterDebounceTimer);
+  rpFilterDebounceTimer = setTimeout(()=>{
+    const q = document.getElementById('rpSearchInput').value;
+    rpVisibleCount = RP_PAGE_SIZE;
+    renderRpModalList(q);
+  }, 200);
 }
+
 
 
 function formatRpTime(iso){
@@ -1856,6 +1864,23 @@ const RP_PAGE_SIZE = 20;
 let rpVisibleCount = RP_PAGE_SIZE;
 let rpAutoLoadTimer = null;
 let rpLoadMoreObserver = null;
+let rpCurrentFiltered = [];
+
+function buildRpRowHtml(item){
+  const img = item.track_image || FALLBACK_IMG;
+  const track = toTitleCase(item.track_title || '').replace(/</g,'&lt;');
+  const time = formatRpTime(item.played_at);
+  return `<div class="rp-row" data-copy="${encodeURIComponent(track)}">
+      <img src="${img}" loading="lazy" decoding="async" onerror="this.src='${FALLBACK_IMG}'" alt="">
+      <div class="rp-row-info">
+        <div class="rp-row-track"><span class="rp-row-inner"><span class="rp-row-text">${track}</span><span class="rp-row-text rp-row-clone">${track}</span></span></div>
+        <div class="rp-row-time">${time}</div>
+      </div>
+      <button class="rp-row-search-btn" data-track="${encodeURIComponent(item.track_title||'')}" data-img="${encodeURIComponent(item.track_image||'')}" aria-label="Caută piesa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+      </button>
+    </div>`;
+}
 
 function renderRpModalList(filterText){
   const list = document.getElementById('rpModalList');
@@ -1866,48 +1891,45 @@ function renderRpModalList(filterText){
     .filter(item => !q || (item.track_title||'').toLowerCase().includes(q))
     .slice(0, RP_DISPLAY_LIMIT);
 
+  rpCurrentFiltered = filtered;
+
+  if(rpLoadMoreObserver){ rpLoadMoreObserver.disconnect(); rpLoadMoreObserver = null; }
+  if(rpAutoLoadTimer){ clearTimeout(rpAutoLoadTimer); rpAutoLoadTimer = null; }
+
   if(!filtered.length){
     list.innerHTML = `<div class="rp-empty-msg">${stationHistory.length ? 'Nicio piesă găsită.' : 'Încă nu există istoric pentru acest canal.'}</div>`;
     return;
   }
 
   const visibleCount = Math.min(rpVisibleCount, filtered.length);
-  const visible = filtered.slice(0, visibleCount);
-
-  const rowsHtml = visible.map(item=>{
-    const img = item.track_image || FALLBACK_IMG;
-    const track = toTitleCase(item.track_title || '').replace(/</g,'&lt;');
-    const time = formatRpTime(item.played_at);
-
-    return `<div class="rp-row" data-copy="${encodeURIComponent(track)}">
-
-      <img src="${img}" onerror="this.src='${FALLBACK_IMG}'" alt="">
-      <div class="rp-row-info">
-        <div class="rp-row-track"><span class="rp-row-inner"><span class="rp-row-text">${track}</span><span class="rp-row-text rp-row-clone">${track}</span></span></div>
-        <div class="rp-row-time">${time}</div>
-      </div>
-      <button class="rp-row-search-btn" data-track="${encodeURIComponent(item.track_title||'')}" data-img="${encodeURIComponent(item.track_image||'')}" aria-label="Caută piesa">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
-      </button>
-    </div>`;
-  }).join('');
-
+  const rowsHtml = filtered.slice(0, visibleCount).map(buildRpRowHtml).join('');
   const hasMore = visibleCount < filtered.length;
   const moreBtnHtml = hasMore ? `<button type="button" class="rp-load-more-btn" id="rpLoadMoreBtn">Arată mai mult</button>` : '';
 
   list.innerHTML = rowsHtml + moreBtnHtml;
   requestAnimationFrame(setupRpRowMarquees);
 
-  if(rpLoadMoreObserver){ rpLoadMoreObserver.disconnect(); rpLoadMoreObserver = null; }
-  if(rpAutoLoadTimer){ clearTimeout(rpAutoLoadTimer); rpAutoLoadTimer = null; }
-
   if(hasMore) setupRpLoadMoreButton();
 }
 
 function loadMoreRp(){
+  const list = document.getElementById('rpModalList');
+  if(!list) return;
+  const oldBtn = document.getElementById('rpLoadMoreBtn');
+  if(oldBtn) oldBtn.remove();
+
+  const oldCount = Math.min(rpVisibleCount, rpCurrentFiltered.length);
   rpVisibleCount += RP_PAGE_SIZE;
-  const q = document.getElementById('rpSearchInput').value;
-  renderRpModalList(q);
+  const newCount = Math.min(rpVisibleCount, rpCurrentFiltered.length);
+
+  const newRowsHtml = rpCurrentFiltered.slice(oldCount, newCount).map(buildRpRowHtml).join('');
+  const hasMore = newCount < rpCurrentFiltered.length;
+  const moreBtnHtml = hasMore ? `<button type="button" class="rp-load-more-btn" id="rpLoadMoreBtn">Arată mai mult</button>` : '';
+
+  list.insertAdjacentHTML('beforeend', newRowsHtml + moreBtnHtml);
+
+  requestAnimationFrame(setupRpRowMarquees);
+  if(hasMore) setupRpLoadMoreButton();
 }
 
 function setupRpLoadMoreButton(){
@@ -1925,16 +1947,15 @@ function setupRpLoadMoreButton(){
           btn.classList.add('rp-auto-press');
           setTimeout(()=>{ btn.click(); }, 700);
         }, 1500);
-
       }else{
         if(rpAutoLoadTimer){ clearTimeout(rpAutoLoadTimer); rpAutoLoadTimer = null; }
       }
     });
   }, { root: container, threshold: 0.6 });
 
-
   rpLoadMoreObserver.observe(btn);
 }
+
 
 
 let rpMarqueeObserver = null;
