@@ -700,12 +700,14 @@
   display:flex; flex-direction:column; gap:8px;
   flex:1; min-height:0;
   overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding-bottom:28px;
 
   scrollbar-width:none; -ms-overflow-style:none;
   overscroll-behavior:contain;
   -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
   mask-image:linear-gradient(180deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
 }
+
 
 
   .rp-modal-list::-webkit-scrollbar{display:none}
@@ -759,21 +761,49 @@
   }
   .rp-load-more-btn{
     display:block; width:100%; box-sizing:border-box;
-    text-align:center; padding:11px; margin-top:2px;
+    text-align:center; padding:18px; margin-top:2px;
     border:1px solid var(--hairline); background:var(--glass); color:var(--ink-dim);
     font-family:var(--sans); font-size:12.5px; font-weight:600;
     border-radius:12px; cursor:pointer;
     transition:background .18s, border-color .18s, color .18s;
   }
+
   .rp-load-more-btn:hover{background:var(--glass-strong); color:var(--ink); border-color:var(--metal)}
+  .rp-load-more-btn{
+    position:relative; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    line-height:normal;
+  }
   .rp-load-more-btn.rp-auto-press{
-    animation:rpAutoPress 0.35s ease;
+    animation:rpAutoPressGlow 1.4s ease;
+    border-color:var(--metal);
+    color:var(--ink);
   }
-  @keyframes rpAutoPress{
-    0%{transform:scale(1); background:var(--glass)}
-    40%{transform:scale(0.94); background:var(--glass-strong); border-color:var(--metal)}
-    100%{transform:scale(1); background:var(--glass-strong); border-color:var(--metal)}
+  .rp-load-more-btn.rp-auto-press::after{
+    content:'';
+    position:absolute; top:0; left:-40%; width:40%; height:100%;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation:rpAutoPressSweep 1.4s ease;
+    pointer-events:none;
   }
+
+  @keyframes rpAutoPressGlow{
+    0%{background:var(--glass); box-shadow:0 0 0 rgba(201,187,161,0)}
+    45%{background:var(--glass-strong); box-shadow:0 0 14px rgba(201,187,161,0.35)}
+    100%{background:var(--glass-strong); box-shadow:0 0 0 rgba(201,187,161,0)}
+  }
+  @keyframes rpAutoPressSweep{
+    0%{left:-40%}
+    100%{left:120%}
+  }
+  .rp-row{
+    animation:rpRowFadeIn 0.45s ease both;
+  }
+  @keyframes rpRowFadeIn{
+    0%{opacity:0; transform:translateY(6px)}
+    100%{opacity:1; transform:translateY(0)}
+  }
+
 
 
 
@@ -1889,8 +1919,9 @@ function setupRpLoadMoreButton(){
         if(rpAutoLoadTimer) clearTimeout(rpAutoLoadTimer);
         rpAutoLoadTimer = setTimeout(()=>{
           btn.classList.add('rp-auto-press');
-          setTimeout(()=>{ btn.click(); }, 200);
+          setTimeout(()=>{ btn.click(); }, 700);
         }, 1500);
+
       }else{
         if(rpAutoLoadTimer){ clearTimeout(rpAutoLoadTimer); rpAutoLoadTimer = null; }
       }
