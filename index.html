@@ -802,7 +802,9 @@
     animation:rpRowFadeIn 0.45s ease both;
     content-visibility:auto;
     contain-intrinsic-size:0 60px;
+    contain:layout style paint;
   }
+
 
   @keyframes rpRowFadeIn{
     0%{opacity:0; transform:translateY(6px)}
@@ -1359,8 +1361,9 @@ const FALLBACK_IMG = "https://store-images.s-microsoft.com/image/apps.54675.1398
 const SUPABASE_URL = "https://fndjrfieitieqzafhyzz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_bHDKjiKAVHqW199ICw7i2g_O3olYMAr";
 const RP_TABLE = "sergiumusic_recentlyplayed";
-const RP_FETCH_PER_STATION = 150; // cate randuri aduce din baza de date per post (rezerva pentru duplicate)
-const RP_KEEP_PER_STATION = 100;  // cate melodii pastrate per post
+const RP_FETCH_PER_STATION = 80;
+const RP_KEEP_PER_STATION = 50;
+
 
 const RP_RETRY_DELAY = 3000;
 let recentlyPlayedList = [];
@@ -1871,7 +1874,8 @@ function buildRpRowHtml(item){
   const track = toTitleCase(item.track_title || '').replace(/</g,'&lt;');
   const time = formatRpTime(item.played_at);
   return `<div class="rp-row" data-copy="${encodeURIComponent(track)}">
-      <img src="${img}" loading="lazy" decoding="async" onerror="this.src='${FALLBACK_IMG}'" alt="">
+      <img src="${img}" width="38" height="38" loading="lazy" decoding="async" onerror="this.src='${FALLBACK_IMG}'" alt="">
+
       <div class="rp-row-info">
         <div class="rp-row-track"><span class="rp-row-inner"><span class="rp-row-text">${track}</span><span class="rp-row-text rp-row-clone">${track}</span></span></div>
         <div class="rp-row-time">${time}</div>
