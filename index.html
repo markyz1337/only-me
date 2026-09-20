@@ -66,6 +66,24 @@
 
 
 
+  html{
+    background:#0b0c0f;
+    min-height:100%;
+  }
+  body{
+    min-height:100vh;
+    min-height:100dvh;
+  }
+  html::before{
+    content:'';
+    position:fixed;
+    left:0; right:0;
+    top:-300px; bottom:-300px;
+    background:#0b0c0f;
+    z-index:-1;
+    pointer-events:none;
+  }
+
   .grain{
     position:fixed; inset:0; pointer-events:none; z-index:50;
     opacity:0.022; mix-blend-mode:overlay;
