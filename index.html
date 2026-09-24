@@ -859,9 +859,9 @@
   #tvRoot{
     display:none; position:fixed; inset:0; z-index:10; background:var(--bg);
     padding:40px 48px; flex-direction:column; gap:24px;
-    overflow-y:auto; overflow-x:hidden;
-    scrollbar-width:none; -ms-overflow-style:none;
+    overflow:hidden;
   }
+
   #tvRoot::-webkit-scrollbar{display:none}
   #tvRoot .tv-main{flex:0 0 auto}
   #tvRoot .tv-header{flex:0 0 auto}
@@ -967,11 +967,17 @@
 
 
   .tv-stage{
-    flex:0 0 auto; display:grid;
+    flex:1 1 0; min-height:0;
+    display:grid; align-content:start;
     grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
     gap:16px;
-    padding:6px 0;
+    padding:6px;
+    overflow-y:auto; overflow-x:hidden;
+    scrollbar-width:none; -ms-overflow-style:none;
+    overscroll-behavior:contain;
   }
+  .tv-stage::-webkit-scrollbar{display:none}
+
 
 
 
@@ -3178,7 +3184,11 @@ function applyTvFocus(){
   if(!el) return;
   el.classList.add('tv-focused');
   el.focus({preventScroll:true});
+  if(el.classList.contains('tv-tile')){
+    el.scrollIntoView({block:'nearest', inline:'nearest'});
+  }
 }
+
 function tvMoveZone(delta){
   if(!tvZones.length) return;
   tvZoneIndex = Math.max(0, Math.min(tvZoneIndex + delta, tvZones.length - 1));
