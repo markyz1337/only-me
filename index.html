@@ -10,6 +10,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 
+<script>
+(function(){
+  var ua = navigator.userAgent || '';
+  var isTv = /SmartTV|Tizen|Web0S|WebOS|NetCast|Roku|AFTB|AFTS|AFTT|BRAVIA|GoogleTV|HbbTV|VIDAA|CrKey/i.test(ua)
+    || /[?&]tv=1/.test(location.search)
+    || (window.matchMedia('(hover:none)').matches && window.innerWidth >= 1200 && !('ontouchstart' in window));
+  if(isTv) document.documentElement.classList.add('tv-active');
+})();
+</script>
 <link rel="manifest" id="webManifest">
 <title>Sergiu</title>
 
@@ -856,7 +865,13 @@
   body.tv-active .topbar,
   body.tv-active .hero,
   body.tv-active .lyrics-wrap,
-  body.tv-active .rail-section{display:none}
+  body.tv-active .rail-section,
+  html.tv-active .topbar,
+  html.tv-active .hero,
+  html.tv-active .lyrics-wrap,
+  html.tv-active .rail-section{display:none}
+  html.tv-active body{cursor:none; overflow:hidden}
+
 
   #tvRoot{
     display:none; position:fixed; inset:0; z-index:10; background:var(--bg);
@@ -869,7 +884,9 @@
   #tvRoot .tv-header{flex:0 0 auto}
 
 
-  body.tv-active #tvRoot{display:flex}
+  body.tv-active #tvRoot,
+  html.tv-active #tvRoot{display:flex}
+
 
   .tv-bg{
     position:fixed; inset:-10%; width:120%; height:120%; z-index:-1;
