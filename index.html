@@ -2199,7 +2199,9 @@ function play(station){
   renderRail();
   refreshRpUI();
   saveLastStation(station);
+  fetchMetadata(station);
   upsertSession();
+
   if(tvMode) renderTvGrid();
 
 
@@ -3386,7 +3388,15 @@ function firstInteractionStart(e){
 ['click','touchstart','scroll','pointerdown'].forEach(ev=>{
   document.addEventListener(ev, firstInteractionStart, { capture:true, passive:true });
 });
-setInterval(()=>{ allStationsList().forEach(s=>fetchMetadata(s)); }, 15000);
+let metaTick = 0;
+setInterval(()=>{
+  metaTick++;
+  allStationsList().forEach(s=>{
+    const isCurrent = !!(current && current.stream === s.stream);
+    if(isCurrent || metaTick % 2 === 0) fetchMetadata(s);
+  });
+}, 15000);
+
 allStationsList().forEach(s=>fetchMetadata(s));
 
 </script>
