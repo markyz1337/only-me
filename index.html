@@ -523,6 +523,8 @@
     50%{box-shadow:inset 0 0 55px rgba(255,120,160,0.35), inset 0 0 0 1px rgba(255,140,170,0.55)}
   }
   .hero-frame.hope-mode .live-dot{background:#ff8fab}
+  body.tv-active .tv-cover-wrap.hope-mode{animation:none}
+
   .hero-frame.hope-mode #nowTitle{
     background:linear-gradient(90deg, #fff 0%, #ffd7e2 50%, #fff 100%);
     -webkit-background-clip:text; background-clip:text; color:transparent;
@@ -2328,7 +2330,9 @@ function smoothstep(edge0, edge1, v){
 }
 
 function maybeSpawnHopeShootingStar(layer, t){
+  if(tvMode) return;
   const canvas = document.getElementById(layer.starsId);
+
   if(!canvas) return;
   if(!layer.nextShootTime) layer.nextShootTime = t + 1500 + Math.random()*2500;
   if(t < layer.nextShootTime) return;
@@ -2479,7 +2483,11 @@ function updateHopeMode(){
     if(frame) frame.classList.toggle('hope-mode', isHope);
     const isHeroLayer = layer.starsId === 'hopeStars';
     if(isHope && tvMode && isHeroLayer){ stopHopeStars(layer); stopHopeHearts(layer); return; }
-    if(isHope){ startHopeStars(layer); if(!tvMode) startHopeHearts(layer); else stopHopeHearts(layer); }
+    if(isHope){
+      if(!tvMode){ startHopeStars(layer); startHopeHearts(layer); }
+      else{ stopHopeStars(layer); stopHopeHearts(layer); }
+    }
+
     else{ stopHopeStars(layer); stopHopeHearts(layer); }
 
   });
