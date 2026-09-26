@@ -708,6 +708,26 @@
   }
   .modal-close svg{width:15px;height:15px;flex-shrink:0}
 
+
+  .tv-scale-row{
+    display:flex; align-items:center; justify-content:center; gap:18px;
+    margin-bottom:16px; padding:14px; border-radius:14px;
+    border:1px solid var(--hairline); background:var(--glass);
+  }
+  .tv-scale-btn{
+    width:40px;height:40px; border-radius:50%;
+    border:1px solid var(--hairline); background:var(--glass-strong); color:var(--ink);
+    font-size:20px; font-weight:600; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:background .18s, border-color .18s;
+  }
+  .tv-scale-btn:hover{background:rgba(255,255,255,0.14); border-color:var(--metal)}
+  .tv-scale-value{
+    font-family:var(--mono); font-size:16px; color:var(--ink); min-width:56px; text-align:center;
+  }
+
+
+
   .modal-options{display:flex; flex-direction:column; gap:10px}
   .modal-option{
     display:flex; align-items:center; gap:12px;
@@ -888,7 +908,10 @@
     display:none; position:fixed; inset:0; z-index:10; background:var(--bg);
     padding:40px 48px; flex-direction:column; gap:24px;
     overflow:hidden;
+    transform-origin:center center;
+    transition:transform .2s ease;
   }
+
 
   #tvRoot::-webkit-scrollbar{display:none}
   #tvRoot .tv-main{flex:0 0 auto}
@@ -1254,6 +1277,37 @@
   </div>
 </div>
 
+
+<div class="modal-backdrop" id="tvSettingsModal" onclick="closeTvSettingsOnBackdrop(event)">
+  <div class="search-modal">
+    <div class="modal-header">
+      <div class="info">
+        <div class="ch-name">TV</div>
+        <div class="tr-title">Setări interfață</div>
+      </div>
+      <button class="modal-close" onclick="closeTvSettingsModal()" aria-label="Închide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="tv-scale-row">
+      <button class="tv-scale-btn" onclick="decreaseTvScale()" aria-label="Micșorează">−</button>
+      <div class="tv-scale-value" id="tvScaleValue">100%</div>
+      <button class="tv-scale-btn" onclick="increaseTvScale()" aria-label="Mărește">+</button>
+    </div>
+    <div class="modal-options">
+      <button class="modal-option" onclick="resetTvScale()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        Resetează scala
+      </button>
+      <button class="modal-option" onclick="closeTvSettingsModal(); toggleTvManual();">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        Înapoi la interfața telefon
+      </button>
+    </div>
+  </div>
+</div>
+
+
 <div id="tvRoot">
   <img class="tv-bg" id="tvBg" src="" alt="">
   <div class="tv-header">
@@ -1267,9 +1321,10 @@
         <div class="wordmark">Sergiu Ro</div>
         <div class="subline" id="tvChannelLabel">Alege un canal</div>
       </div>
-      <button class="tv-toggle-btn" onclick="toggleTvManual()" aria-label="Ieși din interfața TV" style="margin-left:0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      <button class="tv-toggle-btn" onclick="openTvSettingsModal()" aria-label="Setări TV" style="margin-left:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.9 7.9 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.7 7.7 0 0 0-1.7-1L15 3h-6l-.4 2.9a7.7 7.7 0 0 0-1.7 1l-2.3-.9-2 3.4L4.6 11a7.9 7.9 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9c.5.4 1.1.8 1.7 1L9 21h6l.4-2.9c.6-.2 1.2-.6 1.7-1l2.3.9 2-3.4z"/></svg>
       </button>
+
     </div>
 
     <div class="tv-header-right">
@@ -3279,13 +3334,15 @@ function tvActivate(){
 }
 
 function isAnyModalOpen(){
-  return ['searchModal','rpModal','favConfirmModal'].some(id => document.getElementById(id).classList.contains('open'));
+  return ['searchModal','rpModal','favConfirmModal','tvSettingsModal'].some(id => document.getElementById(id).classList.contains('open'));
 }
 function closeAnyOpenModal(){
   if(document.getElementById('searchModal').classList.contains('open')) closeSearchModal();
   if(document.getElementById('rpModal').classList.contains('open')) closeRecentlyPlayedModal();
   if(document.getElementById('favConfirmModal').classList.contains('open')) closeFavConfirmModal();
+  if(document.getElementById('tvSettingsModal').classList.contains('open')) closeTvSettingsModal();
 }
+
 
 let tvClockIntervalId = null;
 function startTvClock(){
@@ -3305,7 +3362,10 @@ function startTvClock(){
 
 
 function initTvMode(){
+  tvScale = loadTvScale();
+  applyTvScale();
   const savedPref = loadTvModePref();
+
   tvMode = (savedPref !== null) ? savedPref : detectTV();
   if(tvMode) document.body.classList.add('tv-active');
 
@@ -3345,6 +3405,7 @@ function enterTvMode(){
   tvMode = true;
   document.documentElement.classList.add('tv-active');
   document.body.classList.add('tv-active');
+  applyTvScale();
   renderTvGrid();
   updateTvNowPlaying();
   updateHopeMode();
@@ -3367,6 +3428,54 @@ function exitTvMode(){
   clearTvFocus();
   updateHopeMode();
 }
+
+const TV_SCALE_MIN = 0.8;
+const TV_SCALE_MAX = 1.3;
+const TV_SCALE_STEP = 0.05;
+let tvScale = 1;
+
+function loadTvScale(){
+  try{
+    const v = parseFloat(localStorage.getItem('sergiu_tv_scale'));
+    if(!isNaN(v) && v >= TV_SCALE_MIN && v <= TV_SCALE_MAX) return v;
+  }catch(e){}
+  return 1;
+}
+function saveTvScale(v){
+  try{ localStorage.setItem('sergiu_tv_scale', v.toString()); }catch(e){}
+}
+function applyTvScale(){
+  const root = document.getElementById('tvRoot');
+  if(root) root.style.transform = `scale(${tvScale.toFixed(2)})`;
+  const label = document.getElementById('tvScaleValue');
+  if(label) label.textContent = Math.round(tvScale*100) + '%';
+}
+function increaseTvScale(){
+  tvScale = Math.min(TV_SCALE_MAX, +(tvScale + TV_SCALE_STEP).toFixed(2));
+  saveTvScale(tvScale);
+  applyTvScale();
+}
+function decreaseTvScale(){
+  tvScale = Math.max(TV_SCALE_MIN, +(tvScale - TV_SCALE_STEP).toFixed(2));
+  saveTvScale(tvScale);
+  applyTvScale();
+}
+function resetTvScale(){
+  tvScale = 1;
+  saveTvScale(tvScale);
+  applyTvScale();
+}
+function openTvSettingsModal(){
+  document.getElementById('tvSettingsModal').classList.add('open');
+  applyTvScale();
+}
+function closeTvSettingsModal(){
+  document.getElementById('tvSettingsModal').classList.remove('open');
+}
+function closeTvSettingsOnBackdrop(e){
+  if(e.target.id === 'tvSettingsModal') closeTvSettingsModal();
+}
+
 
 function saveTvModePref(val){
   try{ localStorage.setItem('sergiu_tv_mode', val ? '1' : '0'); }catch(e){}
