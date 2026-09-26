@@ -908,9 +908,8 @@
     display:none; position:fixed; inset:0; z-index:10; background:var(--bg);
     padding:40px 48px; flex-direction:column; gap:24px;
     overflow:hidden;
-    transform-origin:center center;
-    transition:transform .2s ease;
   }
+
 
 
   #tvRoot::-webkit-scrollbar{display:none}
@@ -3447,10 +3446,11 @@ function saveTvScale(v){
 }
 function applyTvScale(){
   const root = document.getElementById('tvRoot');
-  if(root) root.style.transform = `scale(${tvScale.toFixed(2)})`;
+  if(root) root.style.zoom = tvScale;
   const label = document.getElementById('tvScaleValue');
   if(label) label.textContent = Math.round(tvScale*100) + '%';
 }
+
 function increaseTvScale(){
   tvScale = Math.min(TV_SCALE_MAX, +(tvScale + TV_SCALE_STEP).toFixed(2));
   saveTvScale(tvScale);
