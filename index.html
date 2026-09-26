@@ -3450,15 +3450,22 @@ function applyTvScale(){
   const root = document.getElementById('tvRoot');
   if(root) root.style.zoom = tvScale;
 
-  // doar playerul se micșorează mai puțin; Recently Played se scalează normal, ca să arate mai mult conținut
+  // playerul și panoul Recently Played (chenarul) rămân aproape de mărimea normală
   const playerScale = 1 - (1 - tvScale) * (1 - TV_PLAYER_DAMPEN);
   const counterZoom = playerScale / tvScale;
   const now = document.querySelector('.tv-now');
+  const lyricsPanel = document.getElementById('tvLyricsPanel');
   if(now) now.style.zoom = counterZoom;
+  if(lyricsPanel) lyricsPanel.style.zoom = counterZoom;
+
+  // dar conținutul din interiorul Recently Played (lista de piese) se scalează normal, ca să arate mai mult
+  const recentList = document.getElementById('tvRecentList');
+  if(recentList) recentList.style.zoom = tvScale / playerScale;
 
   const label = document.getElementById('tvScaleValue');
   if(label) label.textContent = Math.round(tvScale*100) + '%';
 }
+
 
 
 
