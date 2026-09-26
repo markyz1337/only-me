@@ -1056,9 +1056,11 @@
   .tv-tile.tv-focused{border-color:var(--metal)}
 
   .tv-corner button.tv-focused,
-  .tv-transport button.tv-focused{
-    outline:3px solid var(--metal); outline-offset:3px; border-radius:24px;
+  .tv-transport button.tv-focused,
+  .tv-toggle-btn.tv-focused{
+    outline:3px solid var(--metal); outline-offset:3px; border-radius:50%;
   }
+
   .tv-transport button.tv-focused{border-radius:50%}
 </style>
 
@@ -3281,10 +3283,12 @@ function updateTvNowPlaying(){
 
 
 function buildTvZones(){
+  const settings = Array.from(document.querySelectorAll('#tvRoot .tv-toggle-btn'));
   const transport = Array.from(document.querySelectorAll('.tv-transport button'));
   const tiles = Array.from(document.querySelectorAll('.tv-tile'));
-  tvZones = [transport, tiles].filter(z => z.length);
+  tvZones = [settings, transport, tiles].filter(z => z.length);
 }
+
 
 
 function clearTvFocus(){
