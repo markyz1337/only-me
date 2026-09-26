@@ -3444,12 +3444,24 @@ function loadTvScale(){
 function saveTvScale(v){
   try{ localStorage.setItem('sergiu_tv_scale', v.toString()); }catch(e){}
 }
+const TV_PLAYER_DAMPEN = 0.55; // 0 = se micșorează la fel ca restul; 1 = nu se micșorează deloc
+
 function applyTvScale(){
   const root = document.getElementById('tvRoot');
   if(root) root.style.zoom = tvScale;
+
+  // player-ul și Recently Played se micșorează mai puțin decât restul interfeței
+  const playerScale = 1 - (1 - tvScale) * (1 - TV_PLAYER_DAMPEN);
+  const counterZoom = playerScale / tvScale;
+  const now = document.querySelector('.tv-now');
+  const lyrics = document.getElementById('tvLyricsPanel');
+  if(now) now.style.zoom = counterZoom;
+  if(lyrics) lyrics.style.zoom = counterZoom;
+
   const label = document.getElementById('tvScaleValue');
   if(label) label.textContent = Math.round(tvScale*100) + '%';
 }
+
 
 
 
