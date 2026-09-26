@@ -128,6 +128,16 @@
     font-family:var(--mono); font-size:10.5px; color:var(--ink-faint); letter-spacing:0.1em; text-transform:uppercase; margin-top:1px;
     display:flex; align-items:center; gap:6px;
   }
+  .tv-toggle-btn{
+    margin-left:auto; width:34px; height:34px; border-radius:50%;
+    border:1px solid var(--hairline); background:var(--glass); color:var(--ink-dim);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:background .18s, border-color .18s, color .18s;
+    flex-shrink:0;
+  }
+  .tv-toggle-btn:hover{background:var(--glass-strong); color:var(--ink); border-color:var(--metal)}
+  .tv-toggle-btn svg{width:16px;height:16px}
+
   .subline::before{
     content:'';
     width:4px; height:4px; border-radius:50%;
@@ -1054,7 +1064,11 @@
     <div class="wordmark">Sergiu Ro</div>
     <div class="subline">11 posturi personale</div>
   </div>
+  <button class="tv-toggle-btn" onclick="toggleTvManual()" aria-label="Comută la interfața TV">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="13" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+  </button>
 </div>
+
 
 <div class="hero">
   <div class="hero-frame" onclick="heroTap(event)">
@@ -1243,7 +1257,7 @@
 <div id="tvRoot">
   <img class="tv-bg" id="tvBg" src="" alt="">
   <div class="tv-header">
-    <div class="tv-header-left">
+     <div class="tv-header-left">
       <svg class="mark" viewBox="0 0 30 30" fill="none">
         <circle cx="15" cy="15" r="13" stroke="#c9bba1" stroke-width="1" opacity="0.35"/>
         <circle cx="15" cy="15" r="8.5" stroke="#c9bba1" stroke-width="1" opacity="0.6"/>
@@ -1253,7 +1267,11 @@
         <div class="wordmark">Sergiu Ro</div>
         <div class="subline" id="tvChannelLabel">Alege un canal</div>
       </div>
+      <button class="tv-toggle-btn" onclick="toggleTvManual()" aria-label="Ieși din interfața TV" style="margin-left:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
     </div>
+
     <div class="tv-header-right">
       <div class="tv-header-now" id="tvNowTitle">Atinge un canal mai jos</div>
       <div class="tv-header-clock" id="tvClock">--:--</div>
@@ -3287,39 +3305,15 @@ function startTvClock(){
 
 
 function initTvMode(){
-
   tvMode = detectTV();
-  if(!tvMode) return;
-  document.body.classList.add('tv-active');
+  if(tvMode) document.body.classList.add('tv-active');
 
   document.getElementById('tvPrevBtn').addEventListener('click', prev);
   document.getElementById('tvNextBtn').addEventListener('click', next);
   document.getElementById('tvPlayBtn').addEventListener('click', togglePlay);
   document.getElementById('tvFavBtn').addEventListener('click', tvToggleFavorite);
 
-
-
-   renderTvGrid();
-  updateTvNowPlaying();
-  updateHopeMode();
-  startTvClock();
-
-
-
-
-
-  buildTvZones();
-  tvZoneIndex = tvZones.length - 1;
-  tvItemIndex = 0;
-  const list = tvAllStations();
-  if(current){
-    const idx = list.findIndex(s=>s.stream===current.stream);
-    if(idx !== -1) tvItemIndex = idx;
-  }
-  applyTvFocus();
-
-  window.addEventListener('resize', ()=>{ renderTvGrid(); syncTvPanelHeights(); });
-
+  window.addEventListener('resize', ()=>{ if(tvMode){ renderTvGrid(); syncTvPanelHeights(); } });
 
   document.addEventListener('keydown', function(e){
     if(!tvMode) return;
@@ -3341,7 +3335,42 @@ function initTvMode(){
       case 'MediaTrackPrevious': e.preventDefault(); prev(); break;
     }
   });
+
+  if(tvMode) enterTvMode();
 }
+
+function enterTvMode(){
+  tvMode = true;
+  document.documentElement.classList.add('tv-active');
+  document.body.classList.add('tv-active');
+  renderTvGrid();
+  updateTvNowPlaying();
+  updateHopeMode();
+  startTvClock();
+  buildTvZones();
+  tvZoneIndex = tvZones.length - 1;
+  tvItemIndex = 0;
+  const list = tvAllStations();
+  if(current){
+    const idx = list.findIndex(s=>s.stream===current.stream);
+    if(idx !== -1) tvItemIndex = idx;
+  }
+  applyTvFocus();
+}
+
+function exitTvMode(){
+  tvMode = false;
+  document.documentElement.classList.remove('tv-active');
+  document.body.classList.remove('tv-active');
+  clearTvFocus();
+  updateHopeMode();
+}
+
+function toggleTvManual(){
+  if(tvMode) exitTvMode();
+  else enterTvMode();
+}
+
 
 function initStation(){
   loadFavorites();
