@@ -15,7 +15,8 @@
   var ua = navigator.userAgent || '';
   var isTv = /SmartTV|Tizen|Web0S|WebOS|NetCast|Roku|AFTB|AFTS|AFTT|BRAVIA|GoogleTV|HbbTV|VIDAA|CrKey/i.test(ua)
     || /[?&]tv=1/.test(location.search)
-    || (window.matchMedia('(hover:none)').matches && window.innerWidth >= 1200 && !('ontouchstart' in window));
+    || (window.innerWidth >= 1200 && !('ontouchstart' in window));
+
   if(isTv) document.documentElement.classList.add('tv-active');
 })();
 </script>
@@ -3119,9 +3120,10 @@ function detectTV(){
   const ua = navigator.userAgent || '';
   const isTvUA = /SmartTV|Tizen|Web0S|WebOS|NetCast|Roku|AFTB|AFTS|AFTT|BRAVIA|GoogleTV|HbbTV|VIDAA|CrKey/i.test(ua);
   const forced = /[?&]tv=1/.test(location.search);
-  const bigNoTouch = window.matchMedia('(hover:none)').matches && window.innerWidth >= 1200 && !('ontouchstart' in window);
+  const bigNoTouch = window.innerWidth >= 1200 && !('ontouchstart' in window);
   return forced || isTvUA || bigNoTouch;
 }
+
 
 function tvAllStations(){
   return allStationsList().slice().sort((a,b)=> (isFavorite(b)?1:0) - (isFavorite(a)?1:0));
