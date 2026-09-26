@@ -3305,8 +3305,10 @@ function startTvClock(){
 
 
 function initTvMode(){
-  tvMode = detectTV();
+  const savedPref = loadTvModePref();
+  tvMode = (savedPref !== null) ? savedPref : detectTV();
   if(tvMode) document.body.classList.add('tv-active');
+
 
   document.getElementById('tvPrevBtn').addEventListener('click', prev);
   document.getElementById('tvNextBtn').addEventListener('click', next);
@@ -3366,10 +3368,22 @@ function exitTvMode(){
   updateHopeMode();
 }
 
-function toggleTvManual(){
-  if(tvMode) exitTvMode();
-  else enterTvMode();
+function saveTvModePref(val){
+  try{ localStorage.setItem('sergiu_tv_mode', val ? '1' : '0'); }catch(e){}
 }
+function loadTvModePref(){
+  try{
+    const v = localStorage.getItem('sergiu_tv_mode');
+    if(v === '1') return true;
+    if(v === '0') return false;
+  }catch(e){}
+  return null;
+}
+function toggleTvManual(){
+  if(tvMode){ exitTvMode(); saveTvModePref(false); }
+  else{ enterTvMode(); saveTvModePref(true); }
+}
+
 
 
 function initStation(){
