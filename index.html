@@ -1087,7 +1087,8 @@
     <div class="wordmark">Sergiu Ro</div>
     <div class="subline">11 posturi personale</div>
   </div>
-  <button class="tv-toggle-btn" onclick="toggleTvManual()" aria-label="Comută la interfața TV">
+  <button class="tv-toggle-btn" onclick="toggleTvManual(); event.stopPropagation();" aria-label="Comută la interfața TV">
+
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="13" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
   </button>
 </div>
