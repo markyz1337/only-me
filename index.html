@@ -3445,11 +3445,12 @@ function saveTvScale(v){
   try{ localStorage.setItem('sergiu_tv_scale', v.toString()); }catch(e){}
 }
 function applyTvScale(){
-  const grid = document.getElementById('tvGrid');
-  if(grid) grid.style.zoom = tvScale;
+  const root = document.getElementById('tvRoot');
+  if(root) root.style.zoom = tvScale;
   const label = document.getElementById('tvScaleValue');
   if(label) label.textContent = Math.round(tvScale*100) + '%';
 }
+
 
 
 function increaseTvScale(){
