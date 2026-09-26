@@ -3450,17 +3450,16 @@ function applyTvScale(){
   const root = document.getElementById('tvRoot');
   if(root) root.style.zoom = tvScale;
 
-  // player-ul și Recently Played se micșorează mai puțin decât restul interfeței
+  // doar playerul se micșorează mai puțin; Recently Played se scalează normal, ca să arate mai mult conținut
   const playerScale = 1 - (1 - tvScale) * (1 - TV_PLAYER_DAMPEN);
   const counterZoom = playerScale / tvScale;
   const now = document.querySelector('.tv-now');
-  const lyrics = document.getElementById('tvLyricsPanel');
   if(now) now.style.zoom = counterZoom;
-  if(lyrics) lyrics.style.zoom = counterZoom;
 
   const label = document.getElementById('tvScaleValue');
   if(label) label.textContent = Math.round(tvScale*100) + '%';
 }
+
 
 
 
