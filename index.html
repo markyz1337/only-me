@@ -315,6 +315,26 @@
 .transport .play-btn:active{transform:scale(0.92) translateY(0)}
 .transport .play-btn svg{width:22px;height:22px}
 
+.vol-wrap{display:none; align-items:center; gap:8px; color:var(--ink-dim)}
+.vol-wrap svg{width:18px;height:18px;flex-shrink:0}
+@media (hover:hover) and (pointer:fine){ .vol-wrap{display:flex} }
+.tv-now .vol-wrap{margin-top:-6px}
+.vol-slider{
+  -webkit-appearance:none; appearance:none;
+  width:110px; height:4px; border-radius:2px; outline:none; cursor:pointer;
+  background:linear-gradient(90deg, var(--metal) var(--vol,100%), rgba(255,255,255,0.15) var(--vol,100%));
+}
+.vol-slider::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:14px; height:14px; border-radius:50%;
+  background:var(--ink); border:none; cursor:pointer;
+}
+.vol-slider::-moz-range-thumb{
+  width:14px; height:14px; border-radius:50%;
+  background:var(--ink); border:none; cursor:pointer;
+}
+
+
 
 
   .corner-actions{
@@ -3559,7 +3579,43 @@ initMediaSessionHandlers();
 initLyricsScrollButtons();
 initLyricsScrollbarDrag();
 initRpModalEvents();
+function initVolume(){
+  let saved = 1;
+  try{
+    const v = parseFloat(localStorage.getItem('sergiu_volume'));
+    if(!isNaN(v) && v >= 0 && v <= 1) saved = v;
+  }catch(e){}
+  audio.volume = saved;
+
+  const html = `<div class="vol-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg><input type="range" class="vol-slider" min="0" max="100" step="1" aria-label="Volum"></div>`;
+
+  const sliders = [];
+  [document.querySelector('.transport'), document.querySelector('.tv-now')].forEach(target=>{
+    if(!target) return;
+    target.insertAdjacentHTML('beforeend', html);
+    const wrap = target.querySelector('.vol-wrap');
+    ['click','pointerdown'].forEach(ev => wrap.addEventListener(ev, e => e.stopPropagation()));
+    sliders.push(wrap.querySelector('.vol-slider'));
+  });
+
+  const paint = v => sliders.forEach(s=>{
+    s.value = Math.round(v*100);
+    s.style.setProperty('--vol', Math.round(v*100) + '%');
+  });
+
+  sliders.forEach(s=>{
+    s.addEventListener('input', ()=>{
+      const v = s.value / 100;
+      audio.volume = v;
+      paint(v);
+      try{ localStorage.setItem('sergiu_volume', v.toString()); }catch(e){}
+    });
+  });
+  paint(saved);
+}
 initTvMode();
+initVolume();
+
 fetchRecentlyPlayed();
 startHeartbeat();
 startSessionTracking();
