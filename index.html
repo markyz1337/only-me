@@ -3616,6 +3616,22 @@ function initVolume(){
 initTvMode();
 initVolume();
 
+const TV_MIN_WIDTH = 900;
+let tvAutoExited = false;
+function checkTvWidth(){
+  const narrow = window.innerWidth < TV_MIN_WIDTH;
+  if(narrow && tvMode){
+    tvAutoExited = true;
+    exitTvMode();
+  }else if(!narrow && tvAutoExited){
+    tvAutoExited = false;
+    enterTvMode();
+  }
+}
+window.addEventListener('resize', checkTvWidth);
+checkTvWidth();
+
+
 fetchRecentlyPlayed();
 startHeartbeat();
 startSessionTracking();
