@@ -17,9 +17,18 @@
     || /[?&]tv=1/.test(location.search)
     || (window.innerWidth >= 1200 && !('ontouchstart' in window));
 
+  var pref = null;
+  try{
+    var v = localStorage.getItem('sergiu_tv_mode');
+    if(v === '1') pref = true;
+    else if(v === '0') pref = false;
+  }catch(e){}
+  if(pref !== null) isTv = pref;
+
   if(isTv) document.documentElement.classList.add('tv-active');
 })();
 </script>
+
 <link rel="manifest" id="webManifest">
 <title>Sergiu</title>
 
@@ -3400,7 +3409,14 @@ function initTvMode(){
   const savedPref = loadTvModePref();
 
   tvMode = (savedPref !== null) ? savedPref : detectTV();
-  if(tvMode) document.body.classList.add('tv-active');
+  if(tvMode){
+    document.body.classList.add('tv-active');
+    document.documentElement.classList.add('tv-active');
+  }else{
+    document.body.classList.remove('tv-active');
+    document.documentElement.classList.remove('tv-active');
+  }
+
 
 
   document.getElementById('tvPrevBtn').addEventListener('click', prev);
