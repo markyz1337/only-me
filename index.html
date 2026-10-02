@@ -3433,8 +3433,10 @@ function enterTvMode(){
   tvMode = true;
   document.documentElement.classList.add('tv-active');
   document.body.classList.add('tv-active');
+  tvScale = loadTvScale();
   applyTvScale();
   renderTvGrid();
+
   updateTvNowPlaying();
   updateHopeMode();
   startTvClock();
@@ -3462,16 +3464,21 @@ const TV_SCALE_MAX = 1.3;
 const TV_SCALE_STEP = 0.05;
 let tvScale = 1;
 
+function tvScaleKey(){
+  return window.innerWidth < 900 ? 'sergiu_tv_scale_phone' : 'sergiu_tv_scale';
+}
 function loadTvScale(){
+  const isPhone = window.innerWidth < 900;
   try{
-    const v = parseFloat(localStorage.getItem('sergiu_tv_scale'));
+    const v = parseFloat(localStorage.getItem(tvScaleKey()));
     if(!isNaN(v) && v >= TV_SCALE_MIN && v <= TV_SCALE_MAX) return v;
   }catch(e){}
-  return 1;
+  return isPhone ? 0.5 : 1;
 }
 function saveTvScale(v){
-  try{ localStorage.setItem('sergiu_tv_scale', v.toString()); }catch(e){}
+  try{ localStorage.setItem(tvScaleKey(), v.toString()); }catch(e){}
 }
+
 const TV_PLAYER_DAMPEN = 0.55; // 0 = se micșorează la fel ca restul; 1 = nu se micșorează deloc
 
 function applyTvScale(){
