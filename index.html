@@ -970,6 +970,11 @@
 
 
   .tv-now{flex:0 0 auto; width:34%; min-width:320px; display:flex; flex-direction:column; gap:20px}
+  @media (max-width:900px){
+    .tv-now{min-width:0; width:30%}
+    .tv-cover-wrap{max-height:none}
+  }
+
   .tv-cover-wrap{
     position:relative; width:100%; aspect-ratio:1/1; max-height:36vh;
     border-radius:28px; overflow:hidden; border:1px solid var(--hairline);
@@ -3486,7 +3491,9 @@ function applyTvScale(){
   if(root) root.style.zoom = tvScale;
 
   // playerul și panoul Recently Played (chenarul) rămân aproape de mărimea normală
-  const playerScale = 1 - (1 - tvScale) * (1 - TV_PLAYER_DAMPEN);
+  const dampen = window.innerWidth < 900 ? 0 : TV_PLAYER_DAMPEN;
+  const playerScale = 1 - (1 - tvScale) * (1 - dampen);
+
   const counterZoom = playerScale / tvScale;
   const now = document.querySelector('.tv-now');
   const lyricsPanel = document.getElementById('tvLyricsPanel');
