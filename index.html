@@ -3494,8 +3494,9 @@ function loadTvScale(){
     const v = parseFloat(localStorage.getItem(tvScaleKey()));
     if(!isNaN(v) && v >= TV_SCALE_MIN && v <= TV_SCALE_MAX) return v;
   }catch(e){}
-  return isPhone ? 0.5 : 1;
+  return isPhone ? 0.5 : 1.2;
 }
+
 function saveTvScale(v){
   try{ localStorage.setItem(tvScaleKey(), v.toString()); }catch(e){}
 }
@@ -3540,10 +3541,11 @@ function decreaseTvScale(){
   applyTvScale();
 }
 function resetTvScale(){
-  tvScale = 1;
+  tvScale = window.innerWidth < 900 ? 0.5 : 1.2;
   saveTvScale(tvScale);
   applyTvScale();
 }
+
 function openTvSettingsModal(){
   document.getElementById('tvSettingsModal').classList.add('open');
   applyTvScale();
