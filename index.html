@@ -3751,12 +3751,23 @@ checkTvWidth();
     updateMediaSession();                          // titlu + copertă normale
     navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
   }
+  // iOS rămâne uneori legat de elementul audio al rezervei (oprit) => butonul arată "play".
+  // Un mic pauză+play pe radio îi redă controlul sesiunii.
+  function nudgeSession(){
+    if(!(wantPlay && !offlineMode && !audio.paused)) return;
+    graceUntil = Date.now() + 4000;   // buffering-ul scurt de după nu trebuie să cheme rezerva
+    reconnecting = true;
+    audio.pause();
+    audio.play().catch(()=>{});
+    setTimeout(()=>{ reconnecting = false; }, 800);
+  }
   function restoreAfterReconnect(){
     try{ fetchMetadata(current); }catch(e){}       // forțează reîncărcarea titlului piesei
+    const ok = () => wantPlay && !offlineMode && !audio.paused;
+    [0, 400].forEach(d => setTimeout(()=>{ if(ok()) reassertSession(); }, d));
+    setTimeout(()=>{ if(ok()) nudgeSession(); }, 700);
     // iOS ignoră uneori prima actualizare, așa că o repetăm de câteva ori
-    [0, 400, 1200, 2500].forEach(d => setTimeout(()=>{
-      if(wantPlay && !offlineMode && !audio.paused) reassertSession();
-    }, d));
+    [1300, 2200, 3500].forEach(d => setTimeout(()=>{ if(ok()) reassertSession(); }, d));
   }
   // ieșire din modul offline (radioul cântă din nou)
   function leaveOffline(){
@@ -3898,6 +3909,7 @@ checkTvWidth();
   window.addEventListener('pageshow', onReturn);
   window.addEventListener('focus', onReturn);
 })();
+
 
 
 
