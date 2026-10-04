@@ -3681,6 +3681,7 @@ checkTvWidth();
   let wantPlay = false, live = false, offlineMode = false, reconnecting = false;
   let retryTimer = null, connectTimer = null, waitTimer = null;
   let lastTime = -1, stuckTicks = 0, probeFails = 0, probing = false;
+  let graceUntil = 0, recT = -1;
 
   // 1) descarcă mp3-ul în memorie la deschiderea paginii
   async function loadFallback(){
@@ -3757,6 +3758,22 @@ checkTvWidth();
       if(wantPlay && !offlineMode && !audio.paused) reassertSession();
     }, d));
   }
+  // ieșire din modul offline (radioul cântă din nou)
+  function leaveOffline(){
+    live = true; stuckTicks = 0; probeFails = 0; lastTime = -1; recT = -1;
+    clearTimers();
+    if(offlineMode){
+      offlineMode = false;
+      stopFallback();
+      clearOfflineMeta();
+      restoreAfterReconnect();
+    }
+  }
+  // eșec "slab" (din detectoare): ignorat imediat după revenirea în aplicație
+  function softFail(){
+    if(Date.now() < graceUntil){ stuckTicks = 0; probeFails = 0; lastTime = -1; return; }
+    fail();
+  }
   function userPause(){
     audio.pause();
     wantPlay = false; live = false;
@@ -3813,15 +3830,13 @@ checkTvWidth();
   });
 
   audio.addEventListener('playing', ()=>{
-    live = true; stuckTicks = 0; probeFails = 0; lastTime = -1;
-    clearTimers();
-    if(offlineMode){ offlineMode = false; stopFallback(); clearOfflineMeta(); restoreAfterReconnect(); } // radio revenit
+    leaveOffline(); // radio revenit
   });
 
   audio.addEventListener('waiting', ()=>{
     if(!wantPlay || !live) return;
     clearTimeout(waitTimer);
-    waitTimer = setTimeout(fail, WAIT_FAIL_MS);
+    waitTimer = setTimeout(softFail, WAIT_FAIL_MS);
   });
 
   ['error','ended'].forEach(ev => audio.addEventListener(ev, ()=>{
@@ -3838,9 +3853,18 @@ checkTvWidth();
   // ---- detecție rapidă ----
   // radioul "cântă" dar timpul nu avansează ~1.5s
   setInterval(()=>{
+    // plasă de siguranță 1: rezerva nu are voie să cânte dacă nu suntem în modul offline
+    if(!fb.paused && !fb.muted && !offlineMode) stopFallback();
+    // plasă de siguranță 2: radioul cântă din nou (timpul avansează) deși nu am primit evenimentul
+    if(offlineMode && wantPlay && !audio.paused && audio.readyState >= 3){
+      if(recT !== -1 && audio.currentTime !== recT){ leaveOffline(); return; }
+      recT = audio.currentTime;
+    }else{
+      recT = -1;
+    }
     if(!wantPlay || !live || audio.paused){ stuckTicks = 0; return; }
     if(audio.currentTime === lastTime){
-      if(++stuckTicks >= 3){ stuckTicks = 0; fail(); }
+      if(++stuckTicks >= 3){ stuckTicks = 0; softFail(); }
     }else{
       stuckTicks = 0; lastTime = audio.currentTime;
     }
@@ -3856,12 +3880,25 @@ checkTvWidth();
       await fetch(PROBE_URL + "?t=" + Date.now(), { mode:"no-cors", cache:"no-store", signal:ctrl.signal });
       probeFails = 0;
     }catch(e){
-      if(++probeFails >= 2){ probeFails = 0; fail(); }
+      if(++probeFails >= 2){ probeFails = 0; softFail(); }
     }
     clearTimeout(to);
     probing = false;
   }, 1000);
+
+  // la revenirea în aplicație: perioadă de grație + oprește rezerva dacă radioul cântă
+  function onReturn(){
+    graceUntil = Date.now() + 4000;
+    stuckTicks = 0; probeFails = 0; lastTime = -1; recT = -1;
+    if(!offlineMode && !fb.paused) stopFallback();
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible') onReturn();
+  });
+  window.addEventListener('pageshow', onReturn);
+  window.addEventListener('focus', onReturn);
 })();
+
 
 
 
