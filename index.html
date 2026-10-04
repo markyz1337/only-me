@@ -3664,6 +3664,148 @@ window.addEventListener('resize', checkTvWidth);
 checkTvWidth();
 
 
+// ============ REZERVĂ OFFLINE (mp3 + reconectare automată) ============
+// Se lipește ÎNAINTE de linia:  fetchRecentlyPlayed();
+(function(){
+  const FALLBACK_URL = "https://raw.githubusercontent.com/markyz1337/only-me/refs/heads/main/Alessia%20-%20Hacker%20De%20Sentimente.mp3";
+  const RETRY_MS = 3000;            // la câte ms reîncearcă radioul
+  const CONNECT_TIMEOUT_MS = 15000; // cât așteaptă o reconectare
+  const WAIT_FAIL_MS = 2000;        // cât buffering e tolerat
+  const PROBE_URL = SUPABASE_URL + "/rest/v1/"; // sondă de internet (există deja în codul tău)
+
+  const fb = new Audio();
+  fb.loop = true;                   // se termină => o ia de la început
+  fb.preload = "auto";
+
+  let fbReady = false, fbUnlocked = false;
+  let wantPlay = false, live = false, offlineMode = false, reconnecting = false;
+  let retryTimer = null, connectTimer = null, waitTimer = null;
+  let lastTime = -1, stuckTicks = 0, probeFails = 0, probing = false;
+
+  // 1) descarcă mp3-ul în memorie la deschiderea paginii
+  async function loadFallback(){
+    try{
+      const res = await fetch(FALLBACK_URL);
+      if(!res.ok) throw new Error(res.status);
+      const buf = await res.arrayBuffer();
+      fb.src = URL.createObjectURL(new Blob([buf], { type: "audio/mpeg" }));
+      fb.load();
+      fbReady = true;
+    }catch(e){ setTimeout(loadFallback, 5000); }
+  }
+  loadFallback();
+
+  // 2) "deblochează" elementul audio la prima atingere (necesar pe iOS/Safari)
+  function tryUnlock(){
+    if(fbUnlocked || !fbReady) return;
+    fb.muted = true;
+    fb.play().then(()=>{
+      fb.pause(); fb.currentTime = 0; fb.muted = false; fbUnlocked = true;
+    }).catch(()=>{ fb.muted = false; });
+  }
+  ['pointerdown','touchend','click','keydown'].forEach(ev =>
+    document.addEventListener(ev, tryUnlock, { capture:true, passive:true })
+  );
+
+  function startFallback(){
+    fb.volume = audio.volume;
+    fb.muted = false;
+    if(fb.paused && fbReady) fb.play().catch(()=>{});
+  }
+  function stopFallback(){
+    fb.pause();
+    try{ fb.currentTime = 0; }catch(e){}
+  }
+  function clearTimers(){
+    clearTimeout(retryTimer); clearTimeout(connectTimer); clearTimeout(waitTimer);
+  }
+
+  // 3) reconectare la radio
+  function connect(){
+    if(!wantPlay || !current) return;
+    clearTimers();
+    live = false;
+    reconnecting = true;
+    audio.removeAttribute('src');
+    audio.load();
+    audio.src = current.stream;
+    audio.play().catch(()=>{});
+    setTimeout(()=>{ reconnecting = false; }, 500);
+    connectTimer = setTimeout(fail, CONNECT_TIMEOUT_MS);
+  }
+
+  // 4) conexiune pierdută => pornește mp3-ul și încearcă din nou periodic
+  function fail(){
+    if(!wantPlay) return;
+    clearTimers();
+    live = false; stuckTicks = 0; probeFails = 0; lastTime = -1;
+    offlineMode = true;
+    startFallback();
+    retryTimer = setTimeout(connect, RETRY_MS);
+  }
+
+  // ---- evenimente audio ----
+  audio.addEventListener('play', ()=>{ wantPlay = true; });
+
+  audio.addEventListener('pause', ()=>{
+    if(reconnecting || audio.ended) return; // pauze făcute de cod / stream terminat
+    wantPlay = false; live = false; offlineMode = false;
+    clearTimers();
+    stopFallback();
+  });
+
+  audio.addEventListener('playing', ()=>{
+    live = true; stuckTicks = 0; probeFails = 0; lastTime = -1;
+    clearTimers();
+    if(offlineMode){ offlineMode = false; stopFallback(); } // radio revenit
+  });
+
+  audio.addEventListener('waiting', ()=>{
+    if(!wantPlay || !live) return;
+    clearTimeout(waitTimer);
+    waitTimer = setTimeout(fail, WAIT_FAIL_MS);
+  });
+
+  ['error','ended'].forEach(ev => audio.addEventListener(ev, ()=>{
+    if(!wantPlay || !audio.getAttribute('src')) return;
+    // un post care nu s-a conectat niciodată cât timp ai internet rămâne ca înainte
+    if(live || offlineMode || !navigator.onLine) fail();
+  }));
+
+  window.addEventListener('offline', ()=>{ if(wantPlay && live) fail(); });
+  window.addEventListener('online', ()=>{
+    if(wantPlay && offlineMode){ clearTimeout(retryTimer); connect(); }
+  });
+
+  // ---- detecție rapidă ----
+  // radioul "cântă" dar timpul nu avansează ~1.5s
+  setInterval(()=>{
+    if(!wantPlay || !live || audio.paused){ stuckTicks = 0; return; }
+    if(audio.currentTime === lastTime){
+      if(++stuckTicks >= 3){ stuckTicks = 0; fail(); }
+    }else{
+      stuckTicks = 0; lastTime = audio.currentTime;
+    }
+  }, 500);
+
+  // sondă internet (radioul poate cânta din buffer după ce pică netul)
+  setInterval(async ()=>{
+    if(!wantPlay || !live || probing) return;
+    probing = true;
+    const ctrl = new AbortController();
+    const to = setTimeout(()=>ctrl.abort(), 1500);
+    try{
+      await fetch(PROBE_URL + "?t=" + Date.now(), { mode:"no-cors", cache:"no-store", signal:ctrl.signal });
+      probeFails = 0;
+    }catch(e){
+      if(++probeFails >= 2){ probeFails = 0; fail(); }
+    }
+    clearTimeout(to);
+    probing = false;
+  }, 1000);
+})();
+
+
 fetchRecentlyPlayed();
 startHeartbeat();
 startSessionTracking();
