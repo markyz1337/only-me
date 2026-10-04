@@ -3965,13 +3965,16 @@ setInterval(()=>{
 }, 15000);
 
 
-function fixViewportShift(){
+function nudgeLayout(){
   if(document.body.style.position === 'fixed') return; // o fereastră e deschisă
-  window.scrollTo(0, 0);
-  window.dispatchEvent(new Event('resize'));
+  window.scrollTo(0, 1);
+  setTimeout(()=>window.scrollTo(0, 0), 30);
+  document.documentElement.style.height = '100.1%';
+  setTimeout(()=>{ document.documentElement.style.height = ''; }, 80);
 }
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) setTimeout(fixViewportShift, 60); });
-window.addEventListener('pageshow', ()=>setTimeout(fixViewportShift, 60));
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ setTimeout(nudgeLayout, 80); setTimeout(nudgeLayout, 500); } });
+window.addEventListener('pageshow', ()=>setTimeout(nudgeLayout, 80));
+
 
 
 allStationsList().forEach(s=>fetchMetadata(s));
