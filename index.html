@@ -3743,6 +3743,20 @@ checkTvWidth();
     try{ navigator.mediaSession.setActionHandler('pause', ()=>{ audio.pause(); }); }catch(e){}
     updateMediaSession(); // revine la titlul normal al piesei
   }
+  // după revenirea radioului: reface Dynamic Island / ecranul de blocare
+  function reassertSession(){
+    if(!('mediaSession' in navigator) || !current) return;
+    try{ initMediaSessionHandlers(); }catch(e){}   // re-înregistrează butoanele play/pause/next/prev
+    updateMediaSession();                          // titlu + copertă normale
+    navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
+  }
+  function restoreAfterReconnect(){
+    try{ fetchMetadata(current); }catch(e){}       // forțează reîncărcarea titlului piesei
+    // iOS ignoră uneori prima actualizare, așa că o repetăm de câteva ori
+    [0, 400, 1200, 2500].forEach(d => setTimeout(()=>{
+      if(wantPlay && !offlineMode && !audio.paused) reassertSession();
+    }, d));
+  }
   function userPause(){
     audio.pause();
     wantPlay = false; live = false;
@@ -3801,7 +3815,7 @@ checkTvWidth();
   audio.addEventListener('playing', ()=>{
     live = true; stuckTicks = 0; probeFails = 0; lastTime = -1;
     clearTimers();
-    if(offlineMode){ offlineMode = false; stopFallback(); clearOfflineMeta(); } // radio revenit
+    if(offlineMode){ offlineMode = false; stopFallback(); clearOfflineMeta(); restoreAfterReconnect(); } // radio revenit
   });
 
   audio.addEventListener('waiting', ()=>{
@@ -3848,6 +3862,7 @@ checkTvWidth();
     probing = false;
   }, 1000);
 })();
+
 
 
 
