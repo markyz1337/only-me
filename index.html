@@ -407,9 +407,12 @@
   .scroll-btn svg{width:13px;height:13px}
   .lyrics-body{position:relative}
   .lyrics-inner{
-    padding:10px 46px 20px 20px; max-height:240px;
+    padding:18px 46px 26px 20px; max-height:240px;
     overflow-y:hidden; touch-action:pan-y;
+    -webkit-mask-image:linear-gradient(180deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+    mask-image:linear-gradient(180deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
   }
+
 
 
   .lyrics-scrollbar-track{
