@@ -385,9 +385,21 @@
     padding:14px 16px 0;
   }
   
-    .lyrics-panel:has(#lyricsContent.is-empty) .lyrics-header{
+  .lyrics-panel:has(#lyricsContent.is-empty) .lyrics-header{
     display:none;
   }
+  .lyrics-panel:has(#lyricsContent.is-empty) .lyrics-inner{
+    padding:0 20px;
+    min-height:96px;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-mask-image:none;
+    mask-image:none;
+  }
+  .lyrics-panel:has(#lyricsContent.is-empty) #lyricsContent{
+    width:100%;
+    text-align:center;
+  }
+
 
   .lyrics-copy-btn{
     display:flex; align-items:center; gap:6px;
