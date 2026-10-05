@@ -1690,14 +1690,16 @@ function countryFlagEmoji(country){
   return code.replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
 }
 
-async function openDeviceSessionsModal(){
+const SESSION_ONLINE_MS = 75000;
 
+async function openDeviceSessionsModal(){
   document.getElementById('sessionsModal').classList.add('open');
   lockBodyScroll();
   pauseBackgroundAnimations();
   const list = document.getElementById('sessionsModalList');
   list.innerHTML = '<div class="rp-empty-msg">Se încarcă...</div>';
   try{
+    await upsertSession(); // sesiunea ta apare corect online
     const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${SESSION_TABLE}?select=*&last_seen=gte.${sevenDaysAgo}&order=last_seen.desc&limit=200`, {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
@@ -1718,7 +1720,18 @@ async function openDeviceSessionsModal(){
       visible.push(s);
     });
 
+    const nowMs = Date.now();
+    const isOnline = s => (nowMs - new Date(s.last_seen).getTime()) < SESSION_ONLINE_MS;
+
+    // online primele, apoi după last_seen
+    visible.sort((a,b)=>{
+      const oa = isOnline(a) ? 1 : 0, ob = isOnline(b) ? 1 : 0;
+      if(oa !== ob) return ob - oa;
+      return new Date(b.last_seen) - new Date(a.last_seen);
+    });
+
     list.innerHTML = visible.map(s=>{
+      const online = isOnline(s);
       const d = new Date(s.last_seen);
       const pad = n => String(n).padStart(2,'0');
       const dateStr = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`;
@@ -1729,14 +1742,22 @@ async function openDeviceSessionsModal(){
       const locParts = [s.city, s.region, s.country].filter(Boolean).map(p=>p.replace(/</g,'&lt;'));
       const loc = locParts.length ? locParts.join(', ') : 'Locație necunoscută';
 
-      return `<div class="session-card">
+      const timeLine = online
+        ? `<div class="session-station-inline">
+             <span class="session-eq playing"><span></span><span></span><span></span></span>
+             <b>Online acum</b>
+           </div>`
+        : `<div class="session-time">${dateStr} · <b>${timeStr}</b></div>`;
+
+      return `<div class="session-card${online ? ' is-online' : ''}">
         <div class="session-icon-wrap">
           ${deviceIcon}
+          ${online ? '<span class="session-online-badge"></span>' : ''}
         </div>
         <div class="session-body">
           <div class="session-device-name">${station}</div>
           <div class="session-meta">${flag !== '🌍' ? flag + ' ' : ''}${loc}</div>
-          <div class="session-time">${dateStr} · <b>${timeStr}</b></div>
+          ${timeLine}
         </div>
       </div>`;
     }).join('');
@@ -1745,6 +1766,7 @@ async function openDeviceSessionsModal(){
     list.innerHTML = '<div class="rp-empty-msg">Eroare la încărcare.</div>';
   }
 }
+
 
 function closeDeviceSessionsModal(){
   document.getElementById('sessionsModal').classList.remove('open');
