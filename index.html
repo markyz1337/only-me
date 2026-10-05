@@ -189,16 +189,13 @@ filter:blur(15px) saturate(1.25) brightness(0.5);
 
 
   
-@keyframes heroDriftNoBlur{
-  0%{transform:scale(1.05) translate(0,0) rotate(0deg); filter:saturate(1.25) brightness(0.5)}
-  33%{transform:scale(1.12) translate(-3%,2%) rotate(1deg); filter:saturate(1.55) brightness(0.62)}
-  66%{transform:scale(1.16) translate(2.5%,-3%) rotate(-1.2deg); filter:saturate(1.05) brightness(0.42)}
-  100%{transform:scale(1.05) translate(0,0) rotate(0deg); filter:saturate(1.25) brightness(0.5)}
-}
 .hero-bg{
-  animation:heroDriftNoBlur 26s ease-in-out infinite !important;
-  filter:saturate(1.25) brightness(0.5) !important;
+  animation:none !important;
+  transform:scale(1.05) !important;
+  filter:blur(15px) saturate(1.25) brightness(0.5) !important;
 }
+
+
 
   .ambient-layer{
     position:absolute; inset:0;
@@ -1138,24 +1135,6 @@ filter:blur(15px) saturate(1.25) brightness(0.5);
   }
 
   .tv-transport button.tv-focused{border-radius:50%}
-
-/* ===== FĂRĂ BLUR ÎN PLAYER ===== */
-
-/* Imaginea din fundal: fără blur, fără animația care rescrie filter-ul */
-.hero-bg{
-  animation:none !important;
-  filter:saturate(1.25) brightness(0.5) !important;
-}
-
-/* Sticla translucidă de pe butoane și chip-uri, fără blur */
-.transport button,
-.icon-action .circ,
-.rp-toggle-btn{
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
-}
-
-
 </style>
 
 </head>
