@@ -1925,7 +1925,9 @@ function openRecentlyPlayedModal(){
   document.getElementById('rpModalStationName').innerText = current.name;
   document.getElementById('rpSearchInput').value = '';
   renderRpModalList('');
+  document.getElementById('rpModalList').scrollTop = 0;
   document.getElementById('rpModal').classList.add('open');
+
   lockBodyScroll();
   pauseBackgroundAnimations();
 }
