@@ -2216,7 +2216,10 @@ function switchTab(tab){
   rail.classList.add('fading');
   setTimeout(()=>{
     renderRail();
+    rail.scrollLeft = 0;
+    requestAnimationFrame(updateTileScale);
     requestAnimationFrame(()=>{
+
       requestAnimationFrame(()=>{
         rail.classList.remove('fading');
       });
