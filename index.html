@@ -2218,9 +2218,8 @@ function switchTab(tab){
   rail.classList.add('fading');
   setTimeout(()=>{
     renderRail();
-    rail.scrollLeft = 0;
-    requestAnimationFrame(updateTileScale);
     requestAnimationFrame(()=>{
+
 
       requestAnimationFrame(()=>{
         rail.classList.remove('fading');
@@ -2810,43 +2809,85 @@ function sameStationList(a,b){
   return true;
 }
 
+function railCopies(list){
+  if(list.length < 3) return 1;          // sub 3 posturi nu are sens bucla
+  let c = Math.max(5, Math.ceil(2600 / (list.length * 104)));
+  return c % 2 ? c : c + 1;              // număr impar, ca să existe o copie "de mijloc"
+}
+
+function centerRailOnFirst(){
+  const rail = document.getElementById('rail');
+  const list = getStationsForActiveTab();
+  const tiles = rail.querySelectorAll('.channel-tile');
+  if(!tiles.length) return;
+  const mid = Math.floor(railCopies(list) / 2) * list.length;
+  const t = tiles[mid];
+  if(!t) return;
+  const offset = t.getBoundingClientRect().left - rail.getBoundingClientRect().left
+               - (rail.clientWidth - t.offsetWidth) / 2;
+  rail.scrollLeft += offset;
+  updateTileScale();
+}
+
+function wrapRailLoop(){
+  const rail = document.getElementById('rail');
+  const list = getStationsForActiveTab();
+  const copies = railCopies(list);
+  if(copies < 3) return;
+  const tiles = rail.querySelectorAll('.channel-tile');
+  if(tiles.length < list.length + 1) return;
+  const setW = tiles[list.length].getBoundingClientRect().left - tiles[0].getBoundingClientRect().left;
+  if(!setW) return;
+  const m = Math.floor(copies / 2);
+  if(rail.scrollLeft < setW){
+    rail.scrollLeft += setW * m;
+  }else if(rail.scrollLeft > setW * (copies - 2)){
+    rail.scrollLeft -= setW * m;
+  }
+  updateTileScale();
+}
+
 function renderRail(){
   const rail = document.getElementById('rail');
   if(!rail) return;
   const list = getStationsForActiveTab();
+  const copies = railCopies(list);
 
   if(!sameStationList(list, railStationsCache)){
     rail.innerHTML = "";
-    list.forEach(s=>{
-      const div = document.createElement('div');
-      const isActive = !!(current && current.stream === s.stream);
-      div.className = 'channel-tile' + (isActive ? ' active' : '') + (s.name==='Hope' ? ' is-hope' : '');
+    for(let c = 0; c < copies; c++){
+      list.forEach(s=>{
+        const div = document.createElement('div');
+        const isActive = !!(current && current.stream === s.stream);
+        div.className = 'channel-tile' + (isActive ? ' active' : '') + (s.name==='Hope' ? ' is-hope' : '');
 
-      const safeName = s.name.replace(/</g,'&lt;');
-      const fav = isFavorite(s);
-      div.innerHTML = `<div class="tile-art" style="${isActive ? `border-color:${getColor(s)}` : ''}">
-          <img src="${s.img||FALLBACK_IMG}" onerror="this.src='${FALLBACK_IMG}'" alt="">
-          <button type="button" class="tile-fav-btn ${fav?'active':''}" data-stream="${encodeURIComponent(s.stream)}" onclick="toggleFavoriteByStream(this.dataset.stream); event.stopPropagation();" aria-label="Adaugă la favorite">
-            <svg viewBox="0 0 24 24" fill="${fav?'currentColor':'none'}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-
-          </button>
-        </div>
-        <div class="tile-name"><span class="tn-inner"><span class="tn-text">${safeName}</span><span class="tn-text tn-clone">${safeName}</span></span></div>`;
-      div.addEventListener('click', (e)=>{
-        if(e.target.closest('.tile-fav-btn')) return;
-        play(s);
+        const safeName = s.name.replace(/</g,'&lt;');
+        const fav = isFavorite(s);
+        div.innerHTML = `<div class="tile-art" style="${isActive ? `border-color:${getColor(s)}` : ''}">
+            <img src="${s.img||FALLBACK_IMG}" onerror="this.src='${FALLBACK_IMG}'" alt="">
+            <button type="button" class="tile-fav-btn ${fav?'active':''}" data-stream="${encodeURIComponent(s.stream)}" onclick="toggleFavoriteByStream(this.dataset.stream); event.stopPropagation();" aria-label="Adaugă la favorite">
+              <svg viewBox="0 0 24 24" fill="${fav?'currentColor':'none'}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <div class="tile-name"><span class="tn-inner"><span class="tn-text">${safeName}</span><span class="tn-text tn-clone">${safeName}</span></span></div>`;
+        div.addEventListener('click', (e)=>{
+          if(e.target.closest('.tile-fav-btn')) return;
+          play(s);
+        });
+        rail.appendChild(div);
       });
-      rail.appendChild(div);
-    });
+    }
     railStationsCache = list.slice();
-    requestAnimationFrame(setupMarquees);
-    requestAnimationFrame(updateTileScale);
+    requestAnimationFrame(()=>{
+      setupMarquees();
+      centerRailOnFirst();
+    });
     return;
   }
 
   const tiles = rail.querySelectorAll('.channel-tile');
   tiles.forEach((tileEl, idx)=>{
-    const s = list[idx];
+    const s = list[idx % list.length];
     if(!s) return;
     const isActive = !!(current && current.stream === s.stream);
     tileEl.classList.toggle('active', isActive);
@@ -2864,6 +2905,7 @@ function renderRail(){
     }
   });
 }
+
 
 
 const MIN_TILE_SCALE = 0.8;
@@ -2890,11 +2932,15 @@ function updateTileScale(){
     art.style.transform = `scale(${scale.toFixed(3)})`;
   });
 }
+let railWrapTimer = null;
 function onRailScroll(){
+  clearTimeout(railWrapTimer);
+  railWrapTimer = setTimeout(wrapRailLoop, 120); // sare în copia din mijloc când te oprești din scroll
   if(tileScaleTicking) return;
   tileScaleTicking = true;
   requestAnimationFrame(()=>{ updateTileScale(); tileScaleTicking = false; });
 }
+
 
 function setupMarquees(){
   document.querySelectorAll('.tile-name').forEach(el=>{
