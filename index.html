@@ -2826,9 +2826,15 @@ function centerRailOnFirst(){
   if(!t) return;
   const offset = t.getBoundingClientRect().left - rail.getBoundingClientRect().left
                - (rail.clientWidth - t.offsetWidth) / 2;
+   rail.style.scrollSnapType = 'none';    // fără snap cât setăm poziția
   rail.scrollLeft += offset;
   updateTileScale();
+  requestAnimationFrame(()=>{
+    rail.style.scrollSnapType = '';
+    updateTileScale();
+  });
 }
+
 
 function wrapRailLoop(){
   const rail = document.getElementById('rail');
@@ -2879,11 +2885,10 @@ function renderRail(){
       });
     }
     railStationsCache = list.slice();
-    requestAnimationFrame(()=>{
-      setupMarquees();
-      centerRailOnFirst();
-    });
+    centerRailOnFirst();                 // imediat, cât rail-ul e încă ascuns
+    requestAnimationFrame(setupMarquees);
     return;
+
   }
 
   const tiles = rail.querySelectorAll('.channel-tile');
