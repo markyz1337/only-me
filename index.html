@@ -2823,9 +2823,10 @@ function centerRailOnFirst(){
   const tiles = rail.querySelectorAll('.channel-tile');
   if(!tiles.length) return;
   const startIdx = list.length > 1 ? 1 : 0;
-
-
+  const mid = Math.floor(railCopies(list) / 2) * list.length + startIdx;
+  const t = tiles[mid];
   if(!t) return;
+
   const offset = t.getBoundingClientRect().left - rail.getBoundingClientRect().left
                - (rail.clientWidth - t.offsetWidth) / 2;
    rail.style.scrollSnapType = 'none';    // fără snap cât setăm poziția
