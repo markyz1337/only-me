@@ -2394,8 +2394,10 @@ function play(station){
   setAmbientColor(getColor(station));
 
   renderRail();
+  centerRailOnCurrent();
   refreshRpUI();
   saveLastStation(station);
+
   fetchMetadata(station);
   upsertSession();
 
@@ -2841,6 +2843,28 @@ function centerRailOnFirst(){
     rail.style.scrollSnapType = '';
     updateTileScale();
   });
+}
+
+
+function centerRailOnCurrent(){
+  if(!current) return;
+  const rail = document.getElementById('rail');
+  const list = getStationsForActiveTab();
+  if(!rail || !list.length) return;
+  const tiles = rail.querySelectorAll('.channel-tile');
+  const railRect = rail.getBoundingClientRect();
+  const railCenter = railRect.left + railRect.width / 2;
+  let bestDelta = null;
+  tiles.forEach((tile, idx)=>{
+    const s = list[idx % list.length];
+    if(!s || s.stream !== current.stream) return;
+    const r = tile.getBoundingClientRect();
+    const delta = (r.left + r.width / 2) - railCenter;
+    if(bestDelta === null || Math.abs(delta) < Math.abs(bestDelta)) bestDelta = delta;
+  });
+  if(bestDelta === null) return;   // postul curent nu e în tabul afișat
+  if(Math.abs(bestDelta) < 2) return;
+  rail.scrollTo({ left: rail.scrollLeft + bestDelta, behavior: 'smooth' });
 }
 
 
