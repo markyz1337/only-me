@@ -2817,6 +2817,9 @@ function railCopies(list){
   return c % 2 ? c : c + 1;              // număr impar, ca să existe o copie "de mijloc"
 }
 
+
+let ignoreScrollUntil = 0;
+
 function centerRailOnFirst(){
   const rail = document.getElementById('rail');
   const list = getStationsForActiveTab();
@@ -2829,8 +2832,10 @@ function centerRailOnFirst(){
 
   const offset = t.getBoundingClientRect().left - rail.getBoundingClientRect().left
                - (rail.clientWidth - t.offsetWidth) / 2;
-   rail.style.scrollSnapType = 'none';    // fără snap cât setăm poziția
+  ignoreScrollUntil = Date.now() + 800;  // scroll-ul acesta nu e al utilizatorului
+  rail.style.scrollSnapType = 'none';    // fără snap cât setăm poziția
   rail.scrollLeft += offset;
+
   updateTileScale();
   requestAnimationFrame(()=>{
     rail.style.scrollSnapType = '';
@@ -4082,7 +4087,9 @@ document.querySelector('.hero-frame').addEventListener('pointerdown', function(e
 });
 
 function firstInteractionStart(e){
+  if(e.type === 'scroll' && Date.now() < ignoreScrollUntil) return;
   const t = e.target;
+
   const onButton = t && t.closest && t.closest('button');
   if(!onButton && audio.paused){
     audio.play().catch(()=>{});
