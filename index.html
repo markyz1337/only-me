@@ -2820,8 +2820,9 @@ function centerRailOnFirst(){
   const list = getStationsForActiveTab();
   const tiles = rail.querySelectorAll('.channel-tile');
   if(!tiles.length) return;
-  const mid = Math.floor(railCopies(list) / 2) * list.length;
-  const t = tiles[mid];
+  const startIdx = list.length > 1 ? 1 : 0;
+
+
   if(!t) return;
   const offset = t.getBoundingClientRect().left - rail.getBoundingClientRect().left
                - (rail.clientWidth - t.offsetWidth) / 2;
