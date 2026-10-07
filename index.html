@@ -4094,11 +4094,16 @@ initWordmarkTap();
 
 
 document.getElementById('rail').addEventListener('scroll', onRailScroll, {passive:true});
+let wheelSnapTimer = null;
 document.getElementById('rail').addEventListener('wheel', function(e){
   if(Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // lasă scroll-ul orizontal nativ (touchpad) neschimbat
   e.preventDefault();
+  this.style.scrollSnapType = 'none';
   this.scrollLeft += e.deltaY;
+  clearTimeout(wheelSnapTimer);
+  wheelSnapTimer = setTimeout(()=>{ this.style.scrollSnapType = ''; }, 150);
 }, { passive:false });
+
 window.addEventListener('resize', ()=>requestAnimationFrame(updateTileScale));
 setInterval(updateHopeProgressRing, 60000);
 
