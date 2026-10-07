@@ -2255,7 +2255,8 @@ function toTitleCase(str){
   }).join(' ');
 }
 function removeDuplicateNames(text){
-  let parts=text.split(/[,，|\-\u2013\u2014\/]|feat\.|ft\.|&| x /gi);
+  let parts=text.split(/[,，|\/]|\s[-\u2013\u2014]\s|feat\.|ft\.|&| x /gi);
+
   let clean=[], seen=[];
   parts.forEach(p=>{
     let o=fixCase(p.trim().replace(/\s+/g,' '));
