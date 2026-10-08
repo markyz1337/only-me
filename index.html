@@ -503,7 +503,9 @@ filter:blur(15px) saturate(1.25) brightness(0.5);
 
   @media (hover:hover) and (pointer:fine){
     .rail{scroll-snap-type:none}
+    .tile-art{transition:border-color .2s, box-shadow .2s}
   }
+
 
 
   .rail::-webkit-scrollbar{display:none}
@@ -4098,26 +4100,39 @@ initWordmarkTap();
 
 
 document.getElementById('rail').addEventListener('scroll', onRailScroll, {passive:true});
-let wheelTarget = null, wheelRaf = null;
+let wheelTarget = 0, wheelPos = 0, wheelRaf = null, wheelLastT = 0;
 document.getElementById('rail').addEventListener('wheel', function(e){
   if(Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // lasă scroll-ul orizontal nativ (touchpad) neschimbat
   e.preventDefault();
   const rail = this;
-  if(wheelTarget === null) wheelTarget = rail.scrollLeft;
-  wheelTarget += e.deltaY * 1.5;
+  if(!wheelRaf){
+    wheelPos = wheelTarget = rail.scrollLeft;
+    wheelLastT = performance.now();
+  }
+  let dy = e.deltaY;
+  if(e.deltaMode === 1) dy *= 32;            // unele mouse-uri raportează în linii
+  wheelTarget += dy * 1.5;
   if(wheelRaf) return;
-  let last = -1;
-  const step = ()=>{
-    const diff = wheelTarget - rail.scrollLeft;
-    if(Math.abs(diff) < 0.5 || rail.scrollLeft === last){
-      wheelTarget = null; wheelRaf = null; return;
+  const step = (now)=>{
+    const dt = Math.min(50, now - wheelLastT);
+    wheelLastT = now;
+    const k = 1 - Math.pow(1 - 0.12, dt / 16.67);   // la fel de fluid la 60 / 120 / 144 Hz
+    const diff = wheelTarget - wheelPos;
+    if(Math.abs(diff) < 0.3){
+      rail.scrollLeft = wheelTarget;
+      wheelRaf = null;
+      return;
     }
-    last = rail.scrollLeft;
-    rail.scrollLeft += diff * 0.18;
+    // dacă bucla infinită a sărit între timp, ne aliniem la noua poziție
+    const drift = rail.scrollLeft - Math.round(wheelPos);
+    if(Math.abs(drift) > 40){ wheelPos += drift; wheelTarget += drift; }
+    wheelPos += diff * k;
+    rail.scrollLeft = wheelPos;
     wheelRaf = requestAnimationFrame(step);
   };
   wheelRaf = requestAnimationFrame(step);
 }, { passive:false });
+
 
 
 window.addEventListener('resize', ()=>requestAnimationFrame(updateTileScale));
